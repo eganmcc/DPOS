@@ -1,0 +1,46 @@
+# Node / TypeScript
+node_modules/
+dist/
+build/
+coverage/
+*.log
+npm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+*.pem
+
+# Prisma
+server/prisma/*.db
+
+# Flutter / Dart
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/build/
+app/.packages
+app/pubspec.lock
+
+# Vue / Vite
+web-admin/dist/
+web-admin/node_modules/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude agent folder (may hold local settings)
+.claude/settings.local.json
+
+# Design import (extracted zip) + source zips — the design lives in specs/001-pos-mvp/design/
+design-import/
+*.zip
+
+# Dev run logs / scratch
+server/server-run.*
+server/npm-install.log
+app/flutter-run.log

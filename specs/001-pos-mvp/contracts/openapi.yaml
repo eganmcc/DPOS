@@ -1,0 +1,437 @@
+openapi: 3.0.3
+info:
+  title: DPOS API
+  version: 0.1.0
+  description: >
+    Authoritative REST API for the DPOS mobile POS MVP. The API is the only client of
+    PostgreSQL. It owns all monetary math, atomic checkout, immutable order history, the
+    inventory ledger, multi-tenant scoping, and audit. Money values are integer rupiah (IDR).
+    This contract is illustrative for planning; request/response shapes are refined in tasks.
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Local dev (Docker Postgres)
+  - url: https://api.dpos.example/api/v1
+    description: UAT / demo (AWS RDS, Jakarta ap-southeast-3)
+
+tags:
+  - name: auth
+  - name: catalog
+  - name: orders
+  - name: payments
+  - name: inventory
+  - name: reports
+  - name: admin
+
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Owner login (email/password) or staff login (PIN) → JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - $ref: '#/components/schemas/OwnerLogin'
+                - $ref: '#/components/schemas/PinLogin'
+      responses:
+        '200': { description: JWT issued, content: { application/json: { schema: { $ref: '#/components/schemas/AuthToken' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /outlets:
+    get:
+      tags: [admin]
+      summary: List outlets for the authenticated merchant
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Outlet' } } } } }
+
+  /catalog:
+    get:
+      tags: [catalog]
+      summary: Full catalog snapshot for an outlet (categories, products, variants, modifiers, tax rule)
+      parameters:
+        - { in: query, name: outletId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Catalog' } } } }
+
+  /orders:
+    post:
+      tags: [orders]
+      summary: Submit a completed sale (idempotent, atomic, server-authoritative amounts)
+      description: >
+        Creates an order from line inputs and a payment, in a single transaction. The server
+        RECOMPUTES all amounts from the catalog + outlet tax rule and IGNORES any client-sent
+        totals. Idempotent on (merchantId, clientOrderId): a retry returns the existing order
+        with 200 and creates no duplicate lines or stock movements.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          schema: { type: string }
+          description: Optional mirror of clientOrderId; the body field is authoritative.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderSubmit' }
+      responses:
+        '201': { description: Sale recorded, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        '200': { description: Idempotent replay — existing order returned, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    get:
+      tags: [orders]
+      summary: List transactions for an outlet (history)
+      parameters:
+        - { in: query, name: outletId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: from, schema: { type: string, format: date } }
+        - { in: query, name: to, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Order' } } } } }
+
+  /orders/{id}:
+    get:
+      tags: [orders]
+      summary: Transaction detail
+      parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /orders/{id}/void:
+    post:
+      tags: [orders]
+      summary: Full-void a completed sale (OWNER only; audited; restores stock)
+      description: >
+        Appends an OrderVoid record — the Order and its lines/totals are NOT rewritten and
+        `status` stays COMPLETED; the returned order's `effectiveStatus` derives to VOIDED. Also
+        appends positive VOID_RESTORE inventory movements, a REVERSAL payment where a charge was
+        captured, and an audit log — all in one transaction. Denied for CASHIER role.
+      parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+                clientVoidId: { type: string, format: uuid, description: 'device idempotency key; a retry with the same value is a no-op' }
+      responses:
+        '200':
+          description: >
+            Voided (order returned with effectiveStatus=VOIDED). Idempotent — a repeat void of an
+            already-voided order (UNIQUE(orderId), or same clientVoidId) returns the same result
+            without a second stock restoration.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Order' } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: Order not in a voidable state (e.g. not COMPLETED) }
+
+  /inventory/stock:
+    get:
+      tags: [inventory]
+      summary: Current stock balances (projection) for an outlet
+      parameters: [ { in: query, name: outletId, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/StockBalance' } } } } }
+
+  /inventory/movements:
+    get:
+      tags: [inventory]
+      summary: Append-only movement ledger for an outlet (audit/debug)
+      parameters: [ { in: query, name: outletId, required: true, schema: { type: string, format: uuid } } ]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/InventoryMovement' } } } } }
+
+  /reports/daily:
+    get:
+      tags: [reports]
+      summary: Daily total, payment-method breakdown, and top items for an outlet
+      parameters:
+        - { in: query, name: outletId, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: date, required: true, schema: { type: string, format: date } }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/DailyReport' } } } }
+
+  /admin/products:
+    post:
+      tags: [admin]
+      summary: Create a product with variants and modifier groups (OWNER)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: '#/components/schemas/ProductWrite' } } }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Product' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  responses:
+    Unauthorized: { description: Missing/invalid credentials }
+    Forbidden: { description: Authenticated but not permitted (role/tenant scope) }
+    BadRequest: { description: Validation error }
+    NotFound: { description: Not found within the caller's tenant scope }
+
+  schemas:
+    OwnerLogin:
+      type: object
+      required: [email, password]
+      properties: { email: { type: string, format: email }, password: { type: string } }
+    PinLogin:
+      type: object
+      required: [merchantId, pin]
+      properties: { merchantId: { type: string, format: uuid }, pin: { type: string }, deviceId: { type: string, format: uuid } }
+    AuthToken:
+      type: object
+      properties:
+        token: { type: string }
+        role: { type: string, enum: [OWNER, CASHIER] }
+        merchantId: { type: string, format: uuid }
+
+    Outlet:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        taxRule: { $ref: '#/components/schemas/TaxRule' }
+
+    TaxRule:
+      type: object
+      description: Per-outlet, configurable — not a hard-coded tax type.
+      properties:
+        label: { type: string, example: PBJT }
+        rateBps: { type: integer, description: basis points, example: 1000 }
+        serviceChargeBps: { type: integer, nullable: true, example: 500 }
+
+    Catalog:
+      type: object
+      properties:
+        outletId: { type: string, format: uuid }
+        taxRule: { $ref: '#/components/schemas/TaxRule' }
+        categories: { type: array, items: { type: object } }
+        products: { type: array, items: { $ref: '#/components/schemas/Product' } }
+
+    Product:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        categoryId: { type: string, format: uuid }
+        isAvailable: { type: boolean }
+        variants: { type: array, items: { $ref: '#/components/schemas/Variant' } }
+        modifierGroups: { type: array, items: { type: object } }
+
+    ProductWrite:
+      type: object
+      required: [name, categoryId, variants]
+      properties:
+        name: { type: string }
+        categoryId: { type: string, format: uuid }
+        variants:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [name, price]
+            properties:
+              name: { type: string }
+              price: { type: integer, description: integer rupiah }
+              costPrice: { type: integer, nullable: true }
+              sku: { type: string, nullable: true }
+              barcode: { type: string, nullable: true }
+              trackInventory: { type: boolean, default: false }
+        outletAvailability:
+          type: array
+          nullable: true
+          description: optional per-outlet availability overrides (ProductOutlet)
+          items: { $ref: '#/components/schemas/ProductOutlet' }
+
+    Variant:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        price: { type: integer, description: integer rupiah }
+        sku: { type: string, nullable: true }
+        trackInventory: { type: boolean }
+        isAvailable: { type: boolean }
+
+    OrderSubmit:
+      type: object
+      required: [clientOrderId, outletId, type, lines, payment]
+      description: >
+        Client sends line selections and the tendered payment. Client MUST NOT be trusted for
+        totals — any totals present are ignored and recomputed server-side.
+      properties:
+        clientOrderId: { type: string, format: uuid, description: idempotency key with merchantId }
+        outletId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        shiftId: { type: string, format: uuid, nullable: true }
+        type: { type: string, enum: [DINE_IN, TAKEAWAY, RETAIL] }
+        tableLabel: { type: string, nullable: true }
+        orderDiscount:
+          type: object
+          nullable: true
+          description: server computes discountAmount; reason/approvedBy captured for audit
+          properties:
+            kind: { type: string, enum: [PERCENT, AMOUNT] }
+            value: { type: integer }
+            reason: { type: string, nullable: true }
+            approvedBy: { type: string, format: uuid, nullable: true }
+        lines:
+          type: array
+          minItems: 1
+          items:
+            type: object
+            required: [variantId, qty]
+            properties:
+              variantId: { type: string, format: uuid }
+              qty: { type: number, minimum: 0, description: NUMERIC — supports weighted retail later }
+              note: { type: string, nullable: true }
+              modifierIds: { type: array, items: { type: string, format: uuid } }
+              lineDiscount:
+                type: object
+                nullable: true
+                properties:
+                  kind: { type: string, enum: [PERCENT, AMOUNT] }
+                  value: { type: integer }
+                  reason: { type: string, nullable: true }
+                  approvedBy: { type: string, format: uuid, nullable: true }
+        payment:
+          type: object
+          required: [method]
+          properties:
+            method: { type: string, enum: [CASH, QRIS_SIMULATED] }
+            tendered: { type: integer, nullable: true, description: cash tendered (integer rupiah) }
+
+    Order:
+      type: object
+      description: >
+        Server-authoritative representation of a sale. Money fields are computed by the API.
+        `status` is the stored lifecycle and never advances past COMPLETED; `effectiveStatus` is
+        DERIVED (VOIDED if an active void exists, REFUNDED if an active reversal payment exists).
+        Completed orders and their lines are immutable — voids/refunds are separate records.
+      properties:
+        id: { type: string, format: uuid }
+        clientOrderId: { type: string, format: uuid }
+        outletId: { type: string, format: uuid }
+        cashierId: { type: string, format: uuid }
+        deviceId: { type: string, format: uuid }
+        shiftId: { type: string, format: uuid, nullable: true }
+        type: { type: string, enum: [DINE_IN, TAKEAWAY, RETAIL] }
+        status: { type: string, enum: [DRAFT, HELD, AWAITING_PAYMENT, COMPLETED], description: stored lifecycle (terminal at COMPLETED) }
+        effectiveStatus: { type: string, enum: [DRAFT, HELD, AWAITING_PAYMENT, COMPLETED, VOIDED, REFUNDED], description: derived; not stored }
+        subtotal: { type: integer }
+        discountTotal: { type: integer }
+        taxTotal: { type: integer }
+        taxLabelSnapshot: { type: string }
+        taxRateBpsSnapshot: { type: integer }
+        serviceChargeTotal: { type: integer }
+        serviceChargeLabelSnapshot: { type: string, nullable: true }
+        serviceChargeRateBpsSnapshot: { type: integer, nullable: true }
+        grandTotal: { type: integer }
+        lines: { type: array, items: { $ref: '#/components/schemas/OrderLine' } }
+        discounts: { type: array, items: { $ref: '#/components/schemas/OrderDiscount' } }
+        payments: { type: array, items: { $ref: '#/components/schemas/Payment' } }
+        voids: { type: array, items: { $ref: '#/components/schemas/OrderVoid' }, description: append-only; active row ⇒ effectiveStatus VOIDED }
+        createdAt: { type: string, format: date-time }
+
+    OrderLine:
+      type: object
+      description: Immutable snapshot of a sold line.
+      properties:
+        variantId: { type: string, format: uuid }
+        qty: { type: number, description: NUMERIC(12,3) — supports weighted/unit retail later }
+        productNameSnapshot: { type: string }
+        skuSnapshot: { type: string, nullable: true }
+        unitPriceSnapshot: { type: integer }
+        costPriceSnapshot: { type: integer, nullable: true }
+        selectedModifiersSnapshot:
+          type: array
+          items: { type: object, properties: { name: { type: string }, priceDelta: { type: integer } } }
+        lineDiscount: { type: integer, description: calculated snapshot (sum of LINE-scope discounts) }
+        lineTotal: { type: integer }
+
+    OrderDiscount:
+      type: object
+      description: Audit-friendly discount record. discountAmount is calculated server-side.
+      properties:
+        id: { type: string, format: uuid }
+        scope: { type: string, enum: [ORDER, LINE] }
+        kind: { type: string, enum: [PERCENT, AMOUNT] }
+        value: { type: integer, description: 'percent basis points (PERCENT) or rupiah (AMOUNT)' }
+        discountAmount: { type: integer, description: calculated rupiah }
+        reason: { type: string, nullable: true }
+        appliedBy: { type: string, format: uuid }
+        approvedBy: { type: string, format: uuid, nullable: true, description: required when over policy threshold }
+
+    OrderVoid:
+      type: object
+      description: >
+        Append-only, immutable full-void record; does not mutate the order. At most one per order
+        (UNIQUE(orderId)). No "unvoid" in the MVP.
+      properties:
+        id: { type: string, format: uuid }
+        orderId: { type: string, format: uuid }
+        clientVoidId: { type: string, format: uuid, nullable: true, description: device idempotency key (UNIQUE with merchantId) }
+        reason: { type: string, nullable: true }
+        voidedBy: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+
+    Payment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        direction: { type: string, enum: [CHARGE, REVERSAL], default: CHARGE }
+        reversalType: { type: string, enum: [VOID, REFUND], nullable: true, description: 'null for CHARGE; required for REVERSAL. VOID reversal does NOT make the order REFUNDED' }
+        reversesPaymentId: { type: string, format: uuid, nullable: true, description: set for REVERSAL }
+        method: { type: string, enum: [CASH, QRIS_SIMULATED] }
+        amount: { type: integer }
+        status: { type: string, enum: [CREATED, PENDING, PAID, FAILED, EXPIRED, CANCELLED], description: no REFUNDED status — refunds are new REVERSAL rows, not a status on the original }
+        tendered: { type: integer, nullable: true }
+        change: { type: integer, nullable: true }
+        qrPayload: { type: string, nullable: true, description: for QRIS_SIMULATED, the QR content to render }
+
+    ProductOutlet:
+      type: object
+      description: Per-outlet product availability (and reserved price override).
+      properties:
+        outletId: { type: string, format: uuid }
+        productId: { type: string, format: uuid }
+        isAvailable: { type: boolean }
+        priceOverride: { type: integer, nullable: true, description: reserved for later; unused in MVP }
+
+    StockBalance:
+      type: object
+      properties:
+        variantId: { type: string, format: uuid }
+        quantityOnHand: { type: integer }
+
+    InventoryMovement:
+      type: object
+      properties:
+        variantId: { type: string, format: uuid }
+        qtyDelta: { type: integer }
+        reason: { type: string, enum: [SALE, VOID_RESTORE, ADJUSTMENT, RECEIVE] }
+        refType: { type: string }
+        refId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+
+    DailyReport:
+      type: object
+      properties:
+        date: { type: string, format: date }
+        grossTotal: { type: integer }
+        byPaymentMethod:
+          type: array
+          items: { type: object, properties: { method: { type: string }, total: { type: integer }, count: { type: integer } } }
+        topItems:
+          type: array
+          items: { type: object, properties: { productName: { type: string }, qty: { type: integer }, total: { type: integer } } }

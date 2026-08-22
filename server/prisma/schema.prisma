@@ -1,0 +1,503 @@
+// DPOS authoritative schema (PostgreSQL). Implements specs/001-pos-mvp/data-model.md.
+// Money = integer rupiah. Quantities = Decimal(12,3). Rates = basis points (Int).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Enums ----------
+enum StaffRole {
+  OWNER
+  CASHIER
+}
+
+enum ProductType {
+  FNB
+  RETAIL
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  RETAIL
+}
+
+// Stored lifecycle only — never past COMPLETED. VOIDED/REFUNDED are DERIVED.
+enum OrderStatus {
+  DRAFT
+  HELD
+  AWAITING_PAYMENT
+  COMPLETED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS_SIMULATED
+}
+
+enum PaymentDirection {
+  CHARGE
+  REVERSAL
+}
+
+enum ReversalType {
+  VOID
+  REFUND
+}
+
+// No REFUNDED status — a refund is a new REVERSAL payment.
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  EXPIRED
+  CANCELLED
+}
+
+enum InventoryReason {
+  SALE
+  VOID_RESTORE
+  ADJUSTMENT
+  RECEIVE
+}
+
+enum DiscountScope {
+  ORDER
+  LINE
+}
+
+enum DiscountKind {
+  PERCENT
+  AMOUNT
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
+}
+
+enum CashMovementType {
+  CASH_IN
+  CASH_OUT
+  SALE
+  PAYOUT
+}
+
+// ---------- Tenancy & identity ----------
+model Merchant {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  outlets    Outlet[]
+  staff      Staff[]
+  categories Category[]
+  products   Product[]
+  orders     Order[]
+  payments   Payment[]
+  movements  InventoryMovement[]
+  stock      InventoryStock[]
+  shifts     Shift[]
+  auditLogs  AuditLog[]
+  orderVoids OrderVoid[]
+  taxRules   TaxRule[]
+  productOutlets ProductOutlet[]
+  devices    Device[]
+
+  @@map("merchants")
+}
+
+model Outlet {
+  id         String   @id @default(uuid())
+  merchantId String
+  name       String
+  address    String?
+  isActive   Boolean  @default(true)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  taxRules       TaxRule[]
+  orders         Order[]
+  stock          InventoryStock[]
+  shifts         Shift[]
+  productOutlets ProductOutlet[]
+  movements      InventoryMovement[]
+  orderVoids     OrderVoid[]
+
+  @@index([merchantId])
+  @@map("outlets")
+}
+
+model Staff {
+  id           String    @id @default(uuid())
+  merchantId   String
+  name         String
+  role         StaffRole
+  pinHash      String
+  email        String?
+  passwordHash String?
+  isActive     Boolean   @default(true)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@map("staff")
+}
+
+model Device {
+  id         String   @id // client-provided device UUID
+  merchantId String
+  outletId   String?
+  label      String?
+  lastSeenAt DateTime @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@map("devices")
+}
+
+// ---------- Catalog ----------
+model Category {
+  id         String  @id @default(uuid())
+  merchantId String
+  outletId   String?
+  name       String
+  sortOrder  Int     @default(0)
+  isActive   Boolean @default(true)
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id])
+  products Product[]
+
+  @@index([merchantId])
+  @@map("categories")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  merchantId  String
+  categoryId  String
+  name        String
+  imageUrl    String?
+  isAvailable Boolean     @default(true)
+  type        ProductType @default(FNB)
+
+  merchant       Merchant         @relation(fields: [merchantId], references: [id])
+  category       Category         @relation(fields: [categoryId], references: [id])
+  variants       ProductVariant[]
+  modifierGroups ModifierGroup[]
+  productOutlets ProductOutlet[]
+
+  @@index([merchantId])
+  @@index([categoryId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id             String   @id @default(uuid())
+  productId      String
+  name           String
+  price          Int // integer rupiah
+  costPrice      Int?
+  sku            String?
+  barcode        String?
+  isDefault      Boolean  @default(false)
+  isAvailable    Boolean  @default(true)
+  trackInventory Boolean  @default(false)
+
+  product    Product             @relation(fields: [productId], references: [id])
+  orderLines OrderLine[]
+  movements  InventoryMovement[]
+  stock      InventoryStock[]
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ModifierGroup {
+  id        String  @id @default(uuid())
+  productId String
+  name      String
+  minSelect Int     @default(0)
+  maxSelect Int     @default(1)
+  required  Boolean @default(false)
+
+  product   Product    @relation(fields: [productId], references: [id])
+  modifiers Modifier[]
+
+  @@index([productId])
+  @@map("modifier_groups")
+}
+
+model Modifier {
+  id              String @id @default(uuid())
+  modifierGroupId String
+  name            String
+  priceDelta      Int    @default(0) // integer rupiah
+
+  group ModifierGroup @relation(fields: [modifierGroupId], references: [id])
+
+  @@index([modifierGroupId])
+  @@map("modifiers")
+}
+
+model TaxRule {
+  id               String  @id @default(uuid())
+  merchantId       String
+  outletId         String
+  label            String // configurable, e.g. "PBJT"
+  rateBps          Int // basis points, 1000 = 10%
+  serviceChargeBps Int?
+  serviceLabel     String?
+  isActive         Boolean @default(true)
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  outlet   Outlet   @relation(fields: [outletId], references: [id])
+
+  @@index([merchantId])
+  @@index([outletId])
+  @@map("tax_rules")
+}
+
+model ProductOutlet {
+  id            String  @id @default(uuid())
+  merchantId    String
+  outletId      String
+  productId     String
+  isAvailable   Boolean @default(true)
+  priceOverride Int? // reserved for later; unused in MVP
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  outlet   Outlet   @relation(fields: [outletId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@unique([outletId, productId])
+  @@index([merchantId])
+  @@map("product_outlets")
+}
+
+// ---------- Orders & payments ----------
+model Order {
+  id            String      @id @default(uuid())
+  clientOrderId String // client-generated UUID (idempotency key with merchantId)
+  merchantId    String
+  outletId      String
+  deviceId      String?
+  cashierId     String
+  shiftId       String?
+  type          OrderType
+  tableLabel    String?
+  status        OrderStatus @default(COMPLETED)
+
+  // Server-authoritative money (integer rupiah)
+  subtotal           Int
+  discountTotal      Int @default(0)
+  taxTotal           Int @default(0)
+  serviceChargeTotal Int @default(0)
+  grandTotal         Int
+
+  // Tax/service snapshots captured at completion
+  taxLabelSnapshot             String?
+  taxRateBpsSnapshot           Int?
+  serviceChargeLabelSnapshot   String?
+  serviceChargeRateBpsSnapshot Int?
+
+  createdAt DateTime  @default(now())
+  closedAt  DateTime?
+
+  merchant  Merchant        @relation(fields: [merchantId], references: [id])
+  outlet    Outlet          @relation(fields: [outletId], references: [id])
+  lines     OrderLine[]
+  discounts OrderDiscount[]
+  payments  Payment[]
+  voids     OrderVoid[]
+
+  @@unique([merchantId, clientOrderId])
+  @@index([outletId])
+  @@map("orders")
+}
+
+model OrderLine {
+  id      String  @id @default(uuid())
+  orderId String
+  variantId String
+  qty     Decimal @db.Decimal(12, 3)
+
+  productNameSnapshot       String
+  skuSnapshot               String?
+  unitPriceSnapshot         Int
+  costPriceSnapshot         Int?
+  selectedVariantSnapshot   String?
+  selectedModifiersSnapshot Json?
+  lineDiscount              Int     @default(0)
+  lineTotal                 Int
+
+  order   Order          @relation(fields: [orderId], references: [id])
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+
+  discounts OrderDiscount[]
+
+  @@index([orderId])
+  @@map("order_lines")
+}
+
+model OrderDiscount {
+  id             String        @id @default(uuid())
+  orderId        String
+  orderLineId    String?
+  scope          DiscountScope
+  kind           DiscountKind
+  value          Int // percent basis points (PERCENT) or rupiah (AMOUNT)
+  discountAmount Int // calculated rupiah
+  reason         String?
+  appliedById    String
+  approvedById   String?
+
+  order Order      @relation(fields: [orderId], references: [id])
+  line  OrderLine? @relation(fields: [orderLineId], references: [id])
+
+  @@index([orderId])
+  @@map("order_discounts")
+}
+
+model OrderVoid {
+  id           String   @id @default(uuid())
+  merchantId   String
+  outletId     String
+  orderId      String
+  clientVoidId String?
+  reason       String?
+  voidedById   String
+  createdAt    DateTime @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  outlet   Outlet   @relation(fields: [outletId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
+
+  @@unique([orderId]) // one full void per order
+  @@unique([merchantId, clientVoidId]) // device idempotency
+  @@map("order_voids")
+}
+
+model Payment {
+  id                String           @id @default(uuid())
+  merchantId        String
+  orderId           String
+  direction         PaymentDirection @default(CHARGE)
+  reversalType      ReversalType? // null for CHARGE, required for REVERSAL
+  reversesPaymentId String?
+  method            PaymentMethod
+  amount            Int
+  status            PaymentStatus    @default(CREATED)
+  providerRef       String?
+  tendered          Int?
+  change            Int?
+  createdAt         DateTime         @default(now())
+  paidAt            DateTime?
+
+  merchant Merchant  @relation(fields: [merchantId], references: [id])
+  order    Order     @relation(fields: [orderId], references: [id])
+  reverses Payment?  @relation("PaymentReversal", fields: [reversesPaymentId], references: [id])
+  reversedBy Payment[] @relation("PaymentReversal")
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+// ---------- Inventory ----------
+model InventoryMovement {
+  id         String          @id @default(uuid())
+  merchantId String
+  outletId   String
+  variantId  String
+  qtyDelta   Decimal         @db.Decimal(12, 3)
+  reason     InventoryReason
+  refType    String?
+  refId      String?
+  createdById String
+  createdAt  DateTime        @default(now())
+
+  merchant Merchant       @relation(fields: [merchantId], references: [id])
+  outlet   Outlet         @relation(fields: [outletId], references: [id])
+  variant  ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@index([outletId, variantId])
+  @@map("inventory_movements")
+}
+
+model InventoryStock {
+  id             String   @id @default(uuid())
+  merchantId     String
+  outletId       String
+  variantId      String
+  quantityOnHand Decimal  @db.Decimal(12, 3) @default(0)
+  updatedAt      DateTime @updatedAt
+
+  merchant Merchant       @relation(fields: [merchantId], references: [id])
+  outlet   Outlet         @relation(fields: [outletId], references: [id])
+  variant  ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([outletId, variantId])
+  @@map("inventory_stock")
+}
+
+// ---------- Shifts ----------
+model Shift {
+  id          String      @id @default(uuid())
+  merchantId  String
+  outletId    String
+  openedById  String
+  openedAt    DateTime    @default(now())
+  openingCash Int         @default(0)
+  closedById  String?
+  closedAt    DateTime?
+  countedCash Int?
+  expectedCash Int?
+  status      ShiftStatus @default(OPEN)
+
+  merchant      Merchant       @relation(fields: [merchantId], references: [id])
+  outlet        Outlet         @relation(fields: [outletId], references: [id])
+  cashMovements CashMovement[]
+
+  @@index([merchantId])
+  @@map("shifts")
+}
+
+model CashMovement {
+  id          String           @id @default(uuid())
+  shiftId     String
+  type        CashMovementType
+  amount      Int
+  note        String?
+  createdById String
+  createdAt   DateTime         @default(now())
+
+  shift Shift @relation(fields: [shiftId], references: [id])
+
+  @@index([shiftId])
+  @@map("cash_movements")
+}
+
+// ---------- Audit ----------
+model AuditLog {
+  id         String   @id @default(uuid())
+  merchantId String
+  outletId   String?
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@index([merchantId])
+  @@map("audit_logs")
+}
