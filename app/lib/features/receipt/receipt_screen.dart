@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/brand.dart';
 import '../../core/money.dart';
-import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../l10n/app_localizations.dart';
+import '../transactions/transaction_status.dart';
 
 class ReceiptScreen extends ConsumerWidget {
   const ReceiptScreen({super.key, required this.order});
@@ -15,10 +15,8 @@ class ReceiptScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    final ext = brandColors(context);
     final ts = DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt);
     final payment = order.payments.isNotEmpty ? order.payments.first : null;
-    final voided = order.effectiveStatus != 'COMPLETED';
 
     return Scaffold(
       appBar: BrandAppBar(title: Text(t.receiptTitle)),
@@ -49,7 +47,7 @@ class ReceiptScreen extends ConsumerWidget {
                           children: [
                             Text('#${order.id.substring(0, 8)}',
                                 style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                            _StatusChip(label: order.effectiveStatus, voided: voided, ext: ext, cs: cs),
+                            StatusChip(status: order.effectiveStatus),
                           ],
                         ),
                         Text(ts, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
@@ -126,25 +124,6 @@ class ReceiptScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(label, style: style), Text(formatRupiah(amount), style: style)],
       ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.voided, required this.ext, required this.cs});
-  final String label;
-  final bool voided;
-  final DposColors ext;
-  final ColorScheme cs;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = voided ? cs.errorContainer : ext.successContainer;
-    final fg = voided ? cs.onErrorContainer : ext.onSuccessContainer;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
-      child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 12)),
     );
   }
 }

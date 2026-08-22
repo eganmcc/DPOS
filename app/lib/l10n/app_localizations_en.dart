@@ -173,4 +173,82 @@ class AppLocalizationsEn extends AppLocalizations {
   String tableLabelShort(String n) {
     return 'Table $n';
   }
+
+  @override
+  String get historyTitle => 'Transactions';
+
+  @override
+  String get historyNetSales => 'NET SALES';
+
+  @override
+  String historyCount(int count) {
+    return '$count sale';
+  }
+
+  @override
+  String historyVoidedCount(int count) {
+    return '$count voided';
+  }
+
+  @override
+  String get emptyHistory => 'No transactions yet';
+
+  @override
+  String get errorHistory => 'Failed to load transactions';
+
+  @override
+  String get actionRetry => 'Retry';
+
+  @override
+  String get transactionTitle => 'Transaction';
+
+  @override
+  String get statusCompleted => 'Paid';
+
+  @override
+  String get statusVoided => 'Voided';
+
+  @override
+  String get statusRefunded => 'Refunded';
+
+  @override
+  String get paymentReversal => 'Reversal';
+
+  @override
+  String get voidedHeader => 'Sale voided';
+
+  @override
+  String get voidReasonLabel => 'Reason';
+
+  @override
+  String get voidImmutableNote =>
+      'The sale is kept as a record — the void is a separate entry and stock has been restored.';
+
+  @override
+  String get actionVoidSale => 'Void sale';
+
+  @override
+  String get voidOwnerOnly => 'Only an owner can void a sale.';
+
+  @override
+  String get voidConfirmTitle => 'Void this sale?';
+
+  @override
+  String get voidConfirmBody =>
+      'The sale stays in the records as voided, stock is restored, and the action is logged.';
+
+  @override
+  String get actionCancel => 'Cancel';
+
+  @override
+  String get actionVoidConfirm => 'Void';
+
+  @override
+  String get voidSuccess => 'Sale voided and stock restored';
+
+  @override
+  String get voidFailed => 'Void failed — please try again';
+
+  @override
+  String get voidForbidden => 'You are not allowed to void a sale';
 }

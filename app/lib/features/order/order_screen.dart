@@ -9,6 +9,7 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
+import '../transactions/transactions_screen.dart';
 import 'cart.dart';
 
 class OrderScreen extends ConsumerWidget {
@@ -43,8 +44,9 @@ class OrderScreen extends ConsumerWidget {
           }),
           const SizedBox(width: 8),
           TextButton(
-            onPressed: () => ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(t.historyLabel))),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+            ),
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),

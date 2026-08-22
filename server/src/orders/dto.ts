@@ -7,6 +7,8 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  Matches,
+  Max,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -95,4 +97,37 @@ export class OrderSubmitDto {
   @ValidateNested()
   @Type(() => PaymentDto)
   payment!: PaymentDto;
+}
+
+export class VoidOrderDto {
+  /** Device idempotency key — a retry with the same value is a no-op (Constitution V). */
+  @IsOptional()
+  @IsUUID()
+  clientVoidId?: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
+
+export class OrderHistoryQuery {
+  @IsUUID()
+  outletId!: string;
+
+  /** Inclusive calendar day, `YYYY-MM-DD`. */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'from must be YYYY-MM-DD' })
+  from?: string;
+
+  /** Inclusive calendar day, `YYYY-MM-DD`. */
+  @IsOptional()
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'to must be YYYY-MM-DD' })
+  to?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(200)
+  limit?: number;
 }

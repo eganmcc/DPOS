@@ -132,14 +132,14 @@ description: "Task list for DPOS Mobile POS MVP"
 
 ### Tests for User Story 3 (critical-integrity)
 
-- [ ] T035 [P] [US3] Integration test: void appends immutable `OrderVoid` (`UNIQUE(order_id)`), order unchanged, stock restored, `AuditLog` written, cashier denied — **and idempotency is strict: retrying the same `client_void_id` produces exactly one `OrderVoid`, exactly one applicable `REVERSAL` Payment (`reversal_type=VOID`), and exactly one set of `VOID_RESTORE` movements** — in `server/test/orders.void.e2e-spec.ts` (SC-004, SC-005)
+- [X] T035 [P] [US3] Integration test: void appends immutable `OrderVoid` (`UNIQUE(order_id)`), order unchanged, stock restored, `AuditLog` written, cashier denied — **and idempotency is strict: retrying the same `client_void_id` produces exactly one `OrderVoid`, exactly one applicable `REVERSAL` Payment (`reversal_type=VOID`), and exactly one set of `VOID_RESTORE` movements** — in `server/test/orders.void.e2e-spec.ts` (SC-004, SC-005)
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Void service in `server/src/orders/void.service.ts`: append `OrderVoid` (never mutate order), positive `VOID_RESTORE` movements, `Payment(direction=REVERSAL, reversal_type=VOID)` where charged, `AuditLog` — one transaction; OWNER-gated; idempotent via `UNIQUE(order_id)`/`client_void_id`
-- [ ] T037 [US3] Expose `POST /orders/{id}/void` and `GET /orders` (history, outlet-scoped) in `server/src/orders/orders.controller.ts`
-- [ ] T038 [P] [US3] Flutter transaction history + detail in `app/lib/features/transactions/`
-- [ ] T039 [US3] Flutter void action (owner-gated) + derived effective-status display in `app/lib/features/transactions/`
+- [X] T036 [US3] Void service in `server/src/orders/void.service.ts`: append `OrderVoid` (never mutate order), positive `VOID_RESTORE` movements, `Payment(direction=REVERSAL, reversal_type=VOID)` where charged, `AuditLog` — one transaction; OWNER-gated; idempotent via `UNIQUE(order_id)`/`client_void_id`
+- [X] T037 [US3] Expose `POST /orders/{id}/void` and `GET /orders` (history, outlet-scoped) in `server/src/orders/orders.controller.ts`
+- [X] T038 [P] [US3] Flutter transaction history + detail in `app/lib/features/transactions/`
+- [X] T039 [US3] Flutter void action (owner-gated) + derived effective-status display in `app/lib/features/transactions/`
 
 **Checkpoint**: US1–US3 independently functional.
 

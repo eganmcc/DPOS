@@ -17,14 +17,19 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **US1 (Take an order & accept payment) — DONE and verified.**
   - Backend: checkout (atomic, idempotent on `UNIQUE(merchant_id, client_order_id)`, server-authoritative amounts), payments (`PaymentProvider` + Cash + SimulatedQRIS), inventory movement + stock. Integrity tests **T018–T020 pass** against RDS (`cd server && npm test`).
   - App: PIN login (4-cell), category chips + product-card grid, cart, checkout (cash tender/change + simulated QRIS QR), receipt preview; bilingual ID/EN; light/dark DIKA-Bold theme.
+- **US3 (Review transactions & void a sale) — backend DONE + verified; app UI built, needs an on-device pass.**
+  - Backend: `POST /orders/{id}/void` (OWNER-gated, 200 per contract) appends an immutable `OrderVoid`, positive `VOID_RESTORE` movements (inverted straight from the sale's ledger rows), a `Payment(direction=REVERSAL, reversal_type=VOID)` per captured charge, and an `AuditLog` — all in one transaction. The order, its lines and the original `PAID` charge are never rewritten; `effectiveStatus` derives to `VOIDED`. Idempotent via `UNIQUE(order_id)` + `UNIQUE(merchant_id, client_void_id)`. `GET /orders?outletId=…` gives outlet-scoped history (newest first, optional `from`/`to`/`limit`).
+  - `PaymentProvider` now also types reversals (`reverse()` on cash + simulated QRIS) so a real PSP drops in unchanged.
+  - Integrity test **T035 passes** (`server/test/orders.void.e2e-spec.ts`): immutability, stock restore, audit, cashier 403, strict idempotency (one `OrderVoid`, one `REVERSAL`, one set of `VOID_RESTORE`), concurrent voids, cross-merchant 404.
+  - App: `app/lib/features/transactions/` — history list (net sales header, per-sale status pill) + detail (lines, totals, charge *and* reversal rows, void record) + owner-gated void with a reason dialog and a per-attempt `clientVoidId`. Cashiers see why the action is unavailable. New ID/EN strings; the POS "History" button now opens it.
 - **Spec Kit artifacts** complete: constitution **v1.0.2**, `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/openapi.yaml`, `quickstart.md`, `tasks.md`, plus design handoff in `specs/001-pos-mvp/design/`.
-- Tasks done: T001–T029 (incl. T029a–h UI polish). See [`specs/001-pos-mvp/tasks.md`](specs/001-pos-mvp/tasks.md).
+- Tasks done: T001–T029 (incl. T029a–h UI polish), **T035–T039**. See [`specs/001-pos-mvp/tasks.md`](specs/001-pos-mvp/tasks.md).
 
 ## Next steps (board scope = US1 + US3 + US6 + US7)
-1. **US3 — Void** (next): transaction history + append-only `OrderVoid` (owner-gated, audited, stock-restoring, idempotent via `client_void_id`) + `REVERSAL` payment typing. Integrity test **T035**. Tasks T035–T039.
+1. **US3 on-device pass**: run the app against the API and walk history → detail → void as owner (button hidden for cashier); confirm the sale shows as *Dibatalkan*, the reversal row appears, and stock comes back. The UI was written in a cloud sandbox with no emulator, so this is the one unverified piece.
 2. **US6** — multi-outlet switcher + reports (daily total, payment split, top items). T046–T048.
 3. **US7** — Vue 3 web admin (products/variants, outlets, staff, dashboard). T049–T050.
-4. Backend leftovers: T012 (audit writer/tx helper module), then US2/US4/US5/US8/US9 per tasks.md.
+4. Backend leftovers: T012 (audit writer/tx helper module — the void service currently writes its `AuditLog` inline), then US2/US4/US5/US8/US9 per tasks.md.
 
 ## How to run (either machine)
 **Prereqs:** Node 20+, Flutter 3.4+, an Android emulator (or device). `uv` optional.
@@ -42,6 +47,15 @@ npx prisma migrate deploy   # first time on a fresh DB; use `migrate dev` when c
 npx ts-node prisma/seed.ts  # seeds demo data (idempotent-ish; skips if 'Warung Kopi Demo' exists)
 npx ts-node src/main.ts     # API on http://0.0.0.0:3000/api/v1  (CORS enabled)
 ```
+**Running the integrity tests without RDS** (cloud sandbox, or a machine whose IP isn't allow-listed):
+any Postgres 16 will do — the suite creates and deletes its own isolated merchant per run.
+```
+pg_ctlcluster 16 main start                      # or: docker compose up -d db
+psql -c "CREATE ROLE dpos LOGIN PASSWORD 'dpos'" ; createdb -O dpos dpos
+# server/.env → DATABASE_URL="postgresql://dpos:dpos@127.0.0.1:5432/dpos?schema=public"
+cd server && npx prisma migrate deploy && npm test   # T018–T020 + T035
+```
+
 **App:**
 ```
 cd app

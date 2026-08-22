@@ -1,16 +1,35 @@
-import { Body, Controller, Get, NotFoundException, Param, Post, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  NotFoundException,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Query,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { StaffRole } from '@prisma/client';
 import { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/auth.types';
 import { OrdersService } from './orders.service';
-import { OrderSubmitDto } from './dto';
+import { VoidService } from './void.service';
+import { OrderHistoryQuery, OrderSubmitDto, VoidOrderDto } from './dto';
 import { mapOrder } from './order.mapper';
 
 @Controller('orders')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
+  constructor(
+    private readonly orders: OrdersService,
+    private readonly voids: VoidService,
+  ) {}
 
   @Post()
   async submit(
@@ -23,10 +42,33 @@ export class OrdersController {
     return mapOrder(order);
   }
 
+  /** Transaction history for an outlet (newest first), scoped to the caller's merchant. */
+  @Get()
+  async list(@CurrentUser() user: AuthUser, @Query() query: OrderHistoryQuery) {
+    const orders = await this.orders.findMany(user.merchantId, query);
+    return orders.map(mapOrder);
+  }
+
   @Get(':id')
-  async getOne(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+  async getOne(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const order = await this.orders.findById(user.merchantId, id);
     if (!order) throw new NotFoundException('Order not found');
     return mapOrder(order);
+  }
+
+  /**
+   * Full-void a completed sale. OWNER only (Constitution VI) — a CASHIER is refused with 403.
+   * Idempotent: a retry returns the same order with no second stock restoration.
+   */
+  @Post(':id/void')
+  @HttpCode(200) // contract: 200 whether this is the first void or an idempotent retry
+  @Roles(StaffRole.OWNER)
+  async void(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: VoidOrderDto,
+  ) {
+    const { order } = await this.voids.voidOrder(user, id, dto);
+    return mapOrder(order); // effectiveStatus = VOIDED (derived, never stored)
   }
 }

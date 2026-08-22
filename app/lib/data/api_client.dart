@@ -44,6 +44,36 @@ class ApiClient {
     final res = await _dio.post('/orders', data: payload);
     return res.data as Map<String, dynamic>;
   }
+
+  /// Transaction history for an outlet, newest first (server-scoped to the merchant).
+  Future<List<Map<String, dynamic>>> getOrders(String outletId, {String? from, String? to}) async {
+    final res = await _dio.get('/orders', queryParameters: {
+      'outletId': outletId,
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// One transaction with its lines, payments and voids.
+  Future<Map<String, dynamic>> getOrder(String orderId) async {
+    final res = await _dio.get('/orders/$orderId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Full-void a completed sale. OWNER only — a cashier's token comes back 403.
+  /// [clientVoidId] is the idempotency key: retrying with the same value is a no-op server-side.
+  Future<Map<String, dynamic>> voidOrder(
+    String orderId, {
+    required String clientVoidId,
+    String? reason,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/void', data: {
+      'clientVoidId': clientVoidId,
+      if (reason != null && reason.isNotEmpty) 'reason': reason,
+    });
+    return res.data as Map<String, dynamic>;
+  }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {

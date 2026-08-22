@@ -174,4 +174,82 @@ class AppLocalizationsId extends AppLocalizations {
   String tableLabelShort(String n) {
     return 'Meja $n';
   }
+
+  @override
+  String get historyTitle => 'Transaksi';
+
+  @override
+  String get historyNetSales => 'PENJUALAN BERSIH';
+
+  @override
+  String historyCount(int count) {
+    return '$count transaksi';
+  }
+
+  @override
+  String historyVoidedCount(int count) {
+    return '$count dibatalkan';
+  }
+
+  @override
+  String get emptyHistory => 'Belum ada transaksi';
+
+  @override
+  String get errorHistory => 'Gagal memuat transaksi';
+
+  @override
+  String get actionRetry => 'Coba lagi';
+
+  @override
+  String get transactionTitle => 'Transaksi';
+
+  @override
+  String get statusCompleted => 'Lunas';
+
+  @override
+  String get statusVoided => 'Dibatalkan';
+
+  @override
+  String get statusRefunded => 'Dikembalikan';
+
+  @override
+  String get paymentReversal => 'Pembalikan';
+
+  @override
+  String get voidedHeader => 'Transaksi dibatalkan';
+
+  @override
+  String get voidReasonLabel => 'Alasan';
+
+  @override
+  String get voidImmutableNote =>
+      'Transaksi tetap tersimpan sebagai catatan — pembatalan dicatat terpisah dan stok telah dikembalikan.';
+
+  @override
+  String get actionVoidSale => 'Batalkan transaksi';
+
+  @override
+  String get voidOwnerOnly => 'Hanya pemilik yang dapat membatalkan transaksi.';
+
+  @override
+  String get voidConfirmTitle => 'Batalkan transaksi ini?';
+
+  @override
+  String get voidConfirmBody =>
+      'Transaksi tetap tercatat sebagai dibatalkan, stok dikembalikan, dan tindakan ini dicatat.';
+
+  @override
+  String get actionCancel => 'Batal';
+
+  @override
+  String get actionVoidConfirm => 'Batalkan';
+
+  @override
+  String get voidSuccess => 'Transaksi dibatalkan, stok dikembalikan';
+
+  @override
+  String get voidFailed => 'Pembatalan gagal — coba lagi';
+
+  @override
+  String get voidForbidden => 'Anda tidak berhak membatalkan transaksi';
 }

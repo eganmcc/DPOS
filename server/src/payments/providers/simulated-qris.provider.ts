@@ -1,7 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { v4 as uuidv4 } from 'uuid';
-import { ChargeInput, ChargeResult, PaymentProvider } from '../payment-provider';
+import {
+  ChargeInput,
+  ChargeResult,
+  PaymentProvider,
+  ReversalInput,
+  ReversalResult,
+} from '../payment-provider';
 
 /**
  * Simulated QRIS: produces a QR payload for the exact amount and marks it PAID (demo "mark as
@@ -22,6 +28,20 @@ export class SimulatedQrisProvider implements PaymentProvider {
       status: PaymentStatus.PAID,
       providerRef: ref,
       qrPayload,
+    };
+  }
+
+  /**
+   * Simulated PSP reversal: settles immediately with its own provider reference. A real PSP would
+   * call the acquirer and may start PENDING before settling.
+   */
+  reverse(input: ReversalInput): ReversalResult {
+    return {
+      method: PaymentMethod.QRIS_SIMULATED,
+      amount: input.amount,
+      status: PaymentStatus.PAID,
+      reversalType: input.reversalType,
+      providerRef: `rev-${input.originalProviderRef ?? 'unknown'}-${uuidv4()}`,
     };
   }
 }

@@ -1,6 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PaymentMethod, PaymentStatus } from '@prisma/client';
-import { ChargeInput, ChargeResult, PaymentProvider } from '../payment-provider';
+import {
+  ChargeInput,
+  ChargeResult,
+  PaymentProvider,
+  ReversalInput,
+  ReversalResult,
+} from '../payment-provider';
 
 @Injectable()
 export class CashProvider implements PaymentProvider {
@@ -17,6 +23,16 @@ export class CashProvider implements PaymentProvider {
       status: PaymentStatus.PAID,
       tendered,
       change: tendered - grandTotal,
+    };
+  }
+
+  /** Cash back out of the drawer settles immediately. */
+  reverse(input: ReversalInput): ReversalResult {
+    return {
+      method: PaymentMethod.CASH,
+      amount: input.amount,
+      status: PaymentStatus.PAID,
+      reversalType: input.reversalType,
     };
   }
 }

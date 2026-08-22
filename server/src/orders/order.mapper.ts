@@ -1,8 +1,14 @@
 import { Prisma } from '@prisma/client';
 
-type OrderWithRelations = Prisma.OrderGetPayload<{
-  include: { lines: true; discounts: true; payments: true; voids: true };
-}>;
+/** Everything the API returns with an order (and everything effective-status derivation needs). */
+export const ORDER_INCLUDE = {
+  lines: true,
+  discounts: true,
+  payments: true,
+  voids: true,
+} satisfies Prisma.OrderInclude;
+
+export type OrderWithRelations = Prisma.OrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
 
 /**
  * Derive the effective transaction state (Constitution IV):

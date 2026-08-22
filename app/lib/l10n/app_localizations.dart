@@ -409,6 +409,150 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Table {n}'**
   String tableLabelShort(String n);
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions'**
+  String get historyTitle;
+
+  /// No description provided for @historyNetSales.
+  ///
+  /// In en, this message translates to:
+  /// **'NET SALES'**
+  String get historyNetSales;
+
+  /// No description provided for @historyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sale'**
+  String historyCount(int count);
+
+  /// No description provided for @historyVoidedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} voided'**
+  String historyVoidedCount(int count);
+
+  /// No description provided for @emptyHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get emptyHistory;
+
+  /// No description provided for @errorHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load transactions'**
+  String get errorHistory;
+
+  /// No description provided for @actionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get actionRetry;
+
+  /// No description provided for @transactionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction'**
+  String get transactionTitle;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get statusCompleted;
+
+  /// No description provided for @statusVoided.
+  ///
+  /// In en, this message translates to:
+  /// **'Voided'**
+  String get statusVoided;
+
+  /// No description provided for @statusRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded'**
+  String get statusRefunded;
+
+  /// No description provided for @paymentReversal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reversal'**
+  String get paymentReversal;
+
+  /// No description provided for @voidedHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale voided'**
+  String get voidedHeader;
+
+  /// No description provided for @voidReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get voidReasonLabel;
+
+  /// No description provided for @voidImmutableNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The sale is kept as a record — the void is a separate entry and stock has been restored.'**
+  String get voidImmutableNote;
+
+  /// No description provided for @actionVoidSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Void sale'**
+  String get actionVoidSale;
+
+  /// No description provided for @voidOwnerOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only an owner can void a sale.'**
+  String get voidOwnerOnly;
+
+  /// No description provided for @voidConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Void this sale?'**
+  String get voidConfirmTitle;
+
+  /// No description provided for @voidConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The sale stays in the records as voided, stock is restored, and the action is logged.'**
+  String get voidConfirmBody;
+
+  /// No description provided for @actionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get actionCancel;
+
+  /// No description provided for @actionVoidConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Void'**
+  String get actionVoidConfirm;
+
+  /// No description provided for @voidSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale voided and stock restored'**
+  String get voidSuccess;
+
+  /// No description provided for @voidFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Void failed — please try again'**
+  String get voidFailed;
+
+  /// No description provided for @voidForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not allowed to void a sale'**
+  String get voidForbidden;
 }
 
 class _AppLocalizationsDelegate

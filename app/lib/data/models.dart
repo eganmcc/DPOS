@@ -131,13 +131,25 @@ class PaymentResult {
   final String status;
   final int? change;
   final String? qrPayload;
+
+  /// CHARGE (the sale) or REVERSAL (a void/refund compensating record). The original charge is
+  /// never rewritten — a reversal is always a new row (Constitution IV).
+  final String direction;
+
+  /// VOID or REFUND for a REVERSAL; null for a CHARGE.
+  final String? reversalType;
+
   const PaymentResult({
     required this.method,
     required this.amount,
     required this.status,
     required this.change,
     required this.qrPayload,
+    this.direction = 'CHARGE',
+    this.reversalType,
   });
+
+  bool get isReversal => direction == 'REVERSAL';
 
   factory PaymentResult.fromJson(Map<String, dynamic> j) => PaymentResult(
         method: j['method'],
@@ -145,6 +157,29 @@ class PaymentResult {
         status: j['status'],
         change: j['change'],
         qrPayload: j['qrPayload'],
+        direction: j['direction'] ?? 'CHARGE',
+        reversalType: j['reversalType'],
+      );
+}
+
+/// Append-only full-void record. Its existence is what makes an order effectively VOIDED.
+class OrderVoidResult {
+  final String id;
+  final String? reason;
+  final String voidedById;
+  final DateTime createdAt;
+  const OrderVoidResult({
+    required this.id,
+    required this.reason,
+    required this.voidedById,
+    required this.createdAt,
+  });
+
+  factory OrderVoidResult.fromJson(Map<String, dynamic> j) => OrderVoidResult(
+        id: j['id'],
+        reason: j['reason'],
+        voidedById: j['voidedById'] ?? '',
+        createdAt: DateTime.tryParse(j['createdAt'] ?? '')?.toLocal() ?? DateTime.now(),
       );
 }
 
@@ -170,6 +205,9 @@ class OrderLineResult {
 
 class OrderResult {
   final String id;
+  final String status;
+  final String? type;
+  final String? tableLabel;
   final int subtotal;
   final int discountTotal;
   final int taxTotal;
@@ -180,8 +218,12 @@ class OrderResult {
   final DateTime createdAt;
   final List<OrderLineResult> lines;
   final List<PaymentResult> payments;
+  final List<OrderVoidResult> voids;
   const OrderResult({
     required this.id,
+    this.status = 'COMPLETED',
+    this.type,
+    this.tableLabel,
     required this.subtotal,
     required this.discountTotal,
     required this.taxTotal,
@@ -192,10 +234,19 @@ class OrderResult {
     required this.createdAt,
     required this.lines,
     required this.payments,
+    this.voids = const [],
   });
+
+  /// Derived, never stored — the server sends it and the app only displays it.
+  bool get isVoided => effectiveStatus == 'VOIDED';
+  bool get isRefunded => effectiveStatus == 'REFUNDED';
+  bool get canBeVoided => effectiveStatus == 'COMPLETED';
 
   factory OrderResult.fromJson(Map<String, dynamic> j) => OrderResult(
         id: j['id'],
+        status: j['status'] ?? 'COMPLETED',
+        type: j['type'],
+        tableLabel: j['tableLabel'],
         subtotal: j['subtotal'],
         discountTotal: j['discountTotal'] ?? 0,
         taxTotal: j['taxTotal'] ?? 0,
@@ -203,12 +254,15 @@ class OrderResult {
         grandTotal: j['grandTotal'],
         taxLabelSnapshot: j['taxLabelSnapshot'],
         effectiveStatus: j['effectiveStatus'] ?? j['status'] ?? 'COMPLETED',
-        createdAt: DateTime.tryParse(j['createdAt'] ?? '') ?? DateTime.now(),
+        createdAt: DateTime.tryParse(j['createdAt'] ?? '')?.toLocal() ?? DateTime.now(),
         lines: ((j['lines'] ?? []) as List)
             .map((l) => OrderLineResult.fromJson(l as Map<String, dynamic>))
             .toList(),
         payments: ((j['payments'] ?? []) as List)
             .map((p) => PaymentResult.fromJson(p as Map<String, dynamic>))
+            .toList(),
+        voids: ((j['voids'] ?? []) as List)
+            .map((v) => OrderVoidResult.fromJson(v as Map<String, dynamic>))
             .toList(),
       );
 }

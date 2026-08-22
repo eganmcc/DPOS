@@ -10,17 +10,11 @@ import {
   VariantInfo,
 } from '../common/money';
 import { AuthUser } from '../auth/auth.types';
-import { OrderSubmitDto } from './dto';
-
-const ORDER_INCLUDE = {
-  lines: true,
-  discounts: true,
-  payments: true,
-  voids: true,
-} satisfies Prisma.OrderInclude;
+import { OrderSubmitDto, OrderHistoryQuery } from './dto';
+import { ORDER_INCLUDE, OrderWithRelations } from './order.mapper';
 
 export interface CheckoutResult {
-  order: Prisma.OrderGetPayload<{ include: typeof ORDER_INCLUDE }>;
+  order: OrderWithRelations;
   replay: boolean;
 }
 
@@ -238,10 +232,43 @@ export class OrdersService {
     return this.prisma.order.findFirst({ where: { id, merchantId }, include: ORDER_INCLUDE });
   }
 
+  /**
+   * Transaction history for one outlet, newest first. Tenant-scoped (Constitution VI): the outlet
+   * must belong to the caller's merchant or nothing is returned.
+   */
+  async findMany(merchantId: string, query: OrderHistoryQuery): Promise<OrderWithRelations[]> {
+    const createdAt: Prisma.DateTimeFilter = {};
+    if (query.from) createdAt.gte = startOfDay(query.from);
+    if (query.to) createdAt.lt = dayAfter(query.to);
+
+    return this.prisma.order.findMany({
+      where: {
+        merchantId,
+        outletId: query.outletId,
+        ...(query.from || query.to ? { createdAt } : {}),
+      },
+      include: ORDER_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+      take: query.limit ?? 100,
+    });
+  }
+
   private async findByClientOrderId(merchantId: string, clientOrderId: string) {
     return this.prisma.order.findUnique({
       where: { merchantId_clientOrderId: { merchantId, clientOrderId } },
       include: ORDER_INCLUDE,
     });
   }
+}
+
+/** `YYYY-MM-DD` (device-local calendar day) → inclusive lower bound. */
+function startOfDay(day: string): Date {
+  return new Date(`${day}T00:00:00.000Z`);
+}
+
+/** `YYYY-MM-DD` → exclusive upper bound (start of the next day). */
+function dayAfter(day: string): Date {
+  const d = new Date(`${day}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d;
 }
