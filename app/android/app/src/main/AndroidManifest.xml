@@ -4,7 +4,7 @@
          ("cek koneksi") while debug builds work fine. -->
     <uses-permission android:name="android.permission.INTERNET"/>
     <application
-        android:label="dpos"
+        android:label="DIKA POS"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
