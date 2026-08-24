@@ -2,17 +2,35 @@
  * Demo F&B menu (US1 catalog fixture) — shared by `seed.ts` (fresh merchant) and
  * `seed-menu.ts` (top up an existing merchant, e.g. the live RDS demo).
  *
- * Images: Wikimedia Commons thumbnails, all CC/CC0 (see LICENCE note per item).
+ * Images: the app loads `<MENU_IMAGE_BASE_URL>/<slug>.jpg` (S3 today). The
+ * Wikimedia Commons URLs below are the *sources* those objects were provisioned
+ * from — all CC/CC0, credited per item — and are never served to the app.
  * Commons only serves a fixed set of thumbnail widths — 250 and 500 are valid,
  * arbitrary widths (300/320/400/800) return HTTP 400 — so every URL here is 500px.
- * These are placeholders for the demo; swap `imageUrl` for S3 objects later and
- * nothing else has to change (the app just renders whatever URL the API returns).
+ * Provisioning is scripts/provision-menu-images.ts (run on the EC2 box, which
+ * holds an IAM role for the bucket — no access keys anywhere).
  */
 import type { PrismaClient } from '@prisma/client';
 
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/thumb';
 /** Build a 500px Commons thumbnail URL from its "<a>/<ab>/<File>.jpg" path. */
-const img = (path: string): string => `${COMMONS}/${path}/500px-${path.split('/').pop()}`;
+const commons = (path: string): string => `${COMMONS}/${path}/500px-${path.split('/').pop()}`;
+
+/**
+ * Where the app loads menu photos from. Objects live at `<base>/<slug>.jpg`, so
+ * moving to CloudFront or another bucket is one env var + a re-run of
+ * seed-menu.ts — no code change, no app release.
+ */
+export const MENU_IMAGE_BASE_URL =
+  process.env.MENU_IMAGE_BASE_URL ??
+  'https://amzn-s3-dkpos-bucket.s3.ap-southeast-3.amazonaws.com/menu';
+
+/** "Gado-Gado" -> "gado_gado"; the S3 object key and the local filename. */
+export const slugify = (name: string): string =>
+  name.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+/** Public URL the API hands to the app for a product photo. */
+export const menuImageUrl = (name: string): string => `${MENU_IMAGE_BASE_URL}/${slugify(name)}.jpg`;
 
 export interface MenuVariantSpec {
   name: string;
@@ -33,7 +51,8 @@ export interface MenuModifierGroupSpec {
 export interface MenuItemSpec {
   name: string;
   category: string;
-  imageUrl: string;
+  /** Original placeholder photo; used only by scripts/provision-menu-images.ts. */
+  sourceImageUrl: string;
   variants: MenuVariantSpec[];
   modifierGroups?: MenuModifierGroupSpec[];
 }
@@ -71,7 +90,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Kopi Susu',
     category: 'Minuman',
-    imageUrl: img('5/54/Es_kopi_susu_kekinian_di_Yogyakarta%2C_Indonesia.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('5/54/Es_kopi_susu_kekinian_di_Yogyakarta%2C_Indonesia.jpg'), // CC BY-SA 4.0
     variants: [
       { name: 'Regular', price: 18000, costPrice: 7000, isDefault: true, trackInventory: true },
       { name: 'Large', price: 23000, costPrice: 9000, trackInventory: true },
@@ -81,7 +100,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Es Teh Manis',
     category: 'Minuman',
-    imageUrl: img('6/64/Es_teh_manis.jpg'), // CC BY 4.0
+    sourceImageUrl: commons('6/64/Es_teh_manis.jpg'), // CC BY 4.0
     variants: [
       { name: 'Regular', price: 8000, costPrice: 2500, isDefault: true, trackInventory: true },
       { name: 'Jumbo', price: 12000, costPrice: 3500, trackInventory: true },
@@ -90,7 +109,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Es Jeruk',
     category: 'Minuman',
-    imageUrl: img('6/67/Orange_juice_1_edit1.jpg'), // public domain
+    sourceImageUrl: commons('6/67/Orange_juice_1_edit1.jpg'), // public domain
     variants: [
       { name: 'Regular', price: 12000, costPrice: 4000, isDefault: true, trackInventory: true },
       { name: 'Jumbo', price: 16000, costPrice: 5500, trackInventory: true },
@@ -99,7 +118,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Cappuccino',
     category: 'Minuman',
-    imageUrl: img('0/0c/Cappuccino_latte_art_20260712_-_02.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('0/0c/Cappuccino_latte_art_20260712_-_02.jpg'), // CC BY-SA 4.0
     variants: [
       { name: 'Hot', price: 25000, costPrice: 9000, isDefault: true, trackInventory: true },
       { name: 'Iced', price: 28000, costPrice: 10000, trackInventory: true },
@@ -109,19 +128,19 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Teh Tarik',
     category: 'Minuman',
-    imageUrl: img('2/26/Teh_Tarik.jpg'), // CC BY-SA 2.0
+    sourceImageUrl: commons('2/26/Teh_Tarik.jpg'), // CC BY-SA 2.0
     variants: [{ name: 'Regular', price: 15000, costPrice: 5000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Air Mineral',
     category: 'Minuman',
-    imageUrl: img('3/37/Botol_air_mineral.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('3/37/Botol_air_mineral.jpg'), // CC BY-SA 4.0
     variants: [{ name: '600 ml', price: 6000, costPrice: 2500, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Jus Alpukat',
     category: 'Minuman',
-    imageUrl: img('2/2c/Jus_alpukat_Bandung.JPG'), // CC BY 3.0
+    sourceImageUrl: commons('2/2c/Jus_alpukat_Bandung.JPG'), // CC BY 3.0
     variants: [{ name: 'Regular', price: 20000, costPrice: 8000, isDefault: true, trackInventory: true }],
   },
 
@@ -129,19 +148,19 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Nasi Goreng',
     category: 'Makanan',
-    imageUrl: img('3/3e/Nasi_goreng_indonesia.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('3/3e/Nasi_goreng_indonesia.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Regular', price: 27000, costPrice: 12000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Mie Goreng',
     category: 'Makanan',
-    imageUrl: img('f/f9/Mie_goreng.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('f/f9/Mie_goreng.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Regular', price: 25000, costPrice: 11000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Ayam Geprek',
     category: 'Makanan',
-    imageUrl: img('c/ce/Ayam_geprek.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('c/ce/Ayam_geprek.jpg'), // CC BY-SA 4.0
     variants: [
       { name: 'Original', price: 28000, costPrice: 13000, isDefault: true, trackInventory: true },
       { name: 'Keju', price: 33000, costPrice: 16000, trackInventory: true },
@@ -151,19 +170,19 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Sate Ayam',
     category: 'Makanan',
-    imageUrl: img('4/44/Sate_Ayam_Panggang.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('4/44/Sate_Ayam_Panggang.jpg'), // CC BY-SA 4.0
     variants: [{ name: '10 tusuk', price: 30000, costPrice: 14000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Soto Ayam',
     category: 'Makanan',
-    imageUrl: img('8/8e/Soto_Ayam_Kudus.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('8/8e/Soto_Ayam_Kudus.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Regular', price: 26000, costPrice: 11000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Bakso',
     category: 'Makanan',
-    imageUrl: img('6/6e/Bakso_Indonesian_Meatball_Soup_from_Solo.jpg'), // CC0
+    sourceImageUrl: commons('6/6e/Bakso_Indonesian_Meatball_Soup_from_Solo.jpg'), // CC0
     variants: [
       { name: 'Biasa', price: 24000, costPrice: 10000, isDefault: true, trackInventory: true },
       { name: 'Spesial', price: 30000, costPrice: 13000, trackInventory: true },
@@ -172,13 +191,13 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Gado-Gado',
     category: 'Makanan',
-    imageUrl: img('3/30/Gado-gado_in_Jakarta.JPG'), // CC BY 3.0
+    sourceImageUrl: commons('3/30/Gado-gado_in_Jakarta.JPG'), // CC BY 3.0
     variants: [{ name: 'Regular', price: 22000, costPrice: 9000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Ayam Bakar',
     category: 'Makanan',
-    imageUrl: img('7/78/Ayam_bakar.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('7/78/Ayam_bakar.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Paket nasi', price: 32000, costPrice: 15000, isDefault: true, trackInventory: true }],
     modifierGroups: [SPICE_LEVEL],
   },
@@ -187,19 +206,19 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Pisang Goreng',
     category: 'Snack',
-    imageUrl: img('0/0f/Pisang_Goreng.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('0/0f/Pisang_Goreng.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Porsi', price: 15000, costPrice: 6000, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Tahu Isi',
     category: 'Snack',
-    imageUrl: img('2/28/Tahu_isi_goreng_plus_cabe_rawit.jpg'), // CC BY-SA 3.0
+    sourceImageUrl: commons('2/28/Tahu_isi_goreng_plus_cabe_rawit.jpg'), // CC BY-SA 3.0
     variants: [{ name: '5 pcs', price: 12000, costPrice: 4500, isDefault: true, trackInventory: true }],
   },
   {
     name: 'Roti Bakar',
     category: 'Snack',
-    imageUrl: img('1/1a/Roti_bakar_kekinian.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('1/1a/Roti_bakar_kekinian.jpg'), // CC BY-SA 4.0
     variants: [
       { name: 'Coklat', price: 18000, costPrice: 7000, isDefault: true, trackInventory: true },
       { name: 'Coklat Keju', price: 22000, costPrice: 9000, trackInventory: true },
@@ -208,7 +227,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Martabak Manis',
     category: 'Snack',
-    imageUrl: img('9/93/Martabak_manis_coklat_keju_khas_indonesia.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('9/93/Martabak_manis_coklat_keju_khas_indonesia.jpg'), // CC BY-SA 4.0
     variants: [
       { name: 'Coklat Kacang', price: 30000, costPrice: 14000, isDefault: true, trackInventory: true },
       { name: 'Keju', price: 35000, costPrice: 17000, trackInventory: true },
@@ -217,7 +236,7 @@ export const MENU: MenuItemSpec[] = [
   {
     name: 'Es Campur',
     category: 'Snack',
-    imageUrl: img('e/e0/Es_Campur%2C_2019.jpg'), // CC BY-SA 4.0
+    sourceImageUrl: commons('e/e0/Es_Campur%2C_2019.jpg'), // CC BY-SA 4.0
     variants: [{ name: 'Regular', price: 20000, costPrice: 8000, isDefault: true, trackInventory: true }],
   },
 ];
@@ -275,7 +294,7 @@ export async function applyMenu(
     if (existing) {
       await prisma.product.update({
         where: { id: existing.id },
-        data: { imageUrl: item.imageUrl, categoryId },
+        data: { imageUrl: menuImageUrl(item.name), categoryId },
       });
       result.productsUpdated += 1;
       trackedVariantIds.push(...existing.variants.filter((v) => v.trackInventory).map((v) => v.id));
@@ -287,7 +306,7 @@ export async function applyMenu(
         merchantId,
         categoryId,
         name: item.name,
-        imageUrl: item.imageUrl,
+        imageUrl: menuImageUrl(item.name),
         variants: {
           create: item.variants.map((v) => ({
             name: v.name,
