@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Flutter declares INTERNET only in the debug/ and profile/ manifests, so
+         without this line every network call in a RELEASE build fails instantly
+         ("cek koneksi") while debug builds work fine. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="dpos"
         android:name="${applicationName}"
