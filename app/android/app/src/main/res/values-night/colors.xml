@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DIKA Bold dark surface, matching the app's dark theme background -->
+    <color name="splash_background">#FF060A12</color>
+</resources>
