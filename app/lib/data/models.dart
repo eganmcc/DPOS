@@ -68,6 +68,7 @@ class Product {
   final String id;
   final String name;
   final String categoryName;
+  final String? imageUrl;
   final bool isAvailable;
   final List<Variant> variants;
   final List<ModifierGroup> modifierGroups;
@@ -75,6 +76,7 @@ class Product {
     required this.id,
     required this.name,
     required this.categoryName,
+    this.imageUrl,
     required this.isAvailable,
     required this.variants,
     required this.modifierGroups,
@@ -84,6 +86,7 @@ class Product {
         id: j['id'],
         name: j['name'],
         categoryName: j['categoryName'] ?? '',
+        imageUrl: j['imageUrl'] as String?,
         isAvailable: j['isAvailable'] ?? true,
         variants: ((j['variants'] ?? []) as List)
             .map((v) => Variant.fromJson(v as Map<String, dynamic>))

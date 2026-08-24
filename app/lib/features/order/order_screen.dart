@@ -132,7 +132,7 @@ class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
                   crossAxisCount: cols,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.86,
+                  childAspectRatio: 0.78,
                 ),
                 itemCount: filtered.length,
                 itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
@@ -171,7 +171,6 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final ext = brandColors(context);
     final qty = ref.watch(cartProvider).lines
         .where((l) => l.product.id == product.id)
         .fold<int>(0, (s, l) => s + l.qty);
@@ -180,28 +179,22 @@ class _ProductCard extends ConsumerWidget {
         : product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
 
     return Card(
+      clipBehavior: Clip.antiAlias, // keep the photo inside the card's rounded corners
       child: InkWell(
         onTap: () => _pickAndAdd(context, ref, product),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Stack(
-              clipBehavior: Clip.none,
               children: [
-                Container(
-                  height: 64,
-                  decoration: BoxDecoration(gradient: ext.headerGradient),
-                  alignment: Alignment.center,
-                  child: Text(
-                    product.name.isNotEmpty ? product.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                        color: kBrandGold, fontSize: 26, fontWeight: FontWeight.w800),
-                  ),
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: _ProductPhoto(product: product),
                 ),
                 if (qty > 0)
                   Positioned(
                     right: 8,
-                    top: 48,
+                    bottom: 8,
                     child: Container(
                       width: 24,
                       height: 24,
@@ -240,6 +233,52 @@ class _ProductCard extends ConsumerWidget {
 
   String _dariLabel(BuildContext context) =>
       Localizations.localeOf(context).languageCode == 'id' ? 'dari' : 'from';
+}
+
+/// Product photo from the API's `imageUrl` (Wikimedia today, S3 later).
+///
+/// `BoxFit.cover` fills the 4:3 frame without distorting the source — the photo
+/// is centre-cropped, never stretched, whatever its original proportions. Any
+/// missing URL, slow load or offline device degrades to the brand initial tile,
+/// so a card is never blank.
+class _ProductPhoto extends StatelessWidget {
+  const _ProductPhoto({required this.product});
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = product.imageUrl;
+    if (url == null || url.isEmpty) return _InitialTile(name: product.name);
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, __, ___) => _InitialTile(name: product.name),
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : _InitialTile(name: product.name),
+    );
+  }
+}
+
+/// DIKA-gradient tile showing the product's initial — placeholder and fallback.
+class _InitialTile extends StatelessWidget {
+  const _InitialTile({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = brandColors(context);
+    return Container(
+      decoration: BoxDecoration(gradient: ext.headerGradient),
+      alignment: Alignment.center,
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(color: kBrandGold, fontSize: 26, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
 }
 
 Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
