@@ -327,39 +327,99 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                   const SizedBox(height: 12),
                 ],
                 for (final g in p.modifierGroups) ...[
-                  Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ...g.modifiers.map((m) => CheckboxListTile(
+                  Row(
+                    children: [
+                      Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Text(_groupHint(context, g),
+                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (_isSingleSelect(g))
+                    // One choice out of the set: chips, like the variant row above.
+                    // Checkboxes here are what let "Less sugar" and "Normal" both
+                    // be ticked on the same drink.
+                    Wrap(
+                      spacing: 8,
+                      children: g.modifiers.map((m) {
+                        final sel = selectedMods.contains(m.id);
+                        return ChoiceChip(
+                          label: Text(_modLabel(m)),
+                          selected: sel,
+                          showCheckmark: false,
+                          selectedColor: cs.primary,
+                          labelStyle:
+                              TextStyle(color: sel ? cs.onPrimary : cs.onSurfaceVariant),
+                          onSelected: (_) => setSheet(() {
+                            final wasSelected = sel;
+                            selectedMods.removeWhere(
+                                (id) => g.modifiers.any((x) => x.id == id));
+                            // Re-tapping clears an optional choice; a required
+                            // group always keeps exactly one selected.
+                            if (!wasSelected || _minFor(g) > 0) selectedMods.add(m.id);
+                          }),
+                        );
+                      }).toList(),
+                    )
+                  else
+                    ...g.modifiers.map((m) {
+                      final on = selectedMods.contains(m.id);
+                      final atCap = _selectedIn(g, selectedMods) >= g.maxSelect;
+                      return CheckboxListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text(
-                            '${m.name}${m.priceDelta != 0 ? ' (+${formatRupiah(m.priceDelta)})' : ''}'),
-                        value: selectedMods.contains(m.id),
-                        onChanged: (on) => setSheet(() {
-                          if (on == true) {
-                            selectedMods.add(m.id);
-                          } else {
-                            selectedMods.remove(m.id);
-                          }
-                        }),
-                      )),
+                        title: Text(_modLabel(m)),
+                        value: on,
+                        // Greyed out once the group's cap is reached.
+                        onChanged: (!on && atCap)
+                            ? null
+                            : (checked) => setSheet(() {
+                                  if (checked == true) {
+                                    selectedMods.add(m.id);
+                                  } else {
+                                    selectedMods.remove(m.id);
+                                  }
+                                }),
+                      );
+                    }),
                   const SizedBox(height: 8),
                 ],
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(t.actionAddToOrder),
-                    onPressed: () {
-                      final mods = p.modifierGroups
-                          .expand((g) => g.modifiers)
-                          .where((m) => selectedMods.contains(m.id))
-                          .toList();
-                      ref.read(cartProvider.notifier).addItem(p, selectedVariant, mods);
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
+                Builder(builder: (context) {
+                  final unmet = _unmetGroups(p, selectedMods);
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (unmet.isNotEmpty) ...[
+                        Text(
+                          _requiredWarning(context, unmet),
+                          style: TextStyle(fontSize: 13, color: cs.error),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: Text(t.actionAddToOrder),
+                          onPressed: unmet.isNotEmpty
+                              ? null
+                              : () {
+                                  final mods = p.modifierGroups
+                                      .expand((g) => g.modifiers)
+                                      .where((m) => selectedMods.contains(m.id))
+                                      .toList();
+                                  ref
+                                      .read(cartProvider.notifier)
+                                      .addItem(p, selectedVariant, mods);
+                                  Navigator.of(context).pop();
+                                },
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
           );
@@ -367,6 +427,43 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
       );
     },
   );
+}
+
+// --- Modifier group rules -------------------------------------------------
+// The API defines each group's minSelect/maxSelect/required; these mirror them
+// in the UI. The server enforces the same rules on checkout, so a stale build
+// cannot submit an impossible combination.
+
+/// Radio-style: exactly one of several options (e.g. sugar level, spice level).
+/// A one-option group stays a checkbox so it can be toggled off.
+bool _isSingleSelect(ModifierGroup g) => g.maxSelect == 1 && g.modifiers.length > 1;
+
+int _selectedIn(ModifierGroup g, Set<String> selected) =>
+    g.modifiers.where((m) => selected.contains(m.id)).length;
+
+/// Effective minimum: `required` implies at least one even if minSelect is 0.
+int _minFor(ModifierGroup g) => g.required ? (g.minSelect < 1 ? 1 : g.minSelect) : g.minSelect;
+
+List<ModifierGroup> _unmetGroups(Product p, Set<String> selected) =>
+    p.modifierGroups.where((g) => _selectedIn(g, selected) < _minFor(g)).toList();
+
+String _modLabel(Modifier m) =>
+    '${m.name}${m.priceDelta != 0 ? ' (+${formatRupiah(m.priceDelta)})' : ''}';
+
+String _groupHint(BuildContext context, ModifierGroup g) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  if (_isSingleSelect(g)) {
+    if (_minFor(g) > 0) return id ? '· pilih 1' : '· choose 1';
+    return id ? '· pilih 1, opsional' : '· choose 1, optional';
+  }
+  if (g.maxSelect > 1) return id ? '· maks ${g.maxSelect}' : '· max ${g.maxSelect}';
+  return id ? '· opsional' : '· optional';
+}
+
+String _requiredWarning(BuildContext context, List<ModifierGroup> unmet) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  final names = unmet.map((g) => g.name).join(', ');
+  return id ? 'Pilih dulu: $names' : 'Choose first: $names';
 }
 
 class _CartPanel extends ConsumerWidget {

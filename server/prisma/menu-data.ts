@@ -63,6 +63,11 @@ export const CATEGORIES: { name: string; sortOrder: number }[] = [
   { name: 'Snack', sortOrder: 3 },
 ];
 
+/**
+ * Sweetness is one choice out of the set — maxSelect 1. "Extra shot" used to
+ * live here, which forced a nonsensical either/or against the sugar level once
+ * the rule is enforced; it is a paid add-on, so it has its own group below.
+ */
 const SUGAR_LEVEL: MenuModifierGroupSpec = {
   name: 'Sugar level',
   minSelect: 0,
@@ -70,8 +75,15 @@ const SUGAR_LEVEL: MenuModifierGroupSpec = {
   modifiers: [
     { name: 'Less sugar', priceDelta: 0 },
     { name: 'Normal', priceDelta: 0 },
-    { name: 'Extra shot', priceDelta: 5000 },
   ],
+};
+
+/** Paid extras, independent of sweetness. */
+const COFFEE_ADDONS: MenuModifierGroupSpec = {
+  name: 'Tambahan',
+  minSelect: 0,
+  maxSelect: 1,
+  modifiers: [{ name: 'Extra shot', priceDelta: 5000 }],
 };
 
 const SPICE_LEVEL: MenuModifierGroupSpec = {
@@ -95,7 +107,7 @@ export const MENU: MenuItemSpec[] = [
       { name: 'Regular', price: 18000, costPrice: 7000, isDefault: true, trackInventory: true },
       { name: 'Large', price: 23000, costPrice: 9000, trackInventory: true },
     ],
-    modifierGroups: [SUGAR_LEVEL],
+    modifierGroups: [SUGAR_LEVEL, COFFEE_ADDONS],
   },
   {
     name: 'Es Teh Manis',
@@ -123,7 +135,7 @@ export const MENU: MenuItemSpec[] = [
       { name: 'Hot', price: 25000, costPrice: 9000, isDefault: true, trackInventory: true },
       { name: 'Iced', price: 28000, costPrice: 10000, trackInventory: true },
     ],
-    modifierGroups: [SUGAR_LEVEL],
+    modifierGroups: [SUGAR_LEVEL, COFFEE_ADDONS],
   },
   {
     name: 'Teh Tarik',
@@ -246,6 +258,86 @@ export interface ApplyMenuResult {
   productsCreated: number;
   productsUpdated: number;
   stockRowsCreated: number;
+  modifiersMoved: number;
+}
+
+/**
+ * Bring an existing product's modifier groups in line with the spec.
+ *
+ * Modifiers are MOVED between groups (groupId update) rather than deleted and
+ * recreated: the rows may be referenced by past order lines, and keeping the id
+ * stable keeps that history intelligible. Order lines snapshot the modifier
+ * name and price anyway, so reshaping groups never rewrites a past sale.
+ *
+ * Returns how many modifiers changed group.
+ */
+async function reconcileModifierGroups(
+  prisma: PrismaClient,
+  productId: string,
+  specs: MenuModifierGroupSpec[],
+): Promise<number> {
+  if (specs.length === 0) return 0;
+  let moved = 0;
+
+  const existingGroups = await prisma.modifierGroup.findMany({
+    where: { productId },
+    include: { modifiers: true },
+  });
+
+  for (const spec of specs) {
+    let group = existingGroups.find((g) => g.name === spec.name);
+    if (group) {
+      await prisma.modifierGroup.update({
+        where: { id: group.id },
+        data: {
+          minSelect: spec.minSelect,
+          maxSelect: spec.maxSelect,
+          required: spec.required ?? false,
+        },
+      });
+    } else {
+      const created = await prisma.modifierGroup.create({
+        data: {
+          productId,
+          name: spec.name,
+          minSelect: spec.minSelect,
+          maxSelect: spec.maxSelect,
+          required: spec.required ?? false,
+        },
+        include: { modifiers: true },
+      });
+      existingGroups.push(created);
+      group = created;
+    }
+
+    for (const modSpec of spec.modifiers) {
+      // The modifier may currently sit in a different group of the same product
+      // (e.g. "Extra shot" moving out of "Sugar level" into "Tambahan").
+      const current = existingGroups
+        .flatMap((g) => g.modifiers.map((m) => ({ ...m, groupName: g.name })))
+        .find((m) => m.name === modSpec.name);
+
+      if (!current) {
+        await prisma.modifier.create({
+          data: { modifierGroupId: group.id, name: modSpec.name, priceDelta: modSpec.priceDelta },
+        });
+        continue;
+      }
+      if (current.modifierGroupId !== group.id) {
+        await prisma.modifier.update({
+          where: { id: current.id },
+          data: { modifierGroupId: group.id, priceDelta: modSpec.priceDelta },
+        });
+        moved += 1;
+      } else if (current.priceDelta !== modSpec.priceDelta) {
+        await prisma.modifier.update({
+          where: { id: current.id },
+          data: { priceDelta: modSpec.priceDelta },
+        });
+      }
+    }
+  }
+  return moved;
 }
 
 /**
@@ -264,6 +356,7 @@ export async function applyMenu(
     productsCreated: 0,
     productsUpdated: 0,
     stockRowsCreated: 0,
+    modifiersMoved: 0,
   };
 
   const categoryIdByName = new Map<string, string>();
@@ -296,6 +389,8 @@ export async function applyMenu(
         where: { id: existing.id },
         data: { imageUrl: menuImageUrl(item.name), categoryId },
       });
+      const moved = await reconcileModifierGroups(prisma, existing.id, item.modifierGroups ?? []);
+      result.modifiersMoved += moved;
       result.productsUpdated += 1;
       trackedVariantIds.push(...existing.variants.filter((v) => v.trackInventory).map((v) => v.id));
       continue;

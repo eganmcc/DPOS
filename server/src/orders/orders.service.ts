@@ -18,6 +18,16 @@ export interface CheckoutResult {
   replay: boolean;
 }
 
+/** The bits of a ModifierGroup the selection rules need. */
+interface ModifierGroupRules {
+  id: string;
+  productId: string;
+  name: string;
+  minSelect: number;
+  maxSelect: number;
+  required: boolean;
+}
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -64,16 +74,25 @@ export class OrdersService {
       ]),
     );
 
-    // Load modifiers referenced by the lines.
+    // Load modifiers referenced by the lines, with their group + product so the
+    // selection can be validated rather than merely priced.
     const modifierIds = [...new Set(dto.lines.flatMap((l) => l.modifierIds ?? []))];
     const modifiers = modifierIds.length
       ? await this.prisma.modifier.findMany({
           where: { id: { in: modifierIds }, group: { product: { merchantId: user.merchantId } } },
+          include: { group: true },
         })
       : [];
+    if (modifiers.length !== modifierIds.length) {
+      // Previously unknown ids were silently dropped and the customer was
+      // charged as if the modifier did not exist.
+      throw new BadRequestException('One or more modifiers are invalid for this merchant');
+    }
     const modifierMap = new Map<string, ModifierInfo>(
       modifiers.map((m) => [m.id, { id: m.id, name: m.name, priceDelta: m.priceDelta }]),
     );
+
+    await this.validateModifierSelection(dto.lines, variants, modifiers);
 
     // Active tax rule for the outlet (zero tax if none configured).
     const taxRuleRow = await this.prisma.taxRule.findFirst({
@@ -258,6 +277,65 @@ export class OrdersService {
       where: { merchantId_clientOrderId: { merchantId, clientOrderId } },
       include: ORDER_INCLUDE,
     });
+  }
+
+  /**
+   * Enforce each product's modifier rules on the server.
+   *
+   * The app renders these constraints (single-select groups, required groups),
+   * but the API is the authority: a stale build or a hand-rolled request must
+   * not be able to attach "Less sugar" AND "Normal" to the same drink, or borrow
+   * another product's modifiers.
+   */
+  private async validateModifierSelection(
+    lines: { variantId: string; modifierIds?: string[] }[],
+    variants: { id: string; productId: string }[],
+    modifiers: { id: string; name: string; group: ModifierGroupRules }[],
+  ): Promise<void> {
+    const productIdByVariant = new Map(variants.map((v) => [v.id, v.productId]));
+    const modifierById = new Map(modifiers.map((m) => [m.id, m]));
+
+    // Every group belonging to the products in this order, so required groups
+    // are caught even when the client sent nothing for them.
+    const productIds = [...new Set(lines.map((l) => productIdByVariant.get(l.variantId)!))];
+    const groups = await this.prisma.modifierGroup.findMany({
+      where: { productId: { in: productIds } },
+    });
+
+    for (const line of lines) {
+      const productId = productIdByVariant.get(line.variantId)!;
+      const selected = line.modifierIds ?? [];
+
+      if (new Set(selected).size !== selected.length) {
+        throw new BadRequestException('Duplicate modifier on a line');
+      }
+
+      const countByGroup = new Map<string, number>();
+      for (const id of selected) {
+        const mod = modifierById.get(id)!;
+        if (mod.group.productId !== productId) {
+          throw new BadRequestException(
+            `Modifier "${mod.name}" does not belong to the product on this line`,
+          );
+        }
+        countByGroup.set(mod.group.id, (countByGroup.get(mod.group.id) ?? 0) + 1);
+      }
+
+      for (const group of groups.filter((g) => g.productId === productId)) {
+        const count = countByGroup.get(group.id) ?? 0;
+        if (count > group.maxSelect) {
+          throw new BadRequestException(
+            `"${group.name}" allows at most ${group.maxSelect} option(s), got ${count}`,
+          );
+        }
+        const min = group.required ? Math.max(group.minSelect, 1) : group.minSelect;
+        if (count < min) {
+          throw new BadRequestException(
+            `"${group.name}" requires at least ${min} option(s), got ${count}`,
+          );
+        }
+      }
+    }
   }
 }
 

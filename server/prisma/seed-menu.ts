@@ -39,6 +39,7 @@ async function main(): Promise<void> {
   console.log(`  products created   : ${r.productsCreated}`);
   console.log(`  products updated   : ${r.productsUpdated} (imageUrl/category refreshed)`);
   console.log(`  stock rows opened  : ${r.stockRowsCreated} @ ${outlet.name}`);
+  console.log(`  modifiers regrouped: ${r.modifiersMoved}`);
   console.log(`  products on menu   : ${total}`);
 }
 
