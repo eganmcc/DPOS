@@ -12,8 +12,17 @@ datasource db {
 
 // ---------- Enums ----------
 enum StaffRole {
-  OWNER
+  OWNER // account admin (portal login)
+  MANAGER
+  SERVER
   CASHIER
+}
+
+// Merchant business type — drives business-specific portal behaviour (e.g. the
+// bill-settlement setting is only relevant to F&B).
+enum BusinessType {
+  FNB
+  GROCERY
 }
 
 enum ProductType {
@@ -99,9 +108,11 @@ enum CashMovementType {
 
 // ---------- Tenancy & identity ----------
 model Merchant {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
+  id           String       @id @default(uuid())
+  name         String // company / legal name
+  businessType BusinessType @default(FNB)
+  logoUrl      String?
+  createdAt    DateTime     @default(now())
 
   outlets    Outlet[]
   staff      Staff[]
@@ -124,8 +135,10 @@ model Merchant {
 model Outlet {
   id         String   @id @default(uuid())
   merchantId String
+  code        String? // branch code, unique per merchant
   name        String
   address     String?
+  managerId   String? // Staff.id of the branch manager
   isActive    Boolean           @default(true)
   paymentMode OutletPaymentMode @default(IMMEDIATE)
 
@@ -139,6 +152,7 @@ model Outlet {
   movements      InventoryMovement[]
   orderVoids     OrderVoid[]
 
+  @@unique([merchantId, code])
   @@index([merchantId])
   @@map("outlets")
 }
@@ -146,8 +160,11 @@ model Outlet {
 model Staff {
   id           String    @id @default(uuid())
   merchantId   String
+  employeeId   String? // human-facing id, e.g. "EMP0001", generated on create
   name         String
+  phone        String?
   role         StaffRole
+  outletId     String? // assignment: null = HQ / all branches
   pinHash      String
   email        String?
   passwordHash String?
@@ -155,6 +172,7 @@ model Staff {
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
 
+  @@unique([merchantId, employeeId])
   @@index([merchantId])
   @@map("staff")
 }
