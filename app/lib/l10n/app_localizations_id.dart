@@ -290,4 +290,19 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get tableExists => 'Meja itu sudah punya pesanan terbuka';
+
+  @override
+  String get actionOk => 'Oke';
+
+  @override
+  String get dialogTitleInfo => 'Informasi';
+
+  @override
+  String get dialogTitleSuccess => 'Berhasil';
+
+  @override
+  String get dialogTitleWarning => 'Perhatian';
+
+  @override
+  String get dialogTitleError => 'Tidak bisa';
 }

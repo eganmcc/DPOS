@@ -289,4 +289,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tableExists => 'That table already has an open bill';
+
+  @override
+  String get actionOk => 'OK';
+
+  @override
+  String get dialogTitleInfo => 'Information';
+
+  @override
+  String get dialogTitleSuccess => 'Done';
+
+  @override
+  String get dialogTitleWarning => 'Heads up';
+
+  @override
+  String get dialogTitleError => 'Can\'t do that';
 }

@@ -96,5 +96,10 @@
   "emptyOpenBills": "No open bills",
   "searchTable": "Search table",
   "tableRequired": "Enter a table number",
-  "tableExists": "That table already has an open bill"
+  "tableExists": "That table already has an open bill",
+  "actionOk": "OK",
+  "dialogTitleInfo": "Information",
+  "dialogTitleSuccess": "Done",
+  "dialogTitleWarning": "Heads up",
+  "dialogTitleError": "Can't do that"
 }

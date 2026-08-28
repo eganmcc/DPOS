@@ -625,6 +625,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'That table already has an open bill'**
   String get tableExists;
+
+  /// No description provided for @actionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get actionOk;
+
+  /// No description provided for @dialogTitleInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Information'**
+  String get dialogTitleInfo;
+
+  /// No description provided for @dialogTitleSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get dialogTitleSuccess;
+
+  /// No description provided for @dialogTitleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads up'**
+  String get dialogTitleWarning;
+
+  /// No description provided for @dialogTitleError.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t do that'**
+  String get dialogTitleError;
 }
 
 class _AppLocalizationsDelegate

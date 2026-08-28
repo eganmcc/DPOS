@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
+import '../../core/app_dialog.dart';
 import '../../core/brand.dart';
 import '../../core/formatters.dart';
 import '../../core/money.dart';
@@ -859,15 +860,16 @@ Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
 
   // Dine-in open bills are keyed by table.
   if (state.type == 'DINE_IN' && (state.tableLabel ?? '').trim().isEmpty) {
-    messenger.showSnackBar(SnackBar(content: Text(t.tableRequired)));
+    await showAppDialog(context, kind: AppDialogKind.warning, message: t.tableRequired);
     return false;
   }
   // Friendly pre-check; the server enforces uniqueness too (409).
   final norm = state.tableLabel?.trim().toUpperCase();
   if (norm != null && norm.isNotEmpty) {
     final open = await ref.read(openBillsProvider(session.outletId).future);
+    if (!context.mounted) return false;
     if (open.any((o) => (o.tableLabel ?? '').toUpperCase() == norm)) {
-      messenger.showSnackBar(SnackBar(content: Text(t.tableExists)));
+      await showAppDialog(context, kind: AppDialogKind.error, message: t.tableExists);
       return false;
     }
   }
@@ -883,12 +885,17 @@ Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     cart.clear();
     ref.invalidate(catalogProvider(session.outletId)); // stock reserved
     ref.invalidate(openBillsProvider(session.outletId));
+    // Success shows as a toast once the cart sheet closes and reveals it.
     messenger.showSnackBar(SnackBar(content: Text(t.orderSaved)));
     return true;
   } on DioException catch (e) {
-    messenger.showSnackBar(SnackBar(
-      content: Text(e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn),
-    ));
+    if (context.mounted) {
+      await showAppDialog(
+        context,
+        kind: AppDialogKind.error,
+        message: e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn,
+      );
+    }
     return false;
   }
 }
