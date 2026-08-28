@@ -271,13 +271,13 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
-  String get saveOrder => 'Simpan Pesanan';
+  String get saveOrder => 'Proses Pesanan';
 
   @override
-  String get orderSaved => 'Pesanan disimpan';
+  String get orderSaved => 'Pesanan diproses';
 
   @override
-  String get openBillsTitle => 'Pesanan Terbuka';
+  String get openBillsTitle => 'Pesanan';
 
   @override
   String get emptyOpenBills => 'Belum ada pesanan terbuka';

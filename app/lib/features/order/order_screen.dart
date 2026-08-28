@@ -490,10 +490,10 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Remaining count shown at all times for tracked items,
-                      // not only once it runs out.
+                      // Remaining count, live against the chosen quantity: pick 3
+                      // of 6 and it reads "tinggal 3".
                       if (remaining != null) ...[
-                        Text(_stockLabel(context, remaining),
+                        Text(_stockLabel(context, (remaining - qty).clamp(0, remaining)),
                             style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
@@ -684,7 +684,8 @@ class _CartPanelState extends ConsumerState<_CartPanel> {
                   itemBuilder: (context, i) => _CartLine(index: i),
                 ),
         ),
-        _TotalsBar(preview: preview, taxRule: taxRule, cartEmpty: cart.isEmpty),
+        _TotalsBar(
+            preview: preview, taxRule: taxRule, cartEmpty: cart.isEmpty, floating: floating),
       ],
     );
 
@@ -848,7 +849,8 @@ class _StepBtn extends StatelessWidget {
 
 /// Open-bill confirm: save the order server-side (no payment) so stock is
 /// reserved now and the bill is settled later. Bypasses the offline queue.
-Future<void> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
+/// Returns true on a successful submit (the caller then closes the cart).
+Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
   final t = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
   final session = ref.read(sessionProvider)!;
@@ -858,7 +860,7 @@ Future<void> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
   // Dine-in open bills are keyed by table.
   if (state.type == 'DINE_IN' && (state.tableLabel ?? '').trim().isEmpty) {
     messenger.showSnackBar(SnackBar(content: Text(t.tableRequired)));
-    return;
+    return false;
   }
   // Friendly pre-check; the server enforces uniqueness too (409).
   final norm = state.tableLabel?.trim().toUpperCase();
@@ -866,7 +868,7 @@ Future<void> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     final open = await ref.read(openBillsProvider(session.outletId).future);
     if (open.any((o) => (o.tableLabel ?? '').toUpperCase() == norm)) {
       messenger.showSnackBar(SnackBar(content: Text(t.tableExists)));
-      return;
+      return false;
     }
   }
 
@@ -882,18 +884,28 @@ Future<void> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     ref.invalidate(catalogProvider(session.outletId)); // stock reserved
     ref.invalidate(openBillsProvider(session.outletId));
     messenger.showSnackBar(SnackBar(content: Text(t.orderSaved)));
+    return true;
   } on DioException catch (e) {
     messenger.showSnackBar(SnackBar(
       content: Text(e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn),
     ));
+    return false;
   }
 }
 
 class _TotalsBar extends ConsumerWidget {
-  const _TotalsBar({required this.preview, required this.taxRule, required this.cartEmpty});
+  const _TotalsBar(
+      {required this.preview,
+      required this.taxRule,
+      required this.cartEmpty,
+      this.floating = false});
   final CartPreview preview;
   final TaxRule? taxRule;
   final bool cartEmpty;
+
+  /// True on the tablet side panel (persistent); false on the mobile cart sheet,
+  /// which is closed after processing an open bill.
+  final bool floating;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -936,9 +948,13 @@ class _TotalsBar extends ConsumerWidget {
             child: FilledButton(
               onPressed: cartEmpty
                   ? null
-                  : () {
+                  : () async {
                       if (openBill) {
-                        _confirmOpenBill(context, ref);
+                        final nav = Navigator.of(context);
+                        final ok = await _confirmOpenBill(context, ref);
+                        // On mobile the cart is a bottom sheet — close it so the
+                        // cashier lands back on the menu for the next order.
+                        if (ok && !floating) nav.pop();
                       } else {
                         Navigator.of(context).push(MaterialPageRoute(
                           builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),

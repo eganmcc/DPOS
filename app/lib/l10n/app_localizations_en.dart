@@ -270,13 +270,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get saveOrder => 'Save order';
+  String get saveOrder => 'Process order';
 
   @override
-  String get orderSaved => 'Order saved';
+  String get orderSaved => 'Order processed';
 
   @override
-  String get openBillsTitle => 'Open bills';
+  String get openBillsTitle => 'Orders';
 
   @override
   String get emptyOpenBills => 'No open bills';

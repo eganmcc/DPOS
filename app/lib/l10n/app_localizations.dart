@@ -587,19 +587,19 @@ abstract class AppLocalizations {
   /// No description provided for @saveOrder.
   ///
   /// In en, this message translates to:
-  /// **'Save order'**
+  /// **'Process order'**
   String get saveOrder;
 
   /// No description provided for @orderSaved.
   ///
   /// In en, this message translates to:
-  /// **'Order saved'**
+  /// **'Order processed'**
   String get orderSaved;
 
   /// No description provided for @openBillsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Open bills'**
+  /// **'Orders'**
   String get openBillsTitle;
 
   /// No description provided for @emptyOpenBills.
