@@ -553,6 +553,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'You are not allowed to void a sale'**
   String get voidForbidden;
+
+  /// No description provided for @soldOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold out'**
+  String get soldOut;
 }
 
 class _AppLocalizationsDelegate

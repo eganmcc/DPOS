@@ -205,30 +205,36 @@ export class OrdersService {
           },
         });
 
-        // Inventory: negative movement + stock projection, only for tracked variants.
+        // Inventory: for stock-tracked variants, decrement only if enough is on hand.
+        // Aggregate per variant (a variant may appear on several lines) and use a
+        // conditional update so an order can never oversell or drive stock negative;
+        // insufficient stock rolls the whole sale back (Constitution: stock enforcement).
+        const neededByVariant = new Map<string, number>();
         for (const cl of computed.lines) {
           if (!cl.trackInventory) continue;
+          neededByVariant.set(cl.variantId, (neededByVariant.get(cl.variantId) ?? 0) + cl.qty);
+        }
+        for (const [variantId, qty] of neededByVariant) {
+          const dec = await tx.inventoryStock.updateMany({
+            where: { outletId: dto.outletId, variantId, quantityOnHand: { gte: qty } },
+            data: { quantityOnHand: { decrement: qty } },
+          });
+          if (dec.count === 0) {
+            const name =
+              computed.lines.find((l) => l.variantId === variantId)?.productNameSnapshot ?? 'item';
+            throw new BadRequestException(`Insufficient stock for ${name}`);
+          }
           await tx.inventoryMovement.create({
             data: {
               merchantId: user.merchantId,
               outletId: dto.outletId,
-              variantId: cl.variantId,
-              qtyDelta: -cl.qty,
+              variantId,
+              qtyDelta: -qty,
               reason: InventoryReason.SALE,
               refType: 'ORDER',
               refId: order.id,
               createdById: user.staffId,
             },
-          });
-          await tx.inventoryStock.upsert({
-            where: { outletId_variantId: { outletId: dto.outletId, variantId: cl.variantId } },
-            create: {
-              merchantId: user.merchantId,
-              outletId: dto.outletId,
-              variantId: cl.variantId,
-              quantityOnHand: -cl.qty,
-            },
-            update: { quantityOnHand: { decrement: cl.qty } },
           });
         }
 

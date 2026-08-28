@@ -178,10 +178,14 @@ class _ProductCard extends ConsumerWidget {
         ? 0
         : product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
 
-    return Card(
+    final t = AppLocalizations.of(context)!;
+    final available = product.anyInStock;
+    return Opacity(
+      opacity: available ? 1 : 0.5,
+      child: Card(
       clipBehavior: Clip.antiAlias, // keep the photo inside the card's rounded corners
       child: InkWell(
-        onTap: () => _pickAndAdd(context, ref, product),
+        onTap: available ? () => _pickAndAdd(context, ref, product) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -191,7 +195,24 @@ class _ProductCard extends ConsumerWidget {
                   aspectRatio: 4 / 3,
                   child: _ProductPhoto(product: product),
                 ),
-                if (qty > 0)
+                if (!available)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: cs.error,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(t.soldOut,
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                      ),
+                    ),
+                  ),
+                if (available && qty > 0)
                   Positioned(
                     right: 8,
                     bottom: 8,
@@ -227,6 +248,7 @@ class _ProductCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -284,7 +306,10 @@ class _InitialTile extends StatelessWidget {
 Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
   final t = AppLocalizations.of(context)!;
   final cs = Theme.of(context).colorScheme;
-  Variant selectedVariant = p.variants.firstWhere((v) => v.isAvailable, orElse: () => p.variants.first);
+  Variant selectedVariant = p.variants.firstWhere(
+    (v) => v.isAvailable && v.inStock,
+    orElse: () => p.variants.firstWhere((v) => v.isAvailable, orElse: () => p.variants.first),
+  );
   final Set<String> selectedMods = {};
 
   await showModalBottomSheet<void>(
@@ -314,13 +339,16 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                     spacing: 8,
                     children: p.variants.map((v) {
                       final sel = selectedVariant.id == v.id;
+                      final orderable = v.isAvailable && v.inStock;
                       return ChoiceChip(
-                        label: Text('${v.name} · ${formatRupiah(v.price)}'),
+                        label: Text(orderable
+                            ? '${v.name} · ${formatRupiah(v.price)}'
+                            : '${v.name} · ${t.soldOut}'),
                         selected: sel,
                         showCheckmark: false,
                         selectedColor: cs.primary,
                         labelStyle: TextStyle(color: sel ? cs.onPrimary : cs.onSurfaceVariant),
-                        onSelected: v.isAvailable ? (_) => setSheet(() => selectedVariant = v) : null,
+                        onSelected: orderable ? (_) => setSheet(() => selectedVariant = v) : null,
                       );
                     }).toList(),
                   ),
@@ -388,6 +416,16 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                 const SizedBox(height: 8),
                 Builder(builder: (context) {
                   final unmet = _unmetGroups(p, selectedMods);
+                  // How many of this variant are already in the cart — the picker
+                  // can't add past the remaining stock.
+                  final inCart = ref
+                      .read(cartProvider)
+                      .lines
+                      .where((l) => l.variant.id == selectedVariant.id)
+                      .fold<int>(0, (s, l) => s + l.qty);
+                  final atStockCap = selectedVariant.trackInventory &&
+                      (selectedVariant.stock ?? 0) <= inCart;
+                  final blocked = unmet.isNotEmpty || !selectedVariant.inStock || atStockCap;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -398,12 +436,17 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                         ),
                         const SizedBox(height: 8),
                       ],
+                      if (atStockCap && selectedVariant.inStock) ...[
+                        Text(_maxStockWarning(context, selectedVariant.stock ?? 0),
+                            style: TextStyle(fontSize: 13, color: cs.error)),
+                        const SizedBox(height: 8),
+                      ],
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           icon: const Icon(Icons.add),
                           label: Text(t.actionAddToOrder),
-                          onPressed: unmet.isNotEmpty
+                          onPressed: blocked
                               ? null
                               : () {
                                   final mods = p.modifierGroups
@@ -464,6 +507,11 @@ String _requiredWarning(BuildContext context, List<ModifierGroup> unmet) {
   final id = Localizations.localeOf(context).languageCode == 'id';
   final names = unmet.map((g) => g.name).join(', ');
   return id ? 'Pilih dulu: $names' : 'Choose first: $names';
+}
+
+String _maxStockWarning(BuildContext context, int stock) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  return id ? 'Stok tinggal $stock' : 'Only $stock in stock';
 }
 
 class _CartPanel extends ConsumerWidget {
@@ -551,9 +599,14 @@ class _CartLine extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final l = ref.watch(cartProvider).lines[index];
+    final cart = ref.watch(cartProvider);
+    final l = cart.lines[index];
     final ctrl = ref.read(cartProvider.notifier);
     final mods = l.modifiers.map((m) => m.name).join(', ');
+    // Cap the stepper at the variant's remaining stock (summed across cart lines).
+    final variantQty =
+        cart.lines.where((x) => x.variant.id == l.variant.id).fold<int>(0, (s, x) => s + x.qty);
+    final atCap = l.variant.trackInventory && (l.variant.stock ?? 0) <= variantQty;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       child: Row(
@@ -582,7 +635,7 @@ class _CartLine extends ConsumerWidget {
           IconButton.outlined(
             visualDensity: VisualDensity.compact,
             iconSize: 16,
-            onPressed: () => ctrl.changeQty(index, 1),
+            onPressed: atCap ? null : () => ctrl.changeQty(index, 1),
             icon: const Icon(Icons.add),
           ),
           SizedBox(width: 72, child: Text(formatRupiah(l.lineTotal), textAlign: TextAlign.right)),

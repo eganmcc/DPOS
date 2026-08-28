@@ -75,6 +75,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       if (!mounted) return;
       cart.clear();
       if (result != null) {
+        // Stock changed server-side — refetch the catalog so remaining counts
+        // (and any newly sold-out items) are current when we return to the POS.
+        ref.invalidate(catalogProvider(session.outletId));
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => ReceiptScreen(order: result)),
         );

@@ -252,4 +252,7 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get voidForbidden => 'Anda tidak berhak membatalkan transaksi';
+
+  @override
+  String get soldOut => 'Habis';
 }

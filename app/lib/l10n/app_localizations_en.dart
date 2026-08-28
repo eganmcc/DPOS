@@ -251,4 +251,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voidForbidden => 'You are not allowed to void a sale';
+
+  @override
+  String get soldOut => 'Sold out';
 }

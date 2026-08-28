@@ -45,6 +45,7 @@ class Variant {
   final String? sku;
   final bool isAvailable;
   final bool trackInventory;
+  final int? stock; // remaining on-hand; null = not tracked (unlimited)
   const Variant({
     required this.id,
     required this.name,
@@ -52,7 +53,11 @@ class Variant {
     required this.sku,
     required this.isAvailable,
     required this.trackInventory,
+    this.stock,
   });
+
+  /// Can be ordered: not tracked, or tracked with stock remaining.
+  bool get inStock => !trackInventory || (stock ?? 0) > 0;
 
   factory Variant.fromJson(Map<String, dynamic> j) => Variant(
         id: j['id'],
@@ -61,6 +66,7 @@ class Variant {
         sku: j['sku'],
         isAvailable: j['isAvailable'] ?? true,
         trackInventory: j['trackInventory'] ?? false,
+        stock: j['stock'] as int?,
       );
 }
 
@@ -81,6 +87,9 @@ class Product {
     required this.variants,
     required this.modifierGroups,
   });
+
+  /// Orderable if any available variant still has stock.
+  bool get anyInStock => isAvailable && variants.any((v) => v.isAvailable && v.inStock);
 
   factory Product.fromJson(Map<String, dynamic> j) => Product(
         id: j['id'],

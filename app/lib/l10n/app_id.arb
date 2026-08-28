@@ -76,5 +76,6 @@
   "actionVoidConfirm": "Batalkan",
   "voidSuccess": "Transaksi dibatalkan, stok dikembalikan",
   "voidFailed": "Pembatalan gagal — coba lagi",
-  "voidForbidden": "Anda tidak berhak membatalkan transaksi"
+  "voidForbidden": "Anda tidak berhak membatalkan transaksi",
+  "soldOut": "Habis"
 }

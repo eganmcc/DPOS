@@ -1,19 +1,23 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.1 → 1.0.2
-Bump rationale: PATCH — reconcile lifecycle wording with the approved append-only model. Stored
-  Order lifecycle ends at COMPLETED; stored Payment lifecycle ends at PAID/FAILED/EXPIRED/
-  CANCELLED. VOIDED/REFUNDED are derived from append-only compensating records (OrderVoid; reversal
-  Payment) and never mutate the completed order or original PAID payment. Clarification, not a
-  weakening — strengthens Principle IV. No migration impact — design not yet built.
+Version change: 1.0.2 → 1.1.0
+Bump rationale: MINOR — add a new enforceable rule to Principle IV: stock availability is
+  enforced. A stock-tracked variant may not be oversold — the server rejects any order line
+  exceeding the outlet's on-hand balance via an atomic conditional decrement inside the checkout
+  transaction, so stock can never go negative; a zero-on-hand item is not orderable and the client
+  greys it out and caps quantities at remaining stock. New material guidance, not a redefinition —
+  additive to the existing append-only ledger rule.
 Amendment history:
   - 1.0.0 (2026-08-21): Initial ratification (first adoption).
   - 1.0.1 (2026-08-21): Principle VI tenancy wording reconciled with the Phase 1 schema.
   - 1.0.2 (2026-08-22): Order/Payment lifecycle wording reconciled with the append-only void/
     refund model (derived VOIDED/REFUNDED; immutable original payment).
+  - 1.1.0 (2026-08-28): Principle IV gains stock-availability enforcement (no overselling; zero
+    on-hand is not orderable; client reflects availability).
 Modified principles:
-  - IV. Immutable Financial History — void/refund realized as append-only records; wording tightened
+  - IV. Immutable Financial History — added stock-availability enforcement rule (1.1.0); void/refund
+    realized as append-only records; wording tightened
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
 Modified sections:
   - Technology & Architecture Constraints — "Lifecycles are backend-owned" split into stored
@@ -94,6 +98,12 @@ be overwritten or physically deleted. Corrections happen only through new, compe
   writes a negative movement and a stock-restoring void writes a positive movement. The
   `inventory_stock` balance is a projection maintained transactionally from the ledger and is
   NEVER edited on its own. A bare `stockQty` MUST NOT be overwritten.
+- **Stock availability is enforced.** For a stock-tracked variant, the server MUST reject any order
+  line whose quantity exceeds the current on-hand balance for the outlet — checked atomically
+  inside the checkout transaction (a conditional decrement), so an order can never oversell or
+  drive stock negative. An item with **zero on-hand MUST NOT be orderable**; the client reflects
+  this by disabling/greying the item and capping quantities at the remaining stock. Remaining
+  quantity is read from the outlet-scoped catalog.
 - VOID and REFUND are distinct operations, both realized as **new append-only records** rather
   than mutations of history: a full VOID is an `OrderVoid`; a REFUND is a reversal `Payment`
   referencing the original `CHARGE`. The `COMPLETED` order and the original `PAID` payment are
@@ -209,4 +219,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.0.2 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-22
+**Version**: 1.1.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
