@@ -122,6 +122,7 @@ class TaxRule {
 class Catalog {
   final String outletId;
   final String? outletName;
+  final String? merchantName; // company name (receipt header)
   final String businessType; // 'FNB' | 'GROCERY'
   final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
   final TaxRule? taxRule;
@@ -129,6 +130,7 @@ class Catalog {
   const Catalog(
       {required this.outletId,
       this.outletName,
+      this.merchantName,
       this.businessType = 'FNB',
       this.paymentMode = 'IMMEDIATE',
       required this.taxRule,
@@ -143,6 +145,7 @@ class Catalog {
   factory Catalog.fromJson(Map<String, dynamic> j) => Catalog(
         outletId: j['outletId'],
         outletName: j['outletName'],
+        merchantName: j['merchantName'] as String?,
         // Fallbacks keep catalogs cached before these fields shipped valid.
         businessType: j['businessType'] ?? 'FNB',
         paymentMode: j['paymentMode'] ?? 'IMMEDIATE',

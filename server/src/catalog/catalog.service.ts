@@ -11,7 +11,7 @@ export class CatalogService {
     if (!outlet) throw new NotFoundException('Outlet not found in this merchant');
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
-      select: { businessType: true },
+      select: { name: true, businessType: true },
     });
 
     const [taxRule, products, productOutlets, stockRows] = await Promise.all([
@@ -36,6 +36,8 @@ export class CatalogService {
     return {
       outletId,
       outletName: outlet.name,
+      // Company name (for the receipt header) — never hardcoded.
+      merchantName: merchant?.name ?? null,
       // Drives F&B-only UI (dine-in/takeaway toggle, table, open bills).
       businessType: merchant?.businessType ?? 'FNB',
       // Drives the app's checkout vs confirm-order behaviour (per-outlet setting).

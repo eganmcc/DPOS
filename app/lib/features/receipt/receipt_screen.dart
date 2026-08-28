@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../../core/brand.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../transactions/transaction_status.dart';
 
@@ -17,6 +19,11 @@ class ReceiptScreen extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final ts = DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt);
     final payment = order.payments.isNotEmpty ? order.payments.first : null;
+    // Company + outlet names from the current outlet's catalog (never hardcoded).
+    final session = ref.watch(sessionProvider);
+    final catalog =
+        session != null ? ref.watch(catalogProvider(session.outletId)).valueOrNull : null;
+    final businessName = catalog?.merchantName ?? t.appTitle;
 
     return Scaffold(
       appBar: BrandAppBar(title: Text(t.receiptTitle)),
@@ -38,9 +45,15 @@ class ReceiptScreen extends ConsumerWidget {
                         Center(child: Image.asset('assets/images/dika_logo.png', height: 44)),
                         const SizedBox(height: 8),
                         Center(
-                          child: Text('Warung Kopi Demo',
+                          child: Text(businessName,
+                              textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.titleMedium),
                         ),
+                        if (catalog?.outletName != null)
+                          Center(
+                            child: Text(catalog!.outletName!,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
