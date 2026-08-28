@@ -112,6 +112,13 @@ class _CatalogPanel extends ConsumerStatefulWidget {
 class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
   String? _category;
 
+  // Pull-to-refresh: re-fetch the catalog (prices + stock) from the server.
+  Future<void> _refresh() async {
+    final outletId = widget.catalog.outletId;
+    ref.invalidate(catalogProvider(outletId));
+    await ref.read(catalogProvider(outletId).future);
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
@@ -120,7 +127,19 @@ class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
     final filtered =
         _category == null ? products : products.where((p) => p.categoryName == _category).toList();
 
-    if (products.isEmpty) return Center(child: Text(t.emptyCatalog));
+    if (products.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        color: kBrandGold,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 120),
+            Center(child: Text(t.emptyCatalog)),
+          ],
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -141,16 +160,21 @@ class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
           child: LayoutBuilder(
             builder: (context, box) {
               final cols = (box.maxWidth / 175).floor().clamp(2, 6);
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.78,
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                color: kBrandGold,
+                child: GridView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
                 ),
-                itemCount: filtered.length,
-                itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
               );
             },
           ),
