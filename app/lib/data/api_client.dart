@@ -34,6 +34,14 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// DEMO: public directory of demo merchants → outlets (+ cashier PIN) for the
+  /// login-screen dropdowns.
+  static Future<List<Map<String, dynamic>>> demoDirectory() async {
+    final dio = Dio(BaseOptions(baseUrl: kApiBaseUrl));
+    final res = await dio.get('/demo/directory');
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
   Future<Map<String, dynamic>> getCatalog(String outletId) async {
     final res = await _dio.get('/catalog', queryParameters: {'outletId': outletId});
     return res.data as Map<String, dynamic>;

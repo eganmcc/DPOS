@@ -7,9 +7,19 @@ import '../../data/api_client.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 
-// Seeded demo defaults (from `npm run seed`). Prefilled for a quick board demo.
+// Seeded demo defaults (fallback when the demo directory can't be loaded).
 const _demoMerchantId = 'cad63409-136c-4d01-92d2-26e493dc64ce';
 const _demoOutletId = '91298a41-b8ed-4b1a-a5c9-2e4aaad036b3';
+
+/// One demo merchant from GET /demo/directory.
+class _DemoMerchant {
+  final String merchantId;
+  final String name;
+  final String businessType;
+  final String? cashierPin;
+  final List<Map<String, dynamic>> outlets; // [{id, name}]
+  _DemoMerchant(this.merchantId, this.name, this.businessType, this.cashierPin, this.outlets);
+}
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,12 +35,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  List<_DemoMerchant> _directory = [];
+  String? _selMerchantId;
+  String? _selOutletId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDirectory();
+  }
+
   @override
   void dispose() {
     _merchant.dispose();
     _outlet.dispose();
     _pin.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDirectory() async {
+    try {
+      final rows = await ApiClient.demoDirectory();
+      final dir = rows
+          .map((m) => _DemoMerchant(
+                m['merchantId'] as String,
+                m['name'] as String,
+                m['businessType'] as String,
+                m['cashierPin'] as String?,
+                (m['outlets'] as List).cast<Map<String, dynamic>>(),
+              ))
+          .toList();
+      if (dir.isEmpty || !mounted) return;
+      setState(() {
+        _directory = dir;
+        // Prefer the previously-defaulted F&B merchant, else the first.
+        final start = dir.firstWhere((m) => m.merchantId == _demoMerchantId, orElse: () => dir.first);
+        _applyMerchant(start.merchantId);
+      });
+    } catch (_) {
+      // Offline / endpoint missing → keep the manual text-field fallback.
+    }
+  }
+
+  void _applyMerchant(String merchantId) {
+    final m = _directory.firstWhere((x) => x.merchantId == merchantId);
+    _selMerchantId = merchantId;
+    _merchant.text = merchantId;
+    _selOutletId = m.outlets.isNotEmpty ? m.outlets.first['id'] as String : null;
+    _outlet.text = _selOutletId ?? '';
+    _pin.text = m.cashierPin ?? '';
   }
 
   Future<void> _login() async {
@@ -60,6 +113,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
+    final hasDirectory = _directory.isNotEmpty;
+    final selected =
+        hasDirectory ? _directory.firstWhere((m) => m.merchantId == _selMerchantId) : null;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -99,32 +156,79 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(t.loginTitle,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: cs.onSurfaceVariant)),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
+
+                      // Demo directory: pick a business + outlet; PIN prefills.
+                      if (hasDirectory) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: _selMerchantId,
+                          isExpanded: true,
+                          decoration:
+                              InputDecoration(labelText: t.fieldMerchantId, isDense: true),
+                          items: [
+                            for (final m in _directory)
+                              DropdownMenuItem(
+                                value: m.merchantId,
+                                child: Text('${m.name} · ${m.businessType}',
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setState(() => _applyMerchant(v));
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selOutletId,
+                          isExpanded: true,
+                          decoration:
+                              InputDecoration(labelText: t.fieldOutletId, isDense: true),
+                          items: [
+                            for (final o in selected!.outlets)
+                              DropdownMenuItem(
+                                value: o['id'] as String,
+                                child: Text(o['name'] as String, overflow: TextOverflow.ellipsis),
+                              ),
+                          ],
+                          onChanged: (v) => setState(() {
+                            _selOutletId = v;
+                            _outlet.text = v ?? '';
+                          }),
+                        ),
+                        const SizedBox(height: 18),
+                      ],
+
                       Text(t.fieldPin,
-                          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       PinField(controller: _pin, length: 4, onSubmit: _login),
                       const SizedBox(height: 12),
-                      Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          tilePadding: EdgeInsets.zero,
-                          title: Text(t.advancedSettings,
-                              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                          childrenPadding: const EdgeInsets.only(bottom: 8),
-                          children: [
-                            TextField(
-                              controller: _merchant,
-                              decoration: InputDecoration(labelText: t.fieldMerchantId, isDense: true),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _outlet,
-                              decoration: InputDecoration(labelText: t.fieldOutletId, isDense: true),
-                            ),
-                          ],
+
+                      // Manual override only when the directory isn't available.
+                      if (!hasDirectory)
+                        Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Text(t.advancedSettings,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                            childrenPadding: const EdgeInsets.only(bottom: 8),
+                            children: [
+                              TextField(
+                                controller: _merchant,
+                                decoration:
+                                    InputDecoration(labelText: t.fieldMerchantId, isDense: true),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _outlet,
+                                decoration:
+                                    InputDecoration(labelText: t.fieldOutletId, isDense: true),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
                       if (_error != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),
