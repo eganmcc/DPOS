@@ -171,15 +171,33 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final qty = ref.watch(cartProvider).lines
+    final cart = ref.watch(cartProvider);
+    final qty = cart.lines
         .where((l) => l.product.id == product.id)
         .fold<int>(0, (s, l) => s + l.qty);
     final from = product.variants.isEmpty
         ? 0
         : product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
 
+    // Remaining sellable units, counted live against the cart: a sale isn't
+    // committed until checkout, so items already in the cart are treated as
+    // reserved. The badge ticks down and the tile greys the instant nothing is
+    // left to add.
+    int cartQtyOf(String variantId) =>
+        cart.lines.where((l) => l.variant.id == variantId).fold<int>(0, (s, l) => s + l.qty);
+    final trackedVariants =
+        product.variants.where((v) => v.isAvailable && v.trackInventory).toList();
+    final isTracked = trackedVariants.isNotEmpty;
+    var remaining = 0;
+    for (final v in trackedVariants) {
+      final r = (v.stock ?? 0) - cartQtyOf(v.id);
+      if (r > 0) remaining += r;
+    }
+    final orderableExists = product.variants.any((v) =>
+        v.isAvailable && (!v.trackInventory || ((v.stock ?? 0) - cartQtyOf(v.id)) > 0));
+    final available = product.isAvailable && orderableExists;
+
     final t = AppLocalizations.of(context)!;
-    final available = product.anyInStock;
     return Opacity(
       opacity: available ? 1 : 0.5,
       child: Card(
@@ -195,6 +213,29 @@ class _ProductCard extends ConsumerWidget {
                   aspectRatio: 4 / 3,
                   child: _ProductPhoto(product: product),
                 ),
+                // Always-visible remaining-stock badge (tracked items with stock left).
+                if (isTracked && available)
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined, size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text('${_stockWord(context)} $remaining',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ),
                 if (!available)
                   Positioned.fill(
                     child: Container(
@@ -423,22 +464,29 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                       .lines
                       .where((l) => l.variant.id == selectedVariant.id)
                       .fold<int>(0, (s, l) => s + l.qty);
-                  final atStockCap = selectedVariant.trackInventory &&
-                      (selectedVariant.stock ?? 0) <= inCart;
-                  final blocked = unmet.isNotEmpty || !selectedVariant.inStock || atStockCap;
+                  final remaining = selectedVariant.trackInventory
+                      ? (selectedVariant.stock ?? 0) - inCart
+                      : null;
+                  final soldOut = remaining != null && remaining <= 0;
+                  final blocked = unmet.isNotEmpty || soldOut;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Remaining count shown at all times for tracked items,
+                      // not only once it runs out.
+                      if (remaining != null) ...[
+                        Text(_stockLabel(context, remaining),
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: soldOut ? cs.error : cs.onSurfaceVariant)),
+                        const SizedBox(height: 8),
+                      ],
                       if (unmet.isNotEmpty) ...[
                         Text(
                           _requiredWarning(context, unmet),
                           style: TextStyle(fontSize: 13, color: cs.error),
                         ),
-                        const SizedBox(height: 8),
-                      ],
-                      if (atStockCap && selectedVariant.inStock) ...[
-                        Text(_maxStockWarning(context, selectedVariant.stock ?? 0),
-                            style: TextStyle(fontSize: 13, color: cs.error)),
                         const SizedBox(height: 8),
                       ],
                       SizedBox(
@@ -509,10 +557,14 @@ String _requiredWarning(BuildContext context, List<ModifierGroup> unmet) {
   return id ? 'Pilih dulu: $names' : 'Choose first: $names';
 }
 
-String _maxStockWarning(BuildContext context, int stock) {
+String _stockLabel(BuildContext context, int remaining) {
   final id = Localizations.localeOf(context).languageCode == 'id';
-  return id ? 'Stok tinggal $stock' : 'Only $stock in stock';
+  if (remaining <= 0) return id ? 'Stok habis' : 'Out of stock';
+  return id ? 'Stok tinggal $remaining' : '$remaining in stock';
 }
+
+String _stockWord(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'id' ? 'Stok' : 'Stock';
 
 class _CartPanel extends ConsumerWidget {
   const _CartPanel({required this.taxRule, this.floating = false});
