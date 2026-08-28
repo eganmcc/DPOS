@@ -6,7 +6,6 @@ import '../../core/app_dialog.dart';
 import '../../core/brand.dart';
 import '../../core/formatters.dart';
 import '../../core/money.dart';
-import '../../core/settings_actions.dart';
 import '../../core/theme.dart';
 import '../../data/api_client.dart';
 import '../../data/models.dart';
@@ -65,18 +64,12 @@ class OrderScreen extends ConsumerWidget {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
-          const SettingsActions(),
           IconButton(
             tooltip: t.settingsTitle,
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
             icon: const Icon(Icons.settings_outlined),
-          ),
-          IconButton(
-            tooltip: t.actionLogout,
-            onPressed: () => ref.read(sessionProvider.notifier).logout(),
-            icon: const Icon(Icons.logout),
           ),
           const SizedBox(width: 4),
         ],

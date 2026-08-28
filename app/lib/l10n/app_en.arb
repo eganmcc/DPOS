@@ -105,5 +105,8 @@
   "settingsTitle": "Settings",
   "aboutSection": "About",
   "appVersionLabel": "App version",
-  "serverVersionLabel": "Server version"
+  "serverVersionLabel": "Server version",
+  "preferencesSection": "Preferences",
+  "languageLabel": "Language",
+  "themeLabel": "Theme"
 }

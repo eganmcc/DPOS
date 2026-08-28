@@ -97,5 +97,8 @@
   "settingsTitle": "Pengaturan",
   "aboutSection": "Tentang",
   "appVersionLabel": "Versi aplikasi",
-  "serverVersionLabel": "Versi server"
+  "serverVersionLabel": "Versi server",
+  "preferencesSection": "Preferensi",
+  "languageLabel": "Bahasa",
+  "themeLabel": "Tema"
 }

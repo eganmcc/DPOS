@@ -679,6 +679,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server version'**
   String get serverVersionLabel;
+
+  /// No description provided for @preferencesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferencesSection;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @themeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeLabel;
 }
 
 class _AppLocalizationsDelegate

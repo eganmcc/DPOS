@@ -316,4 +316,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverVersionLabel => 'Server version';
+
+  @override
+  String get preferencesSection => 'Preferences';
+
+  @override
+  String get languageLabel => 'Language';
+
+  @override
+  String get themeLabel => 'Theme';
 }

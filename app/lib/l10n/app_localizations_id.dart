@@ -317,4 +317,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get serverVersionLabel => 'Versi server';
+
+  @override
+  String get preferencesSection => 'Preferensi';
+
+  @override
+  String get languageLabel => 'Bahasa';
+
+  @override
+  String get themeLabel => 'Tema';
 }
