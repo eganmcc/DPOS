@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Matches the navy half of the icon and the app's own splash, so the
-         handover from the system splash reads as one screen. -->
-    <color name="splash_background">#FF0B2036</color>
+    <!-- Splash background: flat brand gold (Android 12+ SplashScreen API allows a
+         single opaque color only). The icon's gold half blends into this by design. -->
+    <color name="splash_background">#FFD6AD07</color>
 </resources>
