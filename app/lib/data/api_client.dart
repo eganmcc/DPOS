@@ -39,6 +39,12 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Backend build info: {name, version}. Public endpoint.
+  Future<Map<String, dynamic>> getVersion() async {
+    final res = await _dio.get('/version');
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Returns the created/replayed order JSON. Throws DioException on network/HTTP failure.
   Future<Map<String, dynamic>> submitOrder(Map<String, dynamic> payload) async {
     final res = await _dio.post('/orders', data: payload);

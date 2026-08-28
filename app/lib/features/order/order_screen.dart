@@ -14,6 +14,7 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
+import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 import 'cart.dart';
 import 'open_bills_screen.dart';
@@ -29,7 +30,7 @@ class OrderScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: BrandAppBar(
-        title: Text(catalogAsync.valueOrNull?.outletName ?? t.posTitle),
+        title: Text(t.posTitle),
         actions: [
           Consumer(builder: (context, ref, _) {
             final cart = ref.watch(cartProvider);
@@ -65,6 +66,13 @@ class OrderScreen extends ConsumerWidget {
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
           const SettingsActions(),
+          IconButton(
+            tooltip: t.settingsTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+            icon: const Icon(Icons.settings_outlined),
+          ),
           IconButton(
             tooltip: t.actionLogout,
             onPressed: () => ref.read(sessionProvider.notifier).logout(),

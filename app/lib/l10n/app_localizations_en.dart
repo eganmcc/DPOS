@@ -304,4 +304,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get dialogTitleError => 'Can\'t do that';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get aboutSection => 'About';
+
+  @override
+  String get appVersionLabel => 'App version';
+
+  @override
+  String get serverVersionLabel => 'Server version';
 }

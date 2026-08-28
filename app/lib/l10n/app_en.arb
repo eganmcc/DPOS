@@ -101,5 +101,9 @@
   "dialogTitleInfo": "Information",
   "dialogTitleSuccess": "Done",
   "dialogTitleWarning": "Heads up",
-  "dialogTitleError": "Can't do that"
+  "dialogTitleError": "Can't do that",
+  "settingsTitle": "Settings",
+  "aboutSection": "About",
+  "appVersionLabel": "App version",
+  "serverVersionLabel": "Server version"
 }

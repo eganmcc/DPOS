@@ -655,6 +655,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Can\'t do that'**
   String get dialogTitleError;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @aboutSection.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutSection;
+
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get appVersionLabel;
+
+  /// No description provided for @serverVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version'**
+  String get serverVersionLabel;
 }
 
 class _AppLocalizationsDelegate

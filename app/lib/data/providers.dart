@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'db/database.dart';
 import 'api_client.dart';
 import 'models.dart';
@@ -39,6 +40,19 @@ final openBillsProvider =
   final api = ref.watch(apiClientProvider);
   final rows = await api.getOpenOrders(outletId);
   return rows.map(OrderResult.fromJson).toList();
+});
+
+/// This app's own version, read from the bundle (e.g. "0.1.0+2008"). Not hardcoded.
+final appVersionProvider = FutureProvider<String>((ref) async {
+  final info = await PackageInfo.fromPlatform();
+  return '${info.version}+${info.buildNumber}';
+});
+
+/// Backend version, queried from GET /version. Not hardcoded.
+final serverVersionProvider = FutureProvider.autoDispose<String>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  final json = await api.getVersion();
+  return json['version']?.toString() ?? 'unknown';
 });
 
 /// Catalog for an outlet: fetch from API and cache; fall back to the cache when offline.

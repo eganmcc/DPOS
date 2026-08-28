@@ -93,5 +93,9 @@
   "dialogTitleInfo": "Informasi",
   "dialogTitleSuccess": "Berhasil",
   "dialogTitleWarning": "Perhatian",
-  "dialogTitleError": "Tidak bisa"
+  "dialogTitleError": "Tidak bisa",
+  "settingsTitle": "Pengaturan",
+  "aboutSection": "Tentang",
+  "appVersionLabel": "Versi aplikasi",
+  "serverVersionLabel": "Versi server"
 }

@@ -80,7 +80,8 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
                         leading: CircleAvatar(
                           backgroundColor: cs.primary,
                           child: Text(
-                            b.tableLabel?.isNotEmpty == true ? b.tableLabel! : '—',
+                            // Dine-in bills show the table; takeaway shows "TA".
+                            b.tableLabel?.isNotEmpty == true ? b.tableLabel! : 'TA',
                             style: TextStyle(
                                 color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 13),
                           ),

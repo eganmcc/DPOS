@@ -33,6 +33,9 @@ dependencies:
   # Spoken payment confirmation (Indonesian TTS)
   flutter_tts: ^4.2.0
 
+  # App version for the Settings screen
+  package_info_plus: ^8.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

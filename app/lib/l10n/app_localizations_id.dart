@@ -305,4 +305,16 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get dialogTitleError => 'Tidak bisa';
+
+  @override
+  String get settingsTitle => 'Pengaturan';
+
+  @override
+  String get aboutSection => 'Tentang';
+
+  @override
+  String get appVersionLabel => 'Versi aplikasi';
+
+  @override
+  String get serverVersionLabel => 'Versi server';
 }
