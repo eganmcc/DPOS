@@ -5,7 +5,7 @@
 // Run AFTER scripts/provision-grocery-images.ts has uploaded the photos to S3.
 //   npx ts-node prisma/seed-grocery-menu.ts
 import { PrismaClient, ProductType } from '@prisma/client';
-import { GROCERY, menuImageUrl } from './grocery-data';
+import { GROCERY, groceryImageUrl } from './grocery-data';
 
 const prisma = new PrismaClient();
 
@@ -32,7 +32,7 @@ async function main(): Promise<void> {
   let created = 0;
   let updated = 0;
   for (const item of GROCERY) {
-    const imageUrl = menuImageUrl(item.name);
+    const imageUrl = groceryImageUrl(item.name);
     const existing = await prisma.product.findFirst({
       where: { merchantId: merchant.id, name: item.name },
     });
