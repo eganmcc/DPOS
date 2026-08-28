@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
 import { AdminModule } from './admin/admin.module';
+import { DemoModule } from './demo/demo.module';
 import { VersionController } from './version.controller';
 
 @Module({
@@ -15,6 +16,7 @@ import { VersionController } from './version.controller';
     CatalogModule,
     OrdersModule,
     AdminModule,
+    DemoModule,
   ],
   controllers: [VersionController],
 })

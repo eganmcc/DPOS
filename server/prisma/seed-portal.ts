@@ -148,10 +148,31 @@ async function seedGrocery(): Promise<void> {
   console.log('grocery demo created: admin@sembako.id / admin123 (PIN 4321)');
 }
 
+// DEMO ONLY: set the plaintext demo PIN on each demo merchant's cashier so the app
+// login screen can prefill it. These match the seeded cashier PINs.
+async function setDemoPins(): Promise<void> {
+  const fnb = await prisma.merchant.findFirst({ where: { name: { startsWith: 'Warung Kopi Demo' } } });
+  if (fnb) {
+    await prisma.staff.updateMany({
+      where: { merchantId: fnb.id, role: StaffRole.CASHIER },
+      data: { demoPin: '1234' },
+    });
+  }
+  const gro = await prisma.merchant.findFirst({ where: { name: 'Toko Sembako Demo' } });
+  if (gro) {
+    await prisma.staff.updateMany({
+      where: { merchantId: gro.id, role: StaffRole.CASHIER },
+      data: { demoPin: '2222' },
+    });
+  }
+  console.log('set demo PINs on cashiers');
+}
+
 async function main(): Promise<void> {
   await backfillEmployeeIds();
   await ensureFnbAdmin();
   await seedGrocery();
+  await setDemoPins();
 }
 
 main()

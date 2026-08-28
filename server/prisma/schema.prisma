@@ -166,6 +166,7 @@ model Staff {
   role         StaffRole
   outletId     String? // assignment: null = HQ / all branches
   pinHash      String
+  demoPin      String? // DEMO ONLY: plaintext PIN for the login-screen prefill; null in production
   email        String?
   passwordHash String?
   isActive     Boolean   @default(true)
