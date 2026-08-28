@@ -47,7 +47,6 @@ async function saveCompany() {
   try {
     const m = await api.patch<Merchant>('/admin/entity', {
       name: merchant.name,
-      businessType: merchant.businessType,
       logoUrl: merchant.logoUrl || null,
     });
     auth.setMerchant(m);
@@ -113,11 +112,12 @@ function settlementLabel(pm: string) {
     <div class="card card-pad">
       <h3 class="ch">Company</h3>
       <div class="field"><label>Company name</label><input class="input" v-model="merchant.name" /></div>
-      <div class="field"><label>Business type</label>
-        <select class="select" v-model="merchant.businessType">
-          <option value="FNB">F&B (restaurant / café)</option>
-          <option value="GROCERY">General groceries</option>
-        </select>
+      <div class="field">
+        <label>Business type</label>
+        <div class="ro">
+          <span class="badge" :class="auth.isFnb ? 'badge-gold' : 'badge-navy'">{{ merchant.businessType }}</span>
+          <span class="muted small">set by DPOS admin</span>
+        </div>
       </div>
       <div class="field"><label>Logo URL</label><input class="input" v-model="merchant.logoUrl" placeholder="https://…" /></div>
       <div v-if="merchant.logoUrl" class="logo-prev"><img :src="merchant.logoUrl" alt="logo" /></div>
@@ -184,6 +184,7 @@ h1 { font-size: 26px; }
 .ch-row .ch { margin: 0; }
 .two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .small { font-size: 12px; }
+.ro { display: flex; align-items: center; gap: 10px; height: 44px; }
 .err { color: var(--error); font-size: 13px; }
 .ok { color: var(--success); font-size: 13px; }
 .logo-prev { margin-bottom: 12px; }

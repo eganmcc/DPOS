@@ -12,7 +12,6 @@ const showVersion = ref(false);
 const nav = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
   { to: '/resources', label: 'Resources', icon: '👥' },
-  { to: '/inventory', label: 'Inventory', icon: '📦' },
   { to: '/prices', label: 'Prices', icon: '🏷️' },
   { to: '/entity', label: 'Entity Settings', icon: '🏢' },
 ];
