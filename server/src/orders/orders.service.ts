@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InventoryReason, Prisma, PaymentDirection } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PaymentsService } from '../payments/payments.service';
@@ -10,7 +15,7 @@ import {
   VariantInfo,
 } from '../common/money';
 import { AuthUser } from '../auth/auth.types';
-import { OrderSubmitDto, OrderHistoryQuery } from './dto';
+import { OrderSubmitDto, OrderHistoryQuery, SettleOrderDto } from './dto';
 import { ORDER_INCLUDE, OrderWithRelations } from './order.mapper';
 
 export interface CheckoutResult {
@@ -50,6 +55,22 @@ export class OrdersService {
       where: { id: dto.outletId, merchantId: user.merchantId },
     });
     if (!outlet) throw new NotFoundException('Outlet not found in this merchant');
+
+    // Open bill = confirm now, pay later (no payment in the request). Dine-in open
+    // bills are keyed by table, so a table can hold only one open bill at a time.
+    const isOpenBill = !dto.payment;
+    const normTable = dto.tableLabel?.trim().toUpperCase() || null;
+    if (isOpenBill && normTable) {
+      const clash = await this.prisma.order.findFirst({
+        where: {
+          merchantId: user.merchantId,
+          outletId: dto.outletId,
+          status: 'AWAITING_PAYMENT',
+          tableLabel: normTable,
+        },
+      });
+      if (clash) throw new ConflictException(`Table ${normTable} already has an open bill`);
+    }
 
     // Load & validate the variants (must belong to this merchant).
     const variantIds = [...new Set(dto.lines.map((l) => l.variantId))];
@@ -121,10 +142,13 @@ export class OrdersService {
     // SERVER-AUTHORITATIVE: recompute everything; any client totals are ignored.
     const computed = computeOrder(computeInput, variantMap, modifierMap, taxRule);
 
-    // Backend-owned payment.
-    const charge = this.payments.charge(dto.payment.method, computed.grandTotal, {
-      tendered: dto.payment.tendered ?? null,
-    });
+    // Backend-owned payment — only when settling immediately. Open bills carry no
+    // payment yet; the stock reservation below happens either way.
+    const charge = dto.payment
+      ? this.payments.charge(dto.payment.method, computed.grandTotal, {
+          tendered: dto.payment.tendered ?? null,
+        })
+      : null;
 
     try {
       const orderId = await this.prisma.$transaction(async (tx) => {
@@ -137,8 +161,8 @@ export class OrdersService {
             cashierId: user.staffId,
             shiftId: dto.shiftId ?? null,
             type: dto.type,
-            tableLabel: dto.tableLabel ?? null,
-            status: 'COMPLETED',
+            tableLabel: normTable,
+            status: isOpenBill ? 'AWAITING_PAYMENT' : 'COMPLETED',
             subtotal: computed.subtotal,
             discountTotal: computed.discountTotal,
             taxTotal: computed.taxTotal,
@@ -148,7 +172,7 @@ export class OrdersService {
             taxRateBpsSnapshot: computed.taxRateBpsSnapshot,
             serviceChargeLabelSnapshot: computed.serviceChargeLabelSnapshot,
             serviceChargeRateBpsSnapshot: computed.serviceChargeRateBpsSnapshot,
-            closedAt: new Date(),
+            closedAt: isOpenBill ? null : new Date(),
           },
         });
 
@@ -189,21 +213,23 @@ export class OrdersService {
           });
         }
 
-        // Payment (CHARGE).
-        await tx.payment.create({
-          data: {
-            merchantId: user.merchantId,
-            orderId: order.id,
-            direction: PaymentDirection.CHARGE,
-            method: charge.method,
-            amount: charge.amount,
-            status: charge.status,
-            providerRef: charge.providerRef ?? null,
-            tendered: charge.tendered ?? null,
-            change: charge.change ?? null,
-            paidAt: new Date(),
-          },
-        });
+        // Payment (CHARGE) — skipped for an open bill (settled later).
+        if (charge) {
+          await tx.payment.create({
+            data: {
+              merchantId: user.merchantId,
+              orderId: order.id,
+              direction: PaymentDirection.CHARGE,
+              method: charge.method,
+              amount: charge.amount,
+              status: charge.status,
+              providerRef: charge.providerRef ?? null,
+              tendered: charge.tendered ?? null,
+              change: charge.change ?? null,
+              paidAt: new Date(),
+            },
+          });
+        }
 
         // Inventory: for stock-tracked variants, decrement only if enough is on hand.
         // Aggregate per variant (a variant may appear on several lines) and use a
@@ -255,6 +281,68 @@ export class OrdersService {
 
   async findById(merchantId: string, id: string) {
     return this.prisma.order.findFirst({ where: { id, merchantId }, include: ORDER_INCLUDE });
+  }
+
+  /**
+   * Settle an open bill: append a CHARGE and flip AWAITING_PAYMENT → COMPLETED.
+   * Stock was already reserved at confirm time, so this never touches inventory.
+   * Idempotent — a retry (or a concurrent settle) finds it COMPLETED and replays.
+   */
+  async settle(user: AuthUser, orderId: string, dto: SettleOrderDto): Promise<CheckoutResult> {
+    const order = await this.findById(user.merchantId, orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status === 'COMPLETED') return { order, replay: true };
+    if (order.status !== 'AWAITING_PAYMENT') {
+      throw new ConflictException('Only an open bill can be settled');
+    }
+
+    // Charge against the order's stored, server-authoritative grand total.
+    const charge = this.payments.charge(dto.payment.method, order.grandTotal, {
+      tendered: dto.payment.tendered ?? null,
+    });
+
+    let raced = false;
+    await this.prisma.$transaction(async (tx) => {
+      // The conditional flip is the concurrency guard: exactly one settle wins.
+      const flip = await tx.order.updateMany({
+        where: { id: order.id, status: 'AWAITING_PAYMENT' },
+        data: { status: 'COMPLETED', closedAt: new Date() },
+      });
+      if (flip.count === 0) {
+        raced = true;
+        return;
+      }
+      await tx.payment.create({
+        data: {
+          merchantId: user.merchantId,
+          orderId: order.id,
+          direction: PaymentDirection.CHARGE,
+          method: charge.method,
+          amount: charge.amount,
+          status: charge.status,
+          providerRef: charge.providerRef ?? null,
+          tendered: charge.tendered ?? null,
+          change: charge.change ?? null,
+          paidAt: new Date(),
+        },
+      });
+    });
+
+    const settled = await this.findById(user.merchantId, orderId);
+    if (raced) {
+      if (settled && settled.status === 'COMPLETED') return { order: settled, replay: true };
+      throw new ConflictException('Order already settled');
+    }
+    return { order: settled!, replay: false };
+  }
+
+  /** Open bills (AWAITING_PAYMENT) for one outlet, newest first. Tenant-scoped. */
+  async findOpen(merchantId: string, outletId: string): Promise<OrderWithRelations[]> {
+    return this.prisma.order.findMany({
+      where: { merchantId, outletId, status: 'AWAITING_PAYMENT' },
+      include: ORDER_INCLUDE,
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   /**

@@ -94,9 +94,30 @@ export class OrderSubmitDto {
   @Type(() => LineDto)
   lines!: LineDto[];
 
+  /**
+   * Present → settle immediately (order stored COMPLETED). Absent → confirm as an
+   * open bill (AWAITING_PAYMENT); stock is still reserved and the bill is settled
+   * later via POST /orders/:id/settle.
+   */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaymentDto)
+  payment?: PaymentDto;
+}
+
+export class SettleOrderDto {
+  /** Device idempotency key (retries are safe; the status flip is authoritative). */
+  @IsUUID()
+  clientSettleId!: string;
+
   @ValidateNested()
   @Type(() => PaymentDto)
   payment!: PaymentDto;
+}
+
+export class OpenOrdersQuery {
+  @IsUUID()
+  outletId!: string;
 }
 
 export class VoidOrderDto {

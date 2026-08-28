@@ -32,6 +32,8 @@ export class CatalogService {
     return {
       outletId,
       outletName: outlet.name,
+      // Drives the app's checkout vs confirm-order behaviour (per-outlet setting).
+      paymentMode: outlet.paymentMode,
       taxRule: taxRule
         ? {
             label: taxRule.label,

@@ -35,6 +35,14 @@ enum OrderStatus {
   COMPLETED
 }
 
+// How an outlet takes payment. IMMEDIATE = pay at checkout (retail/takeaway);
+// OPEN_BILL = confirm the order now (reserves stock) and settle later (restaurant
+// table service). A per-outlet setting; the web admin will edit it later.
+enum OutletPaymentMode {
+  IMMEDIATE
+  OPEN_BILL
+}
+
 enum PaymentMethod {
   CASH
   QRIS_SIMULATED
@@ -116,9 +124,10 @@ model Merchant {
 model Outlet {
   id         String   @id @default(uuid())
   merchantId String
-  name       String
-  address    String?
-  isActive   Boolean  @default(true)
+  name        String
+  address     String?
+  isActive    Boolean           @default(true)
+  paymentMode OutletPaymentMode @default(IMMEDIATE)
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
 
