@@ -628,6 +628,15 @@ class _CartPanelState extends ConsumerState<_CartPanel> {
     final taxRule = widget.taxRule;
     final floating = widget.floating;
     final preview = cart.preview(taxRule);
+    // Dine-in/takeaway + tables are F&B-only concepts.
+    final session = ref.watch(sessionProvider)!;
+    final isFnb = ref.watch(catalogProvider(session.outletId)).valueOrNull?.isFnb ?? true;
+    // Non-F&B is always takeaway (no dine-in).
+    if (!isFnb && cart.type != 'TAKEAWAY') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(cartProvider.notifier).setType('TAKEAWAY');
+      });
+    }
 
     // After a confirm clears the cart, drop any stale table text so the next
     // dine-in order starts blank.
@@ -644,19 +653,20 @@ class _CartPanelState extends ConsumerState<_CartPanel> {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(t.cartHeader, style: Theme.of(context).textTheme.titleMedium),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(value: 'DINE_IN', label: Text(t.typeDineIn)),
-              ButtonSegment(value: 'TAKEAWAY', label: Text(t.typeTakeaway)),
-            ],
-            selected: {cart.type},
-            onSelectionChanged: (s) => ctrl.setType(s.first),
+        if (isFnb)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 'DINE_IN', label: Text(t.typeDineIn)),
+                ButtonSegment(value: 'TAKEAWAY', label: Text(t.typeTakeaway)),
+              ],
+              selected: {cart.type},
+              onSelectionChanged: (s) => ctrl.setType(s.first),
+            ),
           ),
-        ),
-        if (cart.type == 'DINE_IN')
+        if (isFnb && cart.type == 'DINE_IN')
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: TextField(
