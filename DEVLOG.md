@@ -10,7 +10,7 @@ _Last updated: 2026-08-24._
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
 - **`server/`** — NestJS + Prisma REST API (the *only* client of PostgreSQL). Authoritative for all money math, atomic checkout, idempotent submit, inventory ledger, audit, tenant scoping.
 - **`app/`** — Flutter phone+tablet app (offline-first, drift cache + sync queue). Brand UI = "DIKA Bold" (navy `#133A68` + gold `#D6AD07`, light/dark, ID/EN).
-- **`web-admin/`** — Vue 3 + Vite (not started yet; US7).
+- **`customer-portal/`** — **D-Customer Portal**, Vue 3 + Vite + TS admin SPA (dashboard, staff/PIN, inventory, prices, entity/branch settings; business-type aware). Runs locally against the live API (`npm run dev`, :5173).
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status

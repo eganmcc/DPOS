@@ -63,7 +63,7 @@ and adapts to the merchant's **business type** (F&B vs general groceries).
 - `GET /admin/dashboard?outletId=&from=&to=` — sales summary.
 
 ## Verification
-- Build: `web-admin` `npm run build` type-checks and bundles; backend `tsc` clean.
+- Build: `customer-portal` `npm run build` type-checks and bundles; backend `tsc` clean.
 - End-to-end (live API): owner login → each section loads; create staff yields an employee ID;
   duplicate branch code is rejected (400); price update, stock adjust (writes a movement), and
   company/branch edits persist; dashboard aggregates match seeded/live sales; grocery vs F&B login

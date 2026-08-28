@@ -7,7 +7,7 @@ the DIKA-Bold theme. Business-type aware (F&B vs grocery).
 ## Run
 
 ```bash
-cd web-admin
+cd customer-portal
 npm install
 npm run dev          # http://localhost:5173
 ```

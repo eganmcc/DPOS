@@ -91,7 +91,7 @@ app/                        # Flutter (phone + tablet)
         ├── auth/ outlets/ shift/ reports/
         └── sync/           # offline queue, idempotent submit, reconciliation
 
-web-admin/                  # Vue 3 + Vite + TS SPA
+customer-portal/                  # Vue 3 + Vite + TS SPA
 └── src/
     ├── api/                # typed API client
     ├── stores/             # Pinia (auth, catalog, outlets)
