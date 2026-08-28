@@ -88,13 +88,14 @@ class CartState {
 class CartController extends StateNotifier<CartState> {
   CartController() : super(const CartState());
 
-  void addItem(Product product, Variant variant, List<Modifier> modifiers, {String? note}) {
+  void addItem(Product product, Variant variant, List<Modifier> modifiers,
+      {String? note, int qty = 1}) {
     final incoming =
-        CartLine(product: product, variant: variant, qty: 1, modifiers: modifiers, note: note);
+        CartLine(product: product, variant: variant, qty: qty, modifiers: modifiers, note: note);
     final lines = [...state.lines];
     final i = lines.indexWhere((l) => l.mergeKey == incoming.mergeKey);
     if (i >= 0) {
-      lines[i] = lines[i].copyWith(qty: lines[i].qty + 1);
+      lines[i] = lines[i].copyWith(qty: lines[i].qty + qty);
     } else {
       lines.add(incoming);
     }
@@ -125,19 +126,23 @@ class CartController extends StateNotifier<CartState> {
   void clear() => state = const CartState();
 
   /// Build the submit payload consumed by POST /orders.
+  ///
+  /// [method] null → confirm an open bill (no payment; the server stores it
+  /// AWAITING_PAYMENT and reserves stock). Non-null → settle immediately.
   Map<String, dynamic> buildPayload({
     required String clientOrderId,
     required String outletId,
     String? deviceId,
-    required String method, // CASH | QRIS_SIMULATED
+    String? method, // CASH | QRIS_SIMULATED, or null for an open bill
     int? tendered,
   }) {
+    final table = state.tableLabel?.trim().toUpperCase();
     return {
       'clientOrderId': clientOrderId,
       'outletId': outletId,
       if (deviceId != null) 'deviceId': deviceId,
       'type': state.type,
-      if (state.tableLabel != null && state.tableLabel!.isNotEmpty) 'tableLabel': state.tableLabel,
+      if (table != null && table.isNotEmpty) 'tableLabel': table,
       if (state.orderDiscountPercentBps > 0)
         'orderDiscount': {'kind': 'PERCENT', 'value': state.orderDiscountPercentBps},
       'lines': state.lines
@@ -148,7 +153,8 @@ class CartController extends StateNotifier<CartState> {
                 if (l.note != null && l.note!.isNotEmpty) 'note': l.note,
               })
           .toList(),
-      'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+      if (method != null)
+        'payment': {'method': method, if (tendered != null) 'tendered': tendered},
     };
   }
 }

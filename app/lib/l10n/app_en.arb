@@ -86,5 +86,15 @@
   "voidForbidden": "You are not allowed to void a sale",
   "soldOut": "Sold out",
   "eachSuffix": "each",
-  "removeItem": "Remove item"
+  "removeItem": "Remove item",
+  "labelQty": "Qty",
+  "addQtyToOrder": "Add {qty} · {amount}",
+  "@addQtyToOrder": { "placeholders": { "qty": { "type": "int" }, "amount": { "type": "String" } } },
+  "saveOrder": "Save order",
+  "orderSaved": "Order saved",
+  "openBillsTitle": "Open bills",
+  "emptyOpenBills": "No open bills",
+  "searchTable": "Search table",
+  "tableRequired": "Enter a table number",
+  "tableExists": "That table already has an open bill"
 }

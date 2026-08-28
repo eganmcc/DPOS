@@ -122,14 +122,24 @@ class TaxRule {
 class Catalog {
   final String outletId;
   final String? outletName;
+  final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
   final TaxRule? taxRule;
   final List<Product> products;
   const Catalog(
-      {required this.outletId, this.outletName, required this.taxRule, required this.products});
+      {required this.outletId,
+      this.outletName,
+      this.paymentMode = 'IMMEDIATE',
+      required this.taxRule,
+      required this.products});
+
+  /// Restaurant flow: confirm the order now (reserves stock), settle later.
+  bool get isOpenBill => paymentMode == 'OPEN_BILL';
 
   factory Catalog.fromJson(Map<String, dynamic> j) => Catalog(
         outletId: j['outletId'],
         outletName: j['outletName'],
+        // Fallback keeps catalogs cached before this field shipped valid.
+        paymentMode: j['paymentMode'] ?? 'IMMEDIATE',
         taxRule: j['taxRule'] != null ? TaxRule.fromJson(j['taxRule']) : null,
         products: ((j['products'] ?? []) as List)
             .map((p) => Product.fromJson(p as Map<String, dynamic>))

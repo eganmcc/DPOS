@@ -61,6 +61,27 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Open bills (AWAITING_PAYMENT) for an outlet, newest first.
+  Future<List<Map<String, dynamic>>> getOpenOrders(String outletId) async {
+    final res = await _dio.get('/orders/open', queryParameters: {'outletId': outletId});
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Settle an open bill: attach payment and complete it. Returns the settled order.
+  /// [clientSettleId] is the idempotency key.
+  Future<Map<String, dynamic>> settleOrder(
+    String orderId, {
+    required String clientSettleId,
+    required String method, // CASH | QRIS_SIMULATED
+    int? tendered,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/settle', data: {
+      'clientSettleId': clientSettleId,
+      'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Full-void a completed sale. OWNER only — a cashier's token comes back 403.
   /// [clientVoidId] is the idempotency key: retrying with the same value is a no-op server-side.
   Future<Map<String, dynamic>> voidOrder(

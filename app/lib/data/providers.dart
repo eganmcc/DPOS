@@ -32,6 +32,15 @@ final transactionDetailProvider =
   return OrderResult.fromJson(await api.getOrder(orderId));
 });
 
+/// Open bills (confirm-now-pay-later) for an outlet. Server-authoritative; invalidated
+/// after confirming a new bill and after settling one.
+final openBillsProvider =
+    FutureProvider.autoDispose.family<List<OrderResult>, String>((ref, outletId) async {
+  final api = ref.watch(apiClientProvider);
+  final rows = await api.getOpenOrders(outletId);
+  return rows.map(OrderResult.fromJson).toList();
+});
+
 /// Catalog for an outlet: fetch from API and cache; fall back to the cache when offline.
 final catalogProvider = FutureProvider.family<Catalog, String>((ref, outletId) async {
   final api = ref.watch(apiClientProvider);

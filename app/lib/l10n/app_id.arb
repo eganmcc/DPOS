@@ -79,5 +79,14 @@
   "voidForbidden": "Anda tidak berhak membatalkan transaksi",
   "soldOut": "Habis",
   "eachSuffix": "/pcs",
-  "removeItem": "Hapus item"
+  "removeItem": "Hapus item",
+  "labelQty": "Jumlah",
+  "addQtyToOrder": "Tambah {qty} · {amount}",
+  "saveOrder": "Simpan Pesanan",
+  "orderSaved": "Pesanan disimpan",
+  "openBillsTitle": "Pesanan Terbuka",
+  "emptyOpenBills": "Belum ada pesanan terbuka",
+  "searchTable": "Cari meja",
+  "tableRequired": "Isi nomor meja dulu",
+  "tableExists": "Meja itu sudah punya pesanan terbuka"
 }

@@ -261,4 +261,33 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get removeItem => 'Hapus item';
+
+  @override
+  String get labelQty => 'Jumlah';
+
+  @override
+  String addQtyToOrder(int qty, String amount) {
+    return 'Tambah $qty · $amount';
+  }
+
+  @override
+  String get saveOrder => 'Simpan Pesanan';
+
+  @override
+  String get orderSaved => 'Pesanan disimpan';
+
+  @override
+  String get openBillsTitle => 'Pesanan Terbuka';
+
+  @override
+  String get emptyOpenBills => 'Belum ada pesanan terbuka';
+
+  @override
+  String get searchTable => 'Cari meja';
+
+  @override
+  String get tableRequired => 'Isi nomor meja dulu';
+
+  @override
+  String get tableExists => 'Meja itu sudah punya pesanan terbuka';
 }

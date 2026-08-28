@@ -260,4 +260,33 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removeItem => 'Remove item';
+
+  @override
+  String get labelQty => 'Qty';
+
+  @override
+  String addQtyToOrder(int qty, String amount) {
+    return 'Add $qty · $amount';
+  }
+
+  @override
+  String get saveOrder => 'Save order';
+
+  @override
+  String get orderSaved => 'Order saved';
+
+  @override
+  String get openBillsTitle => 'Open bills';
+
+  @override
+  String get emptyOpenBills => 'No open bills';
+
+  @override
+  String get searchTable => 'Search table';
+
+  @override
+  String get tableRequired => 'Enter a table number';
+
+  @override
+  String get tableExists => 'That table already has an open bill';
 }

@@ -571,6 +571,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove item'**
   String get removeItem;
+
+  /// No description provided for @labelQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get labelQty;
+
+  /// No description provided for @addQtyToOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {qty} · {amount}'**
+  String addQtyToOrder(int qty, String amount);
+
+  /// No description provided for @saveOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Save order'**
+  String get saveOrder;
+
+  /// No description provided for @orderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order saved'**
+  String get orderSaved;
+
+  /// No description provided for @openBillsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Open bills'**
+  String get openBillsTitle;
+
+  /// No description provided for @emptyOpenBills.
+  ///
+  /// In en, this message translates to:
+  /// **'No open bills'**
+  String get emptyOpenBills;
+
+  /// No description provided for @searchTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Search table'**
+  String get searchTable;
+
+  /// No description provided for @tableRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a table number'**
+  String get tableRequired;
+
+  /// No description provided for @tableExists.
+  ///
+  /// In en, this message translates to:
+  /// **'That table already has an open bill'**
+  String get tableExists;
 }
 
 class _AppLocalizationsDelegate

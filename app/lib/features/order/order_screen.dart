@@ -1,9 +1,13 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/brand.dart';
+import '../../core/formatters.dart';
 import '../../core/money.dart';
 import '../../core/settings_actions.dart';
 import '../../core/theme.dart';
+import '../../data/api_client.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
@@ -11,6 +15,7 @@ import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
 import '../transactions/transactions_screen.dart';
 import 'cart.dart';
+import 'open_bills_screen.dart';
 
 class OrderScreen extends ConsumerWidget {
   const OrderScreen({super.key});
@@ -43,6 +48,14 @@ class OrderScreen extends ConsumerWidget {
             );
           }),
           const SizedBox(width: 8),
+          if (catalogAsync.valueOrNull?.isOpenBill ?? false)
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OpenBillsScreen()),
+              ),
+              style: TextButton.styleFrom(foregroundColor: kBrandGold),
+              child: Text(t.openBillsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
           TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const TransactionsScreen()),
@@ -352,6 +365,7 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
     orElse: () => p.variants.firstWhere((v) => v.isAvailable, orElse: () => p.variants.first),
   );
   final Set<String> selectedMods = {};
+  int qty = 1; // add several at once without reopening the sheet
 
   await showModalBottomSheet<void>(
     context: context,
@@ -468,6 +482,10 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                       ? (selectedVariant.stock ?? 0) - inCart
                       : null;
                   final soldOut = remaining != null && remaining <= 0;
+                  // Keep qty within what's left to add.
+                  if (remaining != null && qty > remaining && remaining > 0) qty = remaining;
+                  if (qty < 1) qty = 1;
+                  final atQtyCap = remaining != null && qty >= remaining;
                   final blocked = unmet.isNotEmpty || soldOut;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,11 +507,26 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                         ),
                         const SizedBox(height: 8),
                       ],
+                      if (!soldOut) ...[
+                        Row(
+                          children: [
+                            Text(t.labelQty, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            _QtyStepper(
+                              qty: qty,
+                              onMinus: qty > 1 ? () => setSheet(() => qty--) : () {},
+                              onPlus: atQtyCap ? null : () => setSheet(() => qty++),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
                           icon: const Icon(Icons.add),
-                          label: Text(t.actionAddToOrder),
+                          label: Text(
+                              t.addQtyToOrder(qty, formatRupiah(selectedVariant.price * qty))),
                           onPressed: blocked
                               ? null
                               : () {
@@ -503,7 +536,7 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                                       .toList();
                                   ref
                                       .read(cartProvider.notifier)
-                                      .addItem(p, selectedVariant, mods);
+                                      .addItem(p, selectedVariant, mods, qty: qty);
                                   Navigator.of(context).pop();
                                 },
                         ),
@@ -566,18 +599,41 @@ String _stockLabel(BuildContext context, int remaining) {
 String _stockWord(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'id' ? 'Stok' : 'Stock';
 
-class _CartPanel extends ConsumerWidget {
+class _CartPanel extends ConsumerStatefulWidget {
   const _CartPanel({required this.taxRule, this.floating = false});
   final TaxRule? taxRule;
   final bool floating;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CartPanel> createState() => _CartPanelState();
+}
+
+class _CartPanelState extends ConsumerState<_CartPanel> {
+  final _table = TextEditingController();
+
+  @override
+  void dispose() {
+    _table.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final cart = ref.watch(cartProvider);
     final ctrl = ref.read(cartProvider.notifier);
+    final taxRule = widget.taxRule;
+    final floating = widget.floating;
     final preview = cart.preview(taxRule);
+
+    // After a confirm clears the cart, drop any stale table text so the next
+    // dine-in order starts blank.
+    if ((cart.tableLabel ?? '').isEmpty && _table.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && (ref.read(cartProvider).tableLabel ?? '').isEmpty) _table.clear();
+      });
+    }
 
     final panel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -602,6 +658,9 @@ class _CartPanel extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: TextField(
+              controller: _table,
+              inputFormatters: [UpperCaseTextInputFormatter()],
+              textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(labelText: t.fieldTableNo, isDense: true),
               onChanged: ctrl.setTableLabel,
             ),
@@ -787,16 +846,61 @@ class _StepBtn extends StatelessWidget {
   }
 }
 
-class _TotalsBar extends StatelessWidget {
+/// Open-bill confirm: save the order server-side (no payment) so stock is
+/// reserved now and the bill is settled later. Bypasses the offline queue.
+Future<void> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
+  final t = AppLocalizations.of(context)!;
+  final messenger = ScaffoldMessenger.of(context);
+  final session = ref.read(sessionProvider)!;
+  final cart = ref.read(cartProvider.notifier);
+  final state = ref.read(cartProvider);
+
+  // Dine-in open bills are keyed by table.
+  if (state.type == 'DINE_IN' && (state.tableLabel ?? '').trim().isEmpty) {
+    messenger.showSnackBar(SnackBar(content: Text(t.tableRequired)));
+    return;
+  }
+  // Friendly pre-check; the server enforces uniqueness too (409).
+  final norm = state.tableLabel?.trim().toUpperCase();
+  if (norm != null && norm.isNotEmpty) {
+    final open = await ref.read(openBillsProvider(session.outletId).future);
+    if (open.any((o) => (o.tableLabel ?? '').toUpperCase() == norm)) {
+      messenger.showSnackBar(SnackBar(content: Text(t.tableExists)));
+      return;
+    }
+  }
+
+  final payload = cart.buildPayload(
+    clientOrderId: const Uuid().v4(),
+    outletId: session.outletId,
+    deviceId: session.deviceId,
+    method: null, // open bill — no payment yet
+  );
+  try {
+    await ref.read(apiClientProvider).submitOrder(payload);
+    cart.clear();
+    ref.invalidate(catalogProvider(session.outletId)); // stock reserved
+    ref.invalidate(openBillsProvider(session.outletId));
+    messenger.showSnackBar(SnackBar(content: Text(t.orderSaved)));
+  } on DioException catch (e) {
+    messenger.showSnackBar(SnackBar(
+      content: Text(e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn),
+    ));
+  }
+}
+
+class _TotalsBar extends ConsumerWidget {
   const _TotalsBar({required this.preview, required this.taxRule, required this.cartEmpty});
   final CartPreview preview;
   final TaxRule? taxRule;
   final bool cartEmpty;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
+    final session = ref.watch(sessionProvider)!;
+    final openBill = ref.watch(catalogProvider(session.outletId)).valueOrNull?.isOpenBill ?? false;
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -832,10 +936,18 @@ class _TotalsBar extends StatelessWidget {
             child: FilledButton(
               onPressed: cartEmpty
                   ? null
-                  : () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),
-                      )),
-              child: Text(t.payWithTotal(formatRupiah(preview.grandTotal))),
+                  : () {
+                      if (openBill) {
+                        _confirmOpenBill(context, ref);
+                      } else {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),
+                        ));
+                      }
+                    },
+              child: Text(openBill
+                  ? t.saveOrder
+                  : t.payWithTotal(formatRupiah(preview.grandTotal))),
             ),
           ),
         ],
