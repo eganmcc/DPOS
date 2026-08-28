@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background">#FFFFFFFF</color>
+    <!-- Matches the navy half of the icon and the app's own splash, so the
+         handover from the system splash reads as one screen. -->
+    <color name="splash_background">#FF0B2036</color>
 </resources>
