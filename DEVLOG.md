@@ -58,6 +58,16 @@ sudo systemctl restart dpos && systemctl status dpos --no-pager
 
 **Logs:** `sudo journalctl -u dpos -n 100 --no-pager` (add `-f` to follow).
 
+**D-Customer Portal** — live at **https://dikapos.ptdika.com/customer-portal/**. Served by a **PM2** process `customer-portal` (`customer-portal/server.mjs`, an express static server on `127.0.0.1:5001`, SPA fallback, mounted at `/customer-portal`); **nginx** reverse-proxies it via a `location /customer-portal/` block in `/etc/nginx/conf.d/dpos.conf` (backup `dpos.conf.bak-portal`). The SPA is built with Vite `base:/customer-portal/`. Redeploy after a portal change:
+```
+# local: build, then ship the static dist (dist is gitignored)
+cd customer-portal && npm run build
+scp -i <key> -r dist ec2-user@16.78.176.250:/opt/dpos/customer-portal/
+# server (first time only): npm install --omit=dev; sudo npm i -g pm2; pm2 start ecosystem.config.cjs; pm2 save
+ssh … 'pm2 restart customer-portal'
+```
+Logs: `pm2 logs customer-portal`. **Pattern for future web apps:** new PM2 process on a new `127.0.0.1` port + a matching `location /<app>/` proxy block; nginx stays the only public-facing tier.
+
 **Menu images:** `cd /opt/dpos/server && npx ts-node scripts/provision-menu-images.ts` uploads every photo to S3 using the instance role, then `npx ts-node prisma/seed-menu.ts` repoints `imageUrl` in the DB. Both are idempotent. `MENU_IMAGE_BASE_URL` moves the images elsewhere (e.g. CloudFront) without a code change or app release.
 
 ## How to run locally (either machine)
