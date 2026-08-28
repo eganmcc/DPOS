@@ -1,13 +1,12 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_tts/flutter_tts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/brand.dart';
 import '../../core/formatters.dart';
 import '../../core/money.dart';
-import '../../core/terbilang.dart';
+import '../../core/tts.dart';
 import '../../core/theme.dart';
 import '../../data/api_client.dart';
 import '../../data/models.dart';
@@ -32,7 +31,6 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String _method = 'CASH';
   final _tender = TextEditingController();
-  final FlutterTts _tts = FlutterTts();
   int? _selectedTender;
   bool _submitting = false;
   String? _error;
@@ -40,20 +38,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   @override
   void dispose() {
     _tender.dispose();
-    _tts.stop();
     super.dispose();
-  }
-
-  /// Speak the settled total in Indonesian. No-ops gracefully where an id-ID
-  /// voice isn't installed (e.g. a bare emulator).
-  Future<void> _announceTotal(int grandTotal) async {
-    try {
-      await _tts.setLanguage('id-ID');
-      await _tts.setSpeechRate(0.5);
-      await _tts.speak('diterima ${terbilang(grandTotal)} rupiah');
-    } catch (_) {
-      /* no id-ID voice on this device — silent */
-    }
   }
 
   int? get _tenderValue => int.tryParse(_tender.text.replaceAll(RegExp(r'[^0-9]'), ''));
@@ -116,7 +101,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       }
       if (!mounted) return;
       if (result != null) {
-        await _announceTotal(result.grandTotal);
+        // Fire-and-forget via the app-wide TTS engine so navigating to the
+        // receipt can't cut the announcement off.
+        announceReceived(result.grandTotal);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => ReceiptScreen(order: result!)),
