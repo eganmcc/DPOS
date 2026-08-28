@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { useAuth } from '../stores/auth';
 
 const router = createRouter({
-  history: createWebHistory(),
+  // Matches Vite `base`; keep in sync with the nginx location.
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { guest: true } },
     {
