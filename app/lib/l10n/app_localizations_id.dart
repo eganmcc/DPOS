@@ -255,4 +255,10 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get soldOut => 'Habis';
+
+  @override
+  String get eachSuffix => '/pcs';
+
+  @override
+  String get removeItem => 'Hapus item';
 }

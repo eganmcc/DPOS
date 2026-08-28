@@ -18,6 +18,14 @@ class CartLine {
   int get unitPrice => variant.price + modifiers.fold(0, (s, m) => s + m.priceDelta);
   int get lineTotal => unitPrice * qty;
 
+  /// Identity of an orderable line, independent of quantity: same variant, same
+  /// SET of modifiers (order-independent), same note. Adding an item that matches
+  /// an existing line's key bumps its qty instead of spawning a duplicate row.
+  String get mergeKey {
+    final modIds = modifiers.map((m) => m.id).toList()..sort();
+    return '${variant.id}|${modIds.join(',')}|${note ?? ''}';
+  }
+
   CartLine copyWith({int? qty}) => CartLine(
         product: product,
         variant: variant,
@@ -81,10 +89,16 @@ class CartController extends StateNotifier<CartState> {
   CartController() : super(const CartState());
 
   void addItem(Product product, Variant variant, List<Modifier> modifiers, {String? note}) {
-    state = state.copyWith(lines: [
-      ...state.lines,
-      CartLine(product: product, variant: variant, qty: 1, modifiers: modifiers, note: note),
-    ]);
+    final incoming =
+        CartLine(product: product, variant: variant, qty: 1, modifiers: modifiers, note: note);
+    final lines = [...state.lines];
+    final i = lines.indexWhere((l) => l.mergeKey == incoming.mergeKey);
+    if (i >= 0) {
+      lines[i] = lines[i].copyWith(qty: lines[i].qty + 1);
+    } else {
+      lines.add(incoming);
+    }
+    state = state.copyWith(lines: lines);
   }
 
   void changeQty(int index, int delta) {

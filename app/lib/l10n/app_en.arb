@@ -84,5 +84,7 @@
   "voidSuccess": "Sale voided and stock restored",
   "voidFailed": "Void failed — please try again",
   "voidForbidden": "You are not allowed to void a sale",
-  "soldOut": "Sold out"
+  "soldOut": "Sold out",
+  "eachSuffix": "each",
+  "removeItem": "Remove item"
 }

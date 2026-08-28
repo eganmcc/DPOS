@@ -618,9 +618,10 @@ class _CartPanel extends ConsumerWidget {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   itemCount: cart.lines.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) => _CartLine(index: i),
                 ),
         ),
@@ -654,44 +655,133 @@ class _CartLine extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final l = cart.lines[index];
     final ctrl = ref.read(cartProvider.notifier);
+    final t = AppLocalizations.of(context)!;
     final mods = l.modifiers.map((m) => m.name).join(', ');
     // Cap the stepper at the variant's remaining stock (summed across cart lines).
     final variantQty =
         cart.lines.where((x) => x.variant.id == l.variant.id).fold<int>(0, (s, x) => s + x.qty);
     final atCap = l.variant.trackInventory && (l.variant.stock ?? 0) <= variantQty;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+    // Swipe left to remove the whole line; the − stepper at qty 1 is the second
+    // path (changeQty removes at 0). Keyed by mergeKey so Dismissible stays
+    // stable as lines merge/reorder.
+    return Dismissible(
+      key: ValueKey(l.mergeKey),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => ctrl.removeAt(index),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: cs.error,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(Icons.delete_outline, color: cs.onError, semanticLabel: t.removeItem),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outline),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${l.product.name} · ${l.variant.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('${formatRupiah(l.unitPrice)} ${t.eachSuffix}',
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                  if (mods.isNotEmpty)
+                    Text(mods,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${l.product.name} · ${l.variant.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                if (mods.isNotEmpty)
-                  Text(mods, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                _QtyStepper(
+                  qty: l.qty,
+                  onMinus: () => ctrl.changeQty(index, -1),
+                  onPlus: atCap ? null : () => ctrl.changeQty(index, 1),
+                ),
+                const SizedBox(height: 6),
+                Text(formatRupiah(l.lineTotal),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact grouped quantity control: a single [ − qty + ] capsule, in place of
+/// two loose outlined circles. The + disables at the stock cap.
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.qty, required this.onMinus, this.onPlus});
+  final int qty;
+  final VoidCallback onMinus;
+  final VoidCallback? onPlus;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepBtn(icon: Icons.remove, onTap: onMinus, color: cs.primary),
+          Container(
+            constraints: const BoxConstraints(minWidth: 28),
+            alignment: Alignment.center,
+            child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
-          IconButton.outlined(
-            visualDensity: VisualDensity.compact,
-            iconSize: 16,
-            onPressed: () => ctrl.changeQty(index, -1),
-            icon: const Icon(Icons.remove),
+          _StepBtn(
+            icon: Icons.add,
+            onTap: onPlus,
+            color: onPlus == null ? cs.onSurfaceVariant : cs.primary,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text('${l.qty}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
-          IconButton.outlined(
-            visualDensity: VisualDensity.compact,
-            iconSize: 16,
-            onPressed: atCap ? null : () => ctrl.changeQty(index, 1),
-            icon: const Icon(Icons.add),
-          ),
-          SizedBox(width: 72, child: Text(formatRupiah(l.lineTotal), textAlign: TextAlign.right)),
         ],
+      ),
+    );
+  }
+}
+
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, required this.onTap, required this.color});
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 20,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 18, color: color),
       ),
     );
   }

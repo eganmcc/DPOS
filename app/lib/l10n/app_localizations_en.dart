@@ -254,4 +254,10 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get soldOut => 'Sold out';
+
+  @override
+  String get eachSuffix => 'each';
+
+  @override
+  String get removeItem => 'Remove item';
 }

@@ -559,6 +559,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Sold out'**
   String get soldOut;
+
+  /// No description provided for @eachSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'each'**
+  String get eachSuffix;
+
+  /// No description provided for @removeItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove item'**
+  String get removeItem;
 }
 
 class _AppLocalizationsDelegate
