@@ -1,7 +1,15 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 1.2.0
+Version change: 1.2.0 → 1.3.0
+Bump rationale: MINOR — add the D-Customer Portal (admin web app) governance: admin mutations are
+  OWNER-gated, merchant-scoped, hash secrets at rest, and route inventory edits through the
+  append-only ledger; introduce `Merchant.businessType` (FNB | GROCERY) as a type-specific
+  behaviour driver (e.g. bill-settlement is F&B-only); and codify version discipline (read from
+  source, surfaced to users, bumped on user-visible change). Additive; no money/stock/lifecycle
+  rule changed.
+
+Prior — Version change: 1.1.0 → 1.2.0
 Bump rationale: MINOR — add deferred settlement (open bills) to Principle IV and the Order
   lifecycle. An order may be confirmed without payment as `AWAITING_PAYMENT`, reserving stock at
   confirm time (no more oversell than an immediate sale); settlement is a separate, idempotent,
@@ -18,14 +26,18 @@ Amendment history:
   - 1.2.0 (2026-08-28): Principle IV + Order lifecycle gain deferred settlement (open bills):
     confirm-without-payment reserves stock; atomic idempotent settle; one open bill per table;
     per-outlet paymentMode.
+  - 1.3.0 (2026-08-28): D-Customer Portal admin governance (OWNER-gated, ledger-routed inventory,
+    hashed secrets); Merchant.businessType (FNB | GROCERY); version discipline.
 Modified principles:
   - IV. Immutable Financial History — added stock-availability enforcement (1.1.0) and deferred
     settlement / open-bill rules (1.2.0); void/refund realized as append-only records
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
 Modified sections:
-  - Technology & Architecture Constraints — Stored Order lifecycle notes AWAITING_PAYMENT open
-    bills + per-outlet paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored
-    lifecycles + derived effective states (1.0.2)
+  - Technology & Architecture Constraints — D-Customer Portal admin governance + Merchant.
+    businessType (1.3.0); Stored Order lifecycle notes AWAITING_PAYMENT open bills + per-outlet
+    paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored lifecycles + derived
+    effective states (1.0.2)
+  - Development Workflow — version discipline (read from source, surfaced, bumped) (1.3.0)
 Added principles:
   - I. Postgres Is the Authoritative System of Record
   - II. Atomic Business Operations
@@ -184,10 +196,17 @@ lets the MVP demo convincingly today and go live without re-architecting.
 - **Database**: PostgreSQL. Early development runs local Postgres via Docker Compose; production/
   UAT/board-demo promotes to AWS RDS for PostgreSQL in the Jakarta region (`ap-southeast-3`) once
   the core schema and migrations stabilize. Same engine + Prisma migrations in both places.
-- **Web admin**: a separate Vue 3 + Vite + TypeScript SPA (Pinia, Vue Router) consuming the same
-  REST API. Not Flutter Web.
+- **Web admin (D-Customer Portal)**: a separate Vue 3 + Vite + TypeScript SPA (Pinia, Vue Router)
+  consuming the same REST API. Not Flutter Web. Admin mutations are **OWNER-gated**, merchant-scoped
+  from the token, and obey the same invariants as the app: PINs/passwords are bcrypt-hashed at rest
+  and NEVER returned; inventory edits go through the append-only ledger (an `ADJUSTMENT` movement +
+  transactional projection update, never an in-place balance edit — Principle IV); money stays
+  integer rupiah.
 - **Auth**: JWT issued by the API — owner email/password; staff PIN mapped to a staff account
   under the merchant. Roles gate sensitive actions.
+- **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY`) and drives
+  type-specific behaviour — e.g. the bill-settlement (`Outlet.paymentMode`) setting is surfaced only
+  for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle rules.
 - **Extensibility (F&B now → retail later)**: variants (the sellable unit — own SKU/barcode/
   price/cost/inventory) MUST be modeled distinctly from modifiers (additions/customizations).
   Retail is additive (populate SKU/barcode/cost, enable stock tracking) with no schema break.
@@ -216,6 +235,11 @@ lets the MVP demo convincingly today and go live without re-architecting.
   inventory ledger movements) — not by assertion alone.
 - **No unscoped scope creep**: changes that add money/stock behavior MUST state how they uphold
   Principles I–VI.
+- **Versions are read from source, never hardcoded**: each deployable (server `package.json`,
+  Flutter `pubspec.yaml`, portal `package.json`) owns its version; the app and portal read their
+  own at build time and the backend's from the public `GET /version` endpoint, and surface both to
+  the user (app Settings; portal login + nav). A user-visible behaviour change ships with a version
+  bump.
 
 ## Governance
 
@@ -233,4 +257,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.2.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
+**Version**: 1.3.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
