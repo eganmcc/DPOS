@@ -1,13 +1,13 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.2 → 1.1.0
-Bump rationale: MINOR — add a new enforceable rule to Principle IV: stock availability is
-  enforced. A stock-tracked variant may not be oversold — the server rejects any order line
-  exceeding the outlet's on-hand balance via an atomic conditional decrement inside the checkout
-  transaction, so stock can never go negative; a zero-on-hand item is not orderable and the client
-  greys it out and caps quantities at remaining stock. New material guidance, not a redefinition —
-  additive to the existing append-only ledger rule.
+Version change: 1.1.0 → 1.2.0
+Bump rationale: MINOR — add deferred settlement (open bills) to Principle IV and the Order
+  lifecycle. An order may be confirmed without payment as `AWAITING_PAYMENT`, reserving stock at
+  confirm time (no more oversell than an immediate sale); settlement is a separate, idempotent,
+  single-guarded-transition action that appends a CHARGE and completes the order without touching
+  stock again; an outlet holds at most one open bill per table. Immediate-vs-open-bill is a
+  per-outlet setting. Additive material guidance, consistent with the existing lifecycle.
 Amendment history:
   - 1.0.0 (2026-08-21): Initial ratification (first adoption).
   - 1.0.1 (2026-08-21): Principle VI tenancy wording reconciled with the Phase 1 schema.
@@ -15,12 +15,16 @@ Amendment history:
     refund model (derived VOIDED/REFUNDED; immutable original payment).
   - 1.1.0 (2026-08-28): Principle IV gains stock-availability enforcement (no overselling; zero
     on-hand is not orderable; client reflects availability).
+  - 1.2.0 (2026-08-28): Principle IV + Order lifecycle gain deferred settlement (open bills):
+    confirm-without-payment reserves stock; atomic idempotent settle; one open bill per table;
+    per-outlet paymentMode.
 Modified principles:
-  - IV. Immutable Financial History — added stock-availability enforcement rule (1.1.0); void/refund
-    realized as append-only records; wording tightened
+  - IV. Immutable Financial History — added stock-availability enforcement (1.1.0) and deferred
+    settlement / open-bill rules (1.2.0); void/refund realized as append-only records
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
 Modified sections:
-  - Technology & Architecture Constraints — "Lifecycles are backend-owned" split into stored
+  - Technology & Architecture Constraints — Stored Order lifecycle notes AWAITING_PAYMENT open
+    bills + per-outlet paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored
     lifecycles + derived effective states (1.0.2)
 Added principles:
   - I. Postgres Is the Authoritative System of Record
@@ -104,6 +108,14 @@ be overwritten or physically deleted. Corrections happen only through new, compe
   drive stock negative. An item with **zero on-hand MUST NOT be orderable**; the client reflects
   this by disabling/greying the item and capping quantities at the remaining stock. Remaining
   quantity is read from the outlet-scoped catalog.
+- **Deferred settlement (open bills) reserves stock up front and completes atomically.** An order
+  MAY be confirmed without a payment and stored as `AWAITING_PAYMENT`; this still writes the
+  negative `inventory_movements` entry and decrements stock at confirm time, so an open bill can no
+  more oversell than an immediate sale. Settlement is a **separate** action that appends a `CHARGE`
+  `Payment` and advances the stored status to `COMPLETED` through a **single guarded transition** —
+  idempotent (a retry or concurrent settle resolves to exactly one `COMPLETED` order with one
+  charge) and it **never touches stock again** (already reserved at confirm). An outlet holds at
+  most one `AWAITING_PAYMENT` order per table label.
 - VOID and REFUND are distinct operations, both realized as **new append-only records** rather
   than mutations of history: a full VOID is an `OrderVoid`; a REFUND is a reversal `Payment`
   referencing the original `CHARGE`. The `COMPLETED` order and the original `PAID` payment are
@@ -181,9 +193,11 @@ lets the MVP demo convincingly today and go live without re-architecting.
   Retail is additive (populate SKU/barcode/cost, enable stock tracking) with no schema break.
 - **Lifecycles are backend-owned**:
   - **Stored Order lifecycle**: `DRAFT → HELD → AWAITING_PAYMENT → COMPLETED`. The stored status
-    never advances past `COMPLETED`. `VOIDED` and `REFUNDED` are **derived effective states**
-    represented by append-only compensating records (an `OrderVoid`; a reversal `Payment`); they
-    do **not** mutate a `COMPLETED` order.
+    never advances past `COMPLETED`. `AWAITING_PAYMENT` is the **open-bill** state (confirm now,
+    settle later); whether an outlet settles immediately or opens a bill is a per-outlet setting
+    (`Outlet.paymentMode` ∈ `IMMEDIATE` | `OPEN_BILL`). `VOIDED` and `REFUNDED` are **derived
+    effective states** represented by append-only compensating records (an `OrderVoid`; a reversal
+    `Payment`); they do **not** mutate a `COMPLETED` order.
   - **Stored Payment lifecycle**: `CREATED → PENDING → PAID`, with `FAILED` / `EXPIRED` /
     `CANCELLED` alternatives. A refund/reversal is a **new** `Payment` record referencing the
     original `CHARGE`; the original `PAID` payment remains **immutable** (never rewritten to
@@ -219,4 +233,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.1.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
+**Version**: 1.2.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
