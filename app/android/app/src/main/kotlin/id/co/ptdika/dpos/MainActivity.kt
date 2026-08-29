@@ -5,23 +5,14 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
 import android.media.AudioManager
 import android.media.ToneGenerator
-import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.View
-import android.view.ViewTreeObserver
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import java.util.UUID
 
 class MainActivity : FlutterActivity() {
-    // Hold the Android 12+ system splash on screen for a few seconds so the
-    // brand splash can actually be read (it otherwise vanishes at Flutter's
-    // first frame). No Flutter-drawn splash — this only delays the first draw.
-    private var splashHoldOver = false
-
     private val spp: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
     // Instant scanner beep via the system ToneGenerator (no asset, no audio
@@ -120,24 +111,5 @@ class MainActivity : FlutterActivity() {
             }
         }
         return false
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val content = findViewById<View>(android.R.id.content)
-            content.viewTreeObserver.addOnPreDrawListener(
-                object : ViewTreeObserver.OnPreDrawListener {
-                    override fun onPreDraw(): Boolean {
-                        if (splashHoldOver) {
-                            content.viewTreeObserver.removeOnPreDrawListener(this)
-                            return true
-                        }
-                        return false
-                    }
-                },
-            )
-            Handler(Looper.getMainLooper()).postDelayed({ splashHoldOver = true }, 3000)
-        }
     }
 }
