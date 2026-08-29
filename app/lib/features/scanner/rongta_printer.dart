@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import 'dpos_printer.dart' show BtPrinter, pairedPrinters, receiptPrinterMac;
-import 'receipt_printer.dart' show printReceipt;
+import 'receipt_printer.dart' show printReceipt, printTest;
 
 /// SEPARATE, diagnostic print path for the Rongta RP58 — isolated from the working
 /// `printBytesNative`/`printBytes` flow (RPP02N + receipt/checkout). The native
@@ -32,37 +32,6 @@ Future<String> printBytesRongta(String mac, List<int> bytes) async {
     return s ?? 'FAIL: null result';
   } catch (e) {
     return 'FAIL: $e';
-  }
-}
-
-/// Send raw bytes to [mac] via the RP58 **BLE/GATT** native path. Returns the native
-/// status string ("BLE OK: …" / "FAIL(BLE): …"). Never throws.
-Future<String> printBytesRongtaBle(String mac, List<int> bytes) async {
-  try {
-    final s = await _channel.invokeMethod<String>('printBytesRongtaBle', {
-      'mac': mac,
-      'bytes': Uint8List.fromList(bytes),
-    });
-    return s ?? 'FAIL(BLE): null result';
-  } catch (e) {
-    return 'FAIL(BLE): $e';
-  }
-}
-
-/// Diagnostic test slip over BLE — same minimal raw payload as the Classic test.
-/// Reports which GATT characteristic it wrote to (or dumps services if none writable).
-Future<String> printTestRongtaBle() async {
-  try {
-    final mac = await receiptPrinterMac();
-    if (mac == null) return 'FAIL(BLE): no printer selected';
-    final b = <int>[];
-    b.addAll([0x1B, 0x40]); // ESC @ initialize
-    b.addAll('DPOS - Rongta RP58 BLE test\n'.codeUnits);
-    b.addAll('${DateFormat('dd/MM/yy HH:mm').format(DateTime.now())}\n'.codeUnits);
-    b.addAll('\n\n\n\n'.codeUnits);
-    return await printBytesRongtaBle(mac, b);
-  } catch (e) {
-    return 'FAIL(BLE): $e';
   }
 }
 
@@ -119,6 +88,15 @@ Future<bool> printReceiptSmart(
   return printReceipt(order, businessName: businessName, outletName: outletName);
 }
 
+/// Dispatch the Settings "Test print" to the right path: the Rongta test when a
+/// Rongta is selected, else the existing `printTest`. Returns whether it printed.
+Future<bool> printTestSmart() async {
+  if (await isRongtaSelected()) {
+    return (await printTestRongta()).startsWith('OK');
+  }
+  return printTest();
+}
+
 String _methodLabel(String m) =>
     m == 'CASH' ? 'Tunai' : m == 'QRIS_SIMULATED' ? 'QRIS' : m == 'ONLINE' ? 'Online' : m;
 
@@ -139,11 +117,7 @@ Future<bool> printReceiptRongta(
     final b = <int>[];
 
     b.addAll(g.text(businessName ?? 'DPOS',
-        styles: const PosStyles(
-            align: PosAlign.center,
-            bold: true,
-            height: PosTextSize.size2,
-            width: PosTextSize.size2)));
+        styles: const PosStyles(align: PosAlign.center, bold: true)));
     if (outletName != null && outletName.isNotEmpty) {
       b.addAll(g.text(outletName, styles: const PosStyles(align: PosAlign.center)));
     }

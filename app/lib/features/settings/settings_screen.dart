@@ -7,7 +7,6 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/dpos_printer.dart';
-import '../scanner/receipt_printer.dart';
 import '../scanner/rongta_printer.dart';
 
 /// Settings: preferences (language, theme), build info (app + backend versions),
@@ -139,40 +138,11 @@ class SettingsScreen extends ConsumerWidget {
                         final messenger = ScaffoldMessenger.of(context);
                         messenger.showSnackBar(const SnackBar(
                             duration: Duration(seconds: 1), content: Text('…')));
-                        final ok = await printTest();
+                        // Dispatches to the Rongta path when a Rongta is selected,
+                        // else the existing printTest — same button, separate logic.
+                        final ok = await printTestSmart();
                         messenger.showSnackBar(
                             SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    // Separate diagnostic for the Rongta RP58 (isolated print path).
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.print_outlined, size: 18),
-                      label: const Text('Test print (Rongta RP58)'),
-                      onPressed: () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        messenger.showSnackBar(const SnackBar(
-                            duration: Duration(seconds: 1), content: Text('…')));
-                        final status = await printTestRongta();
-                        // Surface the native diagnostic string (logcat is hidden on
-                        // HyperOS release builds).
-                        messenger.showSnackBar(SnackBar(
-                            duration: const Duration(seconds: 8), content: Text(status)));
-                      },
-                    ),
-                    const SizedBox(height: 6),
-                    // RP58_BU print engine is on BLE (Classic SPP connects but never
-                    // prints). Separate BLE/GATT test path.
-                    OutlinedButton.icon(
-                      icon: const Icon(Icons.bluetooth, size: 18),
-                      label: const Text('Test print (RP58 BLE)'),
-                      onPressed: () async {
-                        final messenger = ScaffoldMessenger.of(context);
-                        messenger.showSnackBar(const SnackBar(
-                            duration: Duration(seconds: 1), content: Text('…')));
-                        final status = await printTestRongtaBle();
-                        messenger.showSnackBar(SnackBar(
-                            duration: const Duration(seconds: 8), content: Text(status)));
                       },
                     ),
                   ],
