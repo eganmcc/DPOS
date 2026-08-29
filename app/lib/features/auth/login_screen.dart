@@ -138,15 +138,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      // Brand lockup = the splash components, centred. The wordmark
-                      // PNG is white (for the gold splash), so tint it to the brand
-                      // colour to read on the light login card.
-                      Center(child: Image.asset('assets/images/splash_circle.png', height: 132)),
-                      const SizedBox(height: 8),
-                      Center(
+                      // Brand lockup = the splash components, centred and enlarged.
+                      // Each PNG carries transparent vertical margin, so heightFactor
+                      // trims that padding (the art overflows harmlessly) to pull the
+                      // two marks close together. The wordmark PNG is white (for the
+                      // gold splash), so tint it to the brand colour for the light card.
+                      Align(
+                        alignment: Alignment.center,
+                        heightFactor: 0.74,
+                        child: Image.asset('assets/images/splash_circle.png', height: 200),
+                      ),
+                      Align(
+                        alignment: Alignment.center,
+                        heightFactor: 0.72,
                         child: ColorFiltered(
                           colorFilter: ColorFilter.mode(cs.primary, BlendMode.srcIn),
-                          child: Image.asset('assets/images/splash_wordmark.png', height: 52),
+                          child: Image.asset('assets/images/splash_wordmark.png', height: 92),
                         ),
                       ),
                       const SizedBox(height: 12),
