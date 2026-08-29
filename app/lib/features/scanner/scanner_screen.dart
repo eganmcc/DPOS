@@ -34,6 +34,12 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
   bool _statusError = false;
 
   @override
+  void initState() {
+    super.initState();
+    warmUpBeep(); // preload so the first scan beeps immediately
+  }
+
+  @override
   void dispose() {
     _controller.dispose();
     _skuField.dispose();
