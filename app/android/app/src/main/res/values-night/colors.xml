@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Same flat brand navy in dark mode — the splash is intentionally one color. -->
-    <color name="splash_background">#FF0B2036</color>
+    <!-- Same flat brand gold in dark mode — the splash is intentionally one color. -->
+    <color name="splash_background">#FFD6AD07</color>
 </resources>
