@@ -133,8 +133,27 @@ Release APKs are **debug-signed** (fine for sideloading, not for Play Store).
 - **Emulator "not enough space":** `adb shell pm uninstall-system-updates` reclaimed ~4 GB.
 - **Screenshots:** PowerShell `>` corrupts binary; use `adb shell screencap -p /sdcard/x.png` then `adb pull`.
 
-## Cross-machine workflow (PC ⇄ Mac)
-- **Code:** git. Commit + push often; `git pull` on the other machine. Remote = `github.com/eganmcc/DPOS`.
-- **Never synced (recreate per machine):** `server/.env`, `.vscode/`, `app/android/local.properties`, anything under `.gradle/`.
-- **Session with Claude:** local Claude Code sessions do **not** sync across machines. For a portable session use **claude.ai/code (web)**. Keep this DEVLOG updated so any session/machine catches up fast.
-- **Secrets:** the RDS password and `~/Documents/aws/DPOS.pem` are not in the repo and must not be. The EC2 box generates its own `JWT_SECRET`.
+## Working across surfaces (cloud ⇄ local, PC ⇄ Mac)
+
+**Key idea:** running the app needs the **code**, not the **conversation**. Keep them separate.
+
+- **Cloud session (claude.ai/code) = the portable "brain."** Steer it from a **browser on any machine**. It writes code and pushes a branch to `github.com/eganmcc/DPOS`. Close the tab / switch machines freely — it persists server-side (left sidebar → Sessions).
+- **Local runs (emulator, RDS, hands-on testing):** just `git pull` the branch on whichever machine and run it. No need to move the session.
+- **Teleport** — only when you want to keep *talking to Claude while working locally*:
+  ```bash
+  claude --teleport <session-id>     # checks out the branch AND loads the cloud conversation into the local CLI/VS Code
+  claude -p "message" --cloud <session-id>   # send a one-off follow-up to a cloud session from the CLI
+  ```
+  Get `<session-id>` from the cloud session URL (`claude.ai/code/session_…`). ⚠️ After teleport the conversation becomes **local/machine-bound**; to go portable again, push commits and continue via the browser/a new cloud session (git carries the code, not the local chat).
+- **VS Code:** can resume a cloud session via **Claude Code panel → Session history → Web tab** (downloads the conversation as a new *local* session; branch not auto-checked-out — `git pull` first, or use teleport).
+
+| I want to… | Do this |
+|---|---|
+| Keep the portable thread across machines | Cloud session in the **browser** |
+| Just **run** it (emulator + RDS) | `git pull` the branch locally; leave the session in the cloud |
+| **Code hands-on with Claude locally** | `claude --teleport <id>` (convo goes local) |
+| Sync local edits back | `git commit && git push`; cloud session `git pull`s them |
+
+**Cloud sandbox limits:** no Android/iOS emulator (visual app testing is local-only); it can't reach our AWS RDS (security-group/IP) — use the sandbox's local Postgres for backend tests there.
+
+**Always true:** git is the only bridge between surfaces. Local sessions do **not** sync across machines. Secrets (`server/.env`) are never committed — recreate per machine. Update this DEVLOG at the end of each session so any surface catches up fast.
