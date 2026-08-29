@@ -1,7 +1,15 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.2.0 → 1.3.0
+Version change: 1.3.0 → 1.4.0
+Bump rationale: MINOR — codify that peripherals are presentation, never a source of truth: the
+  grocery barcode scanner resolves a SKU and adds via the same server-authoritative add + stock-cap
+  path (no client money/stock rule), and Bluetooth ESC/POS receipt printing is a non-blocking side
+  effect of an already-committed order (silent on failure; the DB record, not the paper, is
+  authoritative). A scanner POS mode is offered only for grocery. Additive; no money/stock/lifecycle
+  rule changed.
+
+Prior — Version change: 1.2.0 → 1.3.0
 Bump rationale: MINOR — add the D-Customer Portal (admin web app) governance: admin mutations are
   OWNER-gated, merchant-scoped, hash secrets at rest, and route inventory edits through the
   append-only ledger; introduce `Merchant.businessType` (FNB | GROCERY) as a type-specific
@@ -28,12 +36,16 @@ Amendment history:
     per-outlet paymentMode.
   - 1.3.0 (2026-08-28): D-Customer Portal admin governance (OWNER-gated, ledger-routed inventory,
     hashed secrets); Merchant.businessType (FNB | GROCERY); version discipline.
+  - 1.4.0 (2026-08-29): peripherals-are-presentation (grocery barcode scanner reuses the
+    server-authoritative add/stock path; ESC/POS printing is a non-blocking side effect of a
+    committed order); scanner POS mode is grocery-only.
 Modified principles:
   - IV. Immutable Financial History — added stock-availability enforcement (1.1.0) and deferred
     settlement / open-bill rules (1.2.0); void/refund realized as append-only records
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
 Modified sections:
-  - Technology & Architecture Constraints — D-Customer Portal admin governance + Merchant.
+  - Technology & Architecture Constraints — peripherals-are-presentation (barcode scanner + ESC/POS
+    printing); grocery-only scanner mode (1.4.0); D-Customer Portal admin governance + Merchant.
     businessType (1.3.0); Stored Order lifecycle notes AWAITING_PAYMENT open bills + per-outlet
     paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored lifecycles + derived
     effective states (1.0.2)
@@ -206,7 +218,14 @@ lets the MVP demo convincingly today and go live without re-architecting.
   under the merchant. Roles gate sensitive actions.
 - **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY`) and drives
   type-specific behaviour — e.g. the bill-settlement (`Outlet.paymentMode`) setting is surfaced only
-  for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle rules.
+  for F&B; a **barcode-scanner POS mode** is offered only for grocery. Adding a type is additive; it
+  MUST NOT change money, stock, or lifecycle rules.
+- **Peripherals are presentation, never a source of truth.** Barcode scanning resolves a scanned
+  value to a variant by **SKU** and adds it to the cart through the **same** server-authoritative
+  add + stock-cap path as tapping — it introduces no client-side money or stock rule. Receipt
+  printing (Bluetooth ESC/POS) is a **non-blocking side effect of an already-committed order**: it
+  never gates or alters the sale, a print failure is silent, and the database record — not the
+  paper — is authoritative (Principle I).
 - **Extensibility (F&B now → retail later)**: variants (the sellable unit — own SKU/barcode/
   price/cost/inventory) MUST be modeled distinctly from modifiers (additions/customizations).
   Retail is additive (populate SKU/barcode/cost, enable stock tracking) with no schema break.
@@ -257,4 +276,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.3.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-28
+**Version**: 1.4.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-29
