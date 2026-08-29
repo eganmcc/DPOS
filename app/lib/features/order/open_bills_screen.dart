@@ -135,11 +135,11 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
               child: Text(t.onlineOrderAccept),
             )
           : null,
-      onTap: isNew
-          ? null
-          : () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => TransactionDetailScreen(orderId: o.id)),
-              ),
+      // Details are viewable at any stage — NEW included (the Terima button keeps
+      // its own tap for accepting).
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => TransactionDetailScreen(orderId: o.id)),
+      ),
     );
   }
 
