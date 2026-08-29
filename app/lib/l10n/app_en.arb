@@ -9,6 +9,7 @@
   "advancedSettings": "Advanced settings",
   "actionSignIn": "Sign in",
   "errorSignIn": "Sign-in failed (check connection)",
+  "sessionExpired": "Your session expired. Please sign in again.",
   "posTitle": "Cashier",
   "actionLogout": "Log out",
   "errorCatalog": "Failed to load catalog: {error}",

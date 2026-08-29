@@ -100,6 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             role: res['role'] as String,
             outletId: _outlet.text.trim(),
           ));
+      ref.read(sessionExpiredProvider.notifier).state = false;
     } on DioException catch (e) {
       setState(() => _error = e.response?.data?['message']?.toString() ?? t.errorSignIn);
     } catch (_) {
@@ -157,6 +158,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           textAlign: TextAlign.center,
                           style: TextStyle(color: cs.onSurfaceVariant)),
                       const SizedBox(height: 20),
+
+                      // Shown when an authed call 401'd and signed the user out.
+                      if (ref.watch(sessionExpiredProvider)) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: cs.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.info_outline, size: 18, color: cs.onErrorContainer),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(t.sessionExpired,
+                                  style: TextStyle(color: cs.onErrorContainer)),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
 
                       // Demo directory: pick a business + outlet; PIN prefills.
                       if (hasDirectory) ...[

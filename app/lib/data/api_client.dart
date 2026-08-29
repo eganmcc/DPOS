@@ -12,13 +12,26 @@ const String kApiBaseUrl = String.fromEnvironment(
 );
 
 class ApiClient {
-  ApiClient(String? token)
+  ApiClient(String? token, {void Function()? onUnauthorized})
       : _dio = Dio(BaseOptions(
           baseUrl: kApiBaseUrl,
           connectTimeout: const Duration(seconds: 8),
           receiveTimeout: const Duration(seconds: 12),
           headers: token == null ? null : {'Authorization': 'Bearer $token'},
-        ));
+        )) {
+    // A 401 on an authenticated call means the token expired or was revoked.
+    // Hand it to [onUnauthorized] (which clears the session and routes to
+    // login) so an expired session never masquerades as a connection error.
+    // Login endpoints use their own Dio, so a wrong-PIN 401 never lands here.
+    if (onUnauthorized != null) {
+      _dio.interceptors.add(InterceptorsWrapper(
+        onError: (e, handler) {
+          if (e.response?.statusCode == 401) onUnauthorized();
+          handler.next(e);
+        },
+      ));
+    }
+  }
 
   final Dio _dio;
 
@@ -113,5 +126,17 @@ class ApiClient {
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final session = ref.watch(sessionProvider);
-  return ApiClient(session?.token);
+  // Capture the notifiers (app-lifetime singletons) so the interceptor callback
+  // stays valid even after this provider rebuilds on logout.
+  final sessionNotifier = ref.read(sessionProvider.notifier);
+  final expired = ref.read(sessionExpiredProvider.notifier);
+  return ApiClient(
+    session?.token,
+    onUnauthorized: session == null
+        ? null
+        : () {
+            expired.state = true;
+            sessionNotifier.logout();
+          },
+  );
 });

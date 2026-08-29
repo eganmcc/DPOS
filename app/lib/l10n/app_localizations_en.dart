@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorSignIn => 'Sign-in failed (check connection)';
 
   @override
+  String get sessionExpired => 'Your session expired. Please sign in again.';
+
+  @override
   String get posTitle => 'Cashier';
 
   @override

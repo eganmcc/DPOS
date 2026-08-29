@@ -9,6 +9,7 @@
   "advancedSettings": "Pengaturan lanjutan",
   "actionSignIn": "Masuk",
   "errorSignIn": "Gagal masuk (cek koneksi)",
+  "sessionExpired": "Sesi Anda berakhir. Silakan masuk lagi.",
   "posTitle": "Kasir",
   "actionLogout": "Keluar",
   "errorCatalog": "Gagal memuat katalog: {error}",

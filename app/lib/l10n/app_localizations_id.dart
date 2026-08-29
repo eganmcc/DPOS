@@ -36,6 +36,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get errorSignIn => 'Gagal masuk (cek koneksi)';
 
   @override
+  String get sessionExpired => 'Sesi Anda berakhir. Silakan masuk lagi.';
+
+  @override
   String get posTitle => 'Kasir';
 
   @override

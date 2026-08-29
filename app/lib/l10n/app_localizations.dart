@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'Sign-in failed (check connection)'**
   String get errorSignIn;
 
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Please sign in again.'**
+  String get sessionExpired;
+
   /// No description provided for @posTitle.
   ///
   /// In en, this message translates to:
