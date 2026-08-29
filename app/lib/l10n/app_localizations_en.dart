@@ -371,4 +371,19 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get actionPrint => 'Print';
+
+  @override
+  String get printerSection => 'Printer';
+
+  @override
+  String get printerPaired => 'Paired';
+
+  @override
+  String get printerNone => 'None found';
+
+  @override
+  String get printerTest => 'Test print';
+
+  @override
+  String get printerOk => 'Printed';
 }

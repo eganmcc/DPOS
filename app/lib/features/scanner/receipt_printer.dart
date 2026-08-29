@@ -16,10 +16,7 @@ Future<bool> printReceipt(
   try {
     final mac = await findDposPrinterMac();
     if (mac == null) return false;
-    if (!await PrintBluetoothThermal.connectionStatus) {
-      final ok = await PrintBluetoothThermal.connect(macPrinterAddress: mac);
-      if (!ok) return false;
-    }
+    if (!await _ensureConnected(mac)) return false;
 
     final g = Generator(PaperSize.mm58, await CapabilityProfile.load());
     final b = <int>[];
@@ -84,3 +81,36 @@ Future<bool> printReceipt(
 
 String _method(String m) =>
     m == 'CASH' ? 'Tunai' : m == 'QRIS_SIMULATED' ? 'QRIS' : m;
+
+/// Connect to the printer, retrying — SPP thermal printers often fail the first
+/// connect attempt even when powered on and paired.
+Future<bool> _ensureConnected(String mac) async {
+  if (await PrintBluetoothThermal.connectionStatus) return true;
+  for (var attempt = 0; attempt < 4; attempt++) {
+    if (await PrintBluetoothThermal.connect(macPrinterAddress: mac)) return true;
+    await Future.delayed(const Duration(milliseconds: 700));
+  }
+  return false;
+}
+
+/// Print a short test slip to confirm the DPOSP connection (Settings diagnostic).
+Future<bool> printTest() async {
+  try {
+    final mac = await findDposPrinterMac();
+    if (mac == null) return false;
+    if (!await _ensureConnected(mac)) return false;
+    final g = Generator(PaperSize.mm58, await CapabilityProfile.load());
+    final b = <int>[];
+    b.addAll(g.text('DPOS',
+        styles: const PosStyles(
+            align: PosAlign.center, bold: true, height: PosTextSize.size2, width: PosTextSize.size2)));
+    b.addAll(g.text('Printer test OK', styles: const PosStyles(align: PosAlign.center)));
+    b.addAll(g.text(DateFormat('dd/MM/yy HH:mm').format(DateTime.now()),
+        styles: const PosStyles(align: PosAlign.center)));
+    b.addAll(g.feed(2));
+    b.addAll(g.cut());
+    return await PrintBluetoothThermal.writeBytes(b);
+  } catch (_) {
+    return false;
+  }
+}

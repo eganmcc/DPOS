@@ -114,5 +114,10 @@
   "scannerModeOn": "Aktif",
   "scannerModeOff": "Nonaktif",
   "printFailed": "Printer tidak terhubung",
-  "actionPrint": "Cetak"
+  "actionPrint": "Cetak",
+  "printerSection": "Printer",
+  "printerPaired": "Terpasang",
+  "printerNone": "Tidak ditemukan",
+  "printerTest": "Tes cetak",
+  "printerOk": "Tercetak"
 }

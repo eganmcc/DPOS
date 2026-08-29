@@ -372,4 +372,19 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get actionPrint => 'Cetak';
+
+  @override
+  String get printerSection => 'Printer';
+
+  @override
+  String get printerPaired => 'Terpasang';
+
+  @override
+  String get printerNone => 'Tidak ditemukan';
+
+  @override
+  String get printerTest => 'Tes cetak';
+
+  @override
+  String get printerOk => 'Tercetak';
 }

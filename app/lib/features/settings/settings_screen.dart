@@ -6,6 +6,8 @@ import '../../core/settings_actions.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../scanner/dpos_printer.dart';
+import '../scanner/receipt_printer.dart';
 
 /// Settings: preferences (language, theme), build info (app + backend versions),
 /// and logout — all moved out of the order-screen app bar.
@@ -76,6 +78,41 @@ class SettingsScreen extends ConsumerWidget {
                   selected: {scannerMode},
                   onSelectionChanged: (s) =>
                       ref.read(scannerModeSettingProvider.notifier).set(s.first),
+                ),
+              ),
+            ]),
+            const SizedBox(height: 24),
+            _sectionHeader(context, t.printerSection),
+            _card(cs, [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<List<String>>(
+                      future: pairedBluetoothNames(),
+                      builder: (context, snap) {
+                        final done = snap.connectionState == ConnectionState.done;
+                        final names = snap.data ?? const <String>[];
+                        final txt = !done
+                            ? '…'
+                            : (names.isEmpty ? t.printerNone : names.join(', '));
+                        return Text('${t.printerPaired}: $txt',
+                            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13));
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.print_outlined, size: 18),
+                      label: Text(t.printerTest),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        final ok = await printTest();
+                        messenger.showSnackBar(
+                            SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
+                      },
+                    ),
+                  ],
                 ),
               ),
             ]),

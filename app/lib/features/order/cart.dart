@@ -95,9 +95,11 @@ class CartController extends StateNotifier<CartState> {
     final lines = [...state.lines];
     final i = lines.indexWhere((l) => l.mergeKey == incoming.mergeKey);
     if (i >= 0) {
-      lines[i] = lines[i].copyWith(qty: lines[i].qty + qty);
+      // Bump qty and move the just-touched line to the top.
+      final existing = lines.removeAt(i);
+      lines.insert(0, existing.copyWith(qty: existing.qty + qty));
     } else {
-      lines.add(incoming);
+      lines.insert(0, incoming); // newest on top
     }
     state = state.copyWith(lines: lines);
   }

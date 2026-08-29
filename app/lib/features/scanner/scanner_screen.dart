@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../../core/beep.dart';
 import '../../core/brand.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
@@ -92,6 +93,7 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
       return;
     }
     ref.read(cartProvider.notifier).addItem(product, variant, const [], qty: 1);
+    beep();
     HapticFeedback.mediumImpact();
     _setStatus(t.scannerAdded(product.name), error: false);
     _skuField.clear();

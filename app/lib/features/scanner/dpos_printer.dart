@@ -13,12 +13,23 @@ Future<String?> findDposPrinterMac() async {
     if (!status.isGranted) return null;
     if (!await PrintBluetoothThermal.bluetoothEnabled) return null;
     final paired = await PrintBluetoothThermal.pairedBluetooths;
+    // Match leniently: the printer may be paired as "DPOSP", "DPOSP-1234", etc.
     for (final d in paired) {
-      if (d.name.trim().toUpperCase() == kPrinterName) return d.macAdress;
+      if (d.name.trim().toUpperCase().contains(kPrinterName)) return d.macAdress;
     }
     return null;
   } catch (_) {
     return null;
+  }
+}
+
+/// Names of all paired Bluetooth devices — for the Settings printer diagnostic.
+Future<List<String>> pairedBluetoothNames() async {
+  try {
+    if (!(await Permission.bluetoothConnect.request()).isGranted) return const [];
+    return (await PrintBluetoothThermal.pairedBluetooths).map((d) => d.name).toList();
+  } catch (_) {
+    return const [];
   }
 }
 

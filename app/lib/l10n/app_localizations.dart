@@ -781,6 +781,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Print'**
   String get actionPrint;
+
+  /// No description provided for @printerSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printerSection;
+
+  /// No description provided for @printerPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired'**
+  String get printerPaired;
+
+  /// No description provided for @printerNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None found'**
+  String get printerNone;
+
+  /// No description provided for @printerTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test print'**
+  String get printerTest;
+
+  /// No description provided for @printerOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed'**
+  String get printerOk;
 }
 
 class _AppLocalizationsDelegate

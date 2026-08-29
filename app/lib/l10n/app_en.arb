@@ -124,5 +124,10 @@
   "scannerModeOn": "On",
   "scannerModeOff": "Off",
   "printFailed": "Printer not reachable",
-  "actionPrint": "Print"
+  "actionPrint": "Print",
+  "printerSection": "Printer",
+  "printerPaired": "Paired",
+  "printerNone": "None found",
+  "printerTest": "Test print",
+  "printerOk": "Printed"
 }
