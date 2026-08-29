@@ -1,7 +1,17 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.3.0 → 1.4.0
+Version change: 1.4.0 → 1.5.0
+Bump rationale: MINOR — codify online-delivery sales channels as server-authoritative ingestion: an
+  online order (GoFood/GrabFood/ShopeeFood) is a first-class Order created through the same
+  computeOrder + inventory + (merchantId, clientOrderId) idempotency pipeline as an in-store sale (no
+  client money/stock rule); it carries a `channel` and an `onlineStatus` fulfillment lifecycle
+  distinct from payment status, and a platform-paid order lands COMPLETED with a synthetic ONLINE
+  payment. One server-side ingestion seam serves both the demo simulator and future provider webhooks;
+  the DB (not the platform) is authoritative. Online-order intake is F&B-only. Additive; no
+  money/stock/lifecycle rule changed.
+
+Prior — Version change: 1.3.0 → 1.4.0
 Bump rationale: MINOR — codify that peripherals are presentation, never a source of truth: the
   grocery barcode scanner resolves a SKU and adds via the same server-authoritative add + stock-cap
   path (no client money/stock rule), and Bluetooth ESC/POS receipt printing is a non-blocking side
@@ -39,13 +49,21 @@ Amendment history:
   - 1.4.0 (2026-08-29): peripherals-are-presentation (grocery barcode scanner reuses the
     server-authoritative add/stock path; ESC/POS printing is a non-blocking side effect of a
     committed order); scanner POS mode is grocery-only.
+  - 1.5.0 (2026-08-29): external sales channels are server-authoritative ingestion (online-delivery
+    orders are first-class Orders via the shared computeOrder/inventory/idempotency pipeline;
+    `channel` + `onlineStatus` fulfillment lifecycle; platform-paid → COMPLETED + synthetic ONLINE
+    payment; one ingestion seam for the demo simulator + real webhooks); online-order intake is
+    F&B-only.
 Modified principles:
   - IV. Immutable Financial History — added stock-availability enforcement (1.1.0) and deferred
     settlement / open-bill rules (1.2.0); void/refund realized as append-only records
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
 Modified sections:
-  - Technology & Architecture Constraints — peripherals-are-presentation (barcode scanner + ESC/POS
-    printing); grocery-only scanner mode (1.4.0); D-Customer Portal admin governance + Merchant.
+  - Technology & Architecture Constraints — external sales channels are server-authoritative
+    ingestion (online-delivery orders as first-class Orders; `channel` + `onlineStatus`; one ingestion
+    seam for demo + webhooks); online-order intake is F&B-only (1.5.0); peripherals-are-presentation
+    (barcode scanner + ESC/POS printing); grocery-only scanner mode (1.4.0); D-Customer Portal admin
+    governance + Merchant.
     businessType (1.3.0); Stored Order lifecycle notes AWAITING_PAYMENT open bills + per-outlet
     paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored lifecycles + derived
     effective states (1.0.2)
@@ -218,14 +236,24 @@ lets the MVP demo convincingly today and go live without re-architecting.
   under the merchant. Roles gate sensitive actions.
 - **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY`) and drives
   type-specific behaviour — e.g. the bill-settlement (`Outlet.paymentMode`) setting is surfaced only
-  for F&B; a **barcode-scanner POS mode** is offered only for grocery. Adding a type is additive; it
-  MUST NOT change money, stock, or lifecycle rules.
+  for F&B; a **barcode-scanner POS mode** is offered only for grocery; **online-delivery order intake**
+  is offered only for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle
+  rules.
 - **Peripherals are presentation, never a source of truth.** Barcode scanning resolves a scanned
   value to a variant by **SKU** and adds it to the cart through the **same** server-authoritative
   add + stock-cap path as tapping — it introduces no client-side money or stock rule. Receipt
   printing (Bluetooth ESC/POS) is a **non-blocking side effect of an already-committed order**: it
   never gates or alters the sale, a print failure is silent, and the database record — not the
   paper — is authoritative (Principle I).
+- **External sales channels are server-authoritative ingestion.** Online-delivery orders (GoFood/
+  GrabFood/ShopeeFood) are **first-class Orders**, not a parallel store: they are created through the
+  **same** `computeOrder` totals + inventory decrement + `(merchantId, clientOrderId)` idempotency as
+  an in-store checkout — the client never computes their money or stock. An order carries a `channel`
+  (`POS` in-store; a platform otherwise) and, for online orders, an `onlineStatus` **fulfillment**
+  lifecycle (`NEW → ACCEPTED → …`) that is **distinct from** payment status; a platform-paid order
+  lands `COMPLETED` with a synthetic `ONLINE` `Payment`. Both the demo simulator and future provider
+  webhooks feed **one** ingestion service; the database — not the delivery platform — is authoritative
+  (Principle I). A platform cancellation is an append-only `OrderVoid` (Principle IV), never a mutation.
 - **Extensibility (F&B now → retail later)**: variants (the sellable unit — own SKU/barcode/
   price/cost/inventory) MUST be modeled distinctly from modifiers (additions/customizations).
   Retail is additive (populate SKU/barcode/cost, enable stock tracking) with no schema break.
@@ -235,7 +263,10 @@ lets the MVP demo convincingly today and go live without re-architecting.
     settle later); whether an outlet settles immediately or opens a bill is a per-outlet setting
     (`Outlet.paymentMode` ∈ `IMMEDIATE` | `OPEN_BILL`). `VOIDED` and `REFUNDED` are **derived
     effective states** represented by append-only compensating records (an `OrderVoid`; a reversal
-    `Payment`); they do **not** mutate a `COMPLETED` order.
+    `Payment`); they do **not** mutate a `COMPLETED` order. An order also carries a `channel`
+    (`POS` | `GOFOOD` | `GRABFOOD` | `SHOPEEFOOD`); an online order additionally tracks an
+    `onlineStatus` **fulfillment** lifecycle (`NEW → ACCEPTED → PREPARING → READY → COMPLETED`,
+    or `CANCELLED`) that is separate from — and never a substitute for — the stored payment status.
   - **Stored Payment lifecycle**: `CREATED → PENDING → PAID`, with `FAILED` / `EXPIRED` /
     `CANCELLED` alternatives. A refund/reversal is a **new** `Payment` record referencing the
     original `CHARGE`; the original `PAID` payment remains **immutable** (never rewritten to
@@ -276,4 +307,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.4.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-29
+**Version**: 1.5.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-29
