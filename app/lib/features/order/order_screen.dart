@@ -70,8 +70,10 @@ class OrderScreen extends ConsumerWidget {
               child: Badge.count(
                 count: unprocessed,
                 isLabelVisible: unprocessed > 0,
+                // Nudge the badge clear of the label so it doesn't sit over the text.
+                offset: const Offset(8, -4),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  padding: const EdgeInsets.only(right: 12),
                   child:
                       Text(t.openBillsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
                 ),
