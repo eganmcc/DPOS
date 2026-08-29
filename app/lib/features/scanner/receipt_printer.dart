@@ -14,7 +14,7 @@ Future<bool> printReceipt(
   String? outletName,
 }) async {
   try {
-    final mac = await findDposPrinterMac();
+    final mac = await receiptPrinterMac();
     if (mac == null) return false;
     if (!await _ensureConnected(mac)) return false;
 
@@ -96,7 +96,7 @@ Future<bool> _ensureConnected(String mac) async {
 /// Print a short test slip to confirm the DPOSP connection (Settings diagnostic).
 Future<bool> printTest() async {
   try {
-    final mac = await findDposPrinterMac();
+    final mac = await receiptPrinterMac();
     if (mac == null) return false;
     if (!await _ensureConnected(mac)) return false;
     final g = Generator(PaperSize.mm58, await CapabilityProfile.load());

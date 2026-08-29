@@ -26,6 +26,7 @@ class SettingsScreen extends ConsumerWidget {
     final isGrocery = session != null &&
         (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isGrocery ?? false);
     final scannerMode = ref.watch(scannerModeSettingProvider);
+    final selectedMac = ref.watch(selectedPrinterProvider);
 
     String show(AsyncValue<String> v) => v.when(
           data: (s) => s,
@@ -87,26 +88,53 @@ class SettingsScreen extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    FutureBuilder<List<String>>(
-                      future: pairedBluetoothNames(),
+                    Text(t.printerPaired,
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    FutureBuilder<List<BtPrinter>>(
+                      future: pairedPrinters(),
                       builder: (context, snap) {
-                        final done = snap.connectionState == ConnectionState.done;
-                        final names = snap.data ?? const <String>[];
-                        final txt = !done
-                            ? '…'
-                            : (names.isEmpty ? t.printerNone : names.join(', '));
-                        return Text('${t.printerPaired}: $txt',
-                            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13));
+                        if (snap.connectionState != ConnectionState.done) {
+                          return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8), child: Text('…'));
+                        }
+                        final printers = snap.data ?? const <BtPrinter>[];
+                        if (printers.isEmpty) {
+                          return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Text(t.printerNone,
+                                  style: TextStyle(color: cs.onSurfaceVariant)));
+                        }
+                        return Column(
+                          children: [
+                            for (final p in printers)
+                              ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(p.name),
+                                subtitle: Text(p.mac,
+                                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+                                trailing: selectedMac == p.mac
+                                    ? Icon(Icons.check_circle, color: cs.primary)
+                                    : const Icon(Icons.radio_button_unchecked),
+                                onTap: () =>
+                                    ref.read(selectedPrinterProvider.notifier).select(p.mac),
+                              ),
+                          ],
+                        );
                       },
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 8),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.print_outlined, size: 18),
                       label: Text(t.printerTest),
                       onPressed: () async {
                         final messenger = ScaffoldMessenger.of(context);
+                        messenger.showSnackBar(const SnackBar(
+                            duration: Duration(seconds: 1), content: Text('…')));
                         final ok = await printTest();
                         messenger.showSnackBar(
                             SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));

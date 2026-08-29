@@ -1,40 +1,76 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-const kPrinterName = 'DPOSP';
+/// Name fragments of typical thermal receipt printers — used to auto-pick one
+/// when the cashier hasn't explicitly selected a printer. Note: Android/the BT
+/// plugin reports the *factory* device name (e.g. "RPP02N"), not the alias the
+/// user renamed it to, so we can't rely on "DPOSP".
+const _printerNameHints = ['DPOS', 'RPP', 'POS', 'PRINT', 'THERMAL', 'BLE'];
+const _selectedMacKey = 'printerMac';
 
-/// The MAC of the paired "DPOSP" printer, or null. Requests BLUETOOTH_CONNECT
-/// first. Any failure (permission denied, BT off, no device) resolves to null so
-/// callers just skip printing / the scanner gate falls back to the order screen.
-Future<String?> findDposPrinterMac() async {
-  try {
-    final status = await Permission.bluetoothConnect.request();
-    if (!status.isGranted) return null;
-    if (!await PrintBluetoothThermal.bluetoothEnabled) return null;
-    final paired = await PrintBluetoothThermal.pairedBluetooths;
-    // Match leniently: the printer may be paired as "DPOSP", "DPOSP-1234", etc.
-    for (final d in paired) {
-      if (d.name.trim().toUpperCase().contains(kPrinterName)) return d.macAdress;
-    }
-    return null;
-  } catch (_) {
-    return null;
-  }
+class BtPrinter {
+  final String name;
+  final String mac;
+  const BtPrinter(this.name, this.mac);
 }
 
-/// Names of all paired Bluetooth devices — for the Settings printer diagnostic.
-Future<List<String>> pairedBluetoothNames() async {
+Future<List<BtPrinter>> pairedPrinters() async {
   try {
     if (!(await Permission.bluetoothConnect.request()).isGranted) return const [];
-    return (await PrintBluetoothThermal.pairedBluetooths).map((d) => d.name).toList();
+    final list = await PrintBluetoothThermal.pairedBluetooths;
+    return list.map((d) => BtPrinter(d.name, d.macAdress)).toList();
   } catch (_) {
     return const [];
   }
 }
 
-/// True when a paired Bluetooth printer named "DPOSP" is present. Drives the
-/// scanner-mode gate (grocery + this) and whether checkout auto-prints.
+Future<String?> selectedPrinterMac() async {
+  final p = await SharedPreferences.getInstance();
+  return p.getString(_selectedMacKey);
+}
+
+Future<void> setSelectedPrinterMac(String? mac) async {
+  final p = await SharedPreferences.getInstance();
+  if (mac == null) {
+    await p.remove(_selectedMacKey);
+  } else {
+    await p.setString(_selectedMacKey, mac);
+  }
+}
+
+/// The MAC of the receipt printer to use: the explicitly-selected one if it's
+/// still paired, otherwise the first paired device whose (factory) name looks
+/// like a thermal printer. Null when nothing suitable is paired.
+Future<String?> receiptPrinterMac() async {
+  final printers = await pairedPrinters();
+  if (printers.isEmpty) return null;
+  final sel = await selectedPrinterMac();
+  if (sel != null && printers.any((d) => d.mac == sel)) return sel;
+  for (final d in printers) {
+    final n = d.name.toUpperCase();
+    if (_printerNameHints.any(n.contains)) return d.mac;
+  }
+  return null;
+}
+
+/// True when a usable receipt printer is available (drives the scanner-mode gate
+/// and whether checkout auto-prints).
 final dposPrinterProvider = FutureProvider<bool>((ref) async {
-  return (await findDposPrinterMac()) != null;
+  return (await receiptPrinterMac()) != null;
 });
+
+/// Selected printer MAC as a reactive setting (mirrors shared_preferences).
+class SelectedPrinterNotifier extends StateNotifier<String?> {
+  SelectedPrinterNotifier() : super(null) {
+    selectedPrinterMac().then((v) => state = v);
+  }
+  Future<void> select(String? mac) async {
+    state = mac;
+    await setSelectedPrinterMac(mac);
+  }
+}
+
+final selectedPrinterProvider =
+    StateNotifierProvider<SelectedPrinterNotifier, String?>((ref) => SelectedPrinterNotifier());
