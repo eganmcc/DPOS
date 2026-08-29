@@ -143,13 +143,34 @@ class MainActivity : FlutterActivity() {
         return false
     }
 
-    // SEPARATE path for the Rongta RP58 (does NOT modify printBytes above).
-    // Returns a human-readable status string surfaced in the app toast (HyperOS
-    // suppresses app logcat on release builds). SDP-resolved sockets ONLY (secure
-    // first, then insecure) — never the channel-1 reflection hack; chunked write;
-    // generous drain before close.
+    // Persistent RP58 connection, kept open between prints (Thermer-style): only the
+    // FIRST print pays the connect + 700ms settle; every print after reuses the open
+    // socket and is near-instant. @Synchronized so overlapping taps serialize.
+    private var rongtaSocket: BluetoothSocket? = null
+    private var rongtaMac: String? = null
+
+    // SEPARATE path for the Rongta RP58 (does NOT modify printBytes above). Returns a
+    // status string surfaced in the toast (HyperOS hides app logcat on release). SDP
+    // sockets only; the settle delay is needed only on a FRESH link (the module drops
+    // bytes sent right after connect) — reused connections write immediately.
+    @Synchronized
     private fun printBytesRongta(mac: String, bytes: ByteArray): String {
         val adapter = BluetoothAdapter.getDefaultAdapter() ?: return "FAIL: no BT adapter"
+
+        // Fast path: reuse the already-open socket — no reconnect, no settle.
+        val cached = rongtaSocket
+        if (cached != null && rongtaMac == mac && cached.isConnected) {
+            try {
+                writeAll(cached, bytes)
+                return "OK reused | n=${bytes.size}"
+            } catch (e: Exception) {
+                try { cached.close() } catch (_: Exception) {}
+                rongtaSocket = null
+                rongtaMac = null
+                // fall through to a fresh connect
+            }
+        }
+
         val device: BluetoothDevice = try {
             adapter.getRemoteDevice(mac)
         } catch (e: Exception) {
@@ -172,28 +193,13 @@ class MainActivity : FlutterActivity() {
             try {
                 socket = make() ?: continue
                 socket.connect()
-                // Let the printer's BT module settle before writing — cheap modules
-                // (RP58_BU) drop bytes sent immediately after the link comes up.
+                // Settle only on a FRESH link — the RP58_BU module drops bytes sent
+                // immediately after connect.
                 Thread.sleep(700)
-                val out = socket.outputStream
-                var off = 0
-                val chunk = 256
-                while (off < bytes.size) {
-                    val end = minOf(off + chunk, bytes.size)
-                    out.write(bytes, off, end - off)
-                    out.flush()
-                    off = end
-                    Thread.sleep(20)
-                }
-                // Drain scaled to payload before closing (keeps a small floor so a
-                // trailing command — e.g. the cash-drawer pulse — isn't cut off).
-                val drain = maxOf(600L, bytes.size.toLong())
-                Thread.sleep(drain)
-                try {
-                    socket.close()
-                } catch (_: Exception) {
-                }
-                return "OK via $label | $info drain=${drain}ms cd=700"
+                writeAll(socket, bytes)
+                rongtaSocket = socket // keep it open for the next print
+                rongtaMac = mac
+                return "OK via $label | $info cd=700 (kept open)"
             } catch (e: Exception) {
                 errs.append("$label:${e.message}; ")
                 try {
@@ -202,7 +208,25 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+        rongtaSocket = null
+        rongtaMac = null
         return "FAIL: $info | $errs"
+    }
+
+    // Chunked write + a short drain so trailing bytes (e.g. the drawer pulse) flush.
+    // Does NOT close the socket — the connection is kept open and reused.
+    private fun writeAll(socket: BluetoothSocket, bytes: ByteArray) {
+        val out = socket.outputStream
+        var off = 0
+        val chunk = 256
+        while (off < bytes.size) {
+            val end = minOf(off + chunk, bytes.size)
+            out.write(bytes, off, end - off)
+            out.flush()
+            off = end
+            Thread.sleep(20)
+        }
+        Thread.sleep(300)
     }
 
     private fun shortUuid(u: String): String = if (u.length >= 8) u.substring(4, 8) else u
