@@ -23,7 +23,7 @@ class SplashScreen extends StatelessWidget {
             alignment: const Alignment(0, -0.06),
             child: Image.asset(
               'assets/images/splash_circle.png',
-              width: w * 0.70,
+              width: w * 0.88,
               fit: BoxFit.contain,
             ),
           ),
