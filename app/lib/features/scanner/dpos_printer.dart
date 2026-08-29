@@ -1,7 +1,24 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+// Native classic-Bluetooth SPP print (insecure RFCOMM + fallbacks) — see
+// MainActivity.kt. The plugin's secure socket fails on cheap thermal printers.
+const _printerChannel = MethodChannel('dpos/printer');
+
+Future<bool> printBytesNative(String mac, List<int> bytes) async {
+  try {
+    final ok = await _printerChannel.invokeMethod<bool>('printBytes', {
+      'mac': mac,
+      'bytes': Uint8List.fromList(bytes),
+    });
+    return ok ?? false;
+  } catch (_) {
+    return false;
+  }
+}
 
 /// Name fragments of typical thermal receipt printers — used to auto-pick one
 /// when the cashier hasn't explicitly selected a printer. Note: Android/the BT

@@ -1,6 +1,5 @@
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:intl/intl.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
 import 'dpos_printer.dart';
@@ -16,7 +15,6 @@ Future<bool> printReceipt(
   try {
     final mac = await receiptPrinterMac();
     if (mac == null) return false;
-    if (!await _ensureConnected(mac)) return false;
 
     final g = Generator(PaperSize.mm58, await CapabilityProfile.load());
     final b = <int>[];
@@ -73,7 +71,7 @@ Future<bool> printReceipt(
     b.addAll(g.feed(2));
     b.addAll(g.cut());
 
-    return await PrintBluetoothThermal.writeBytes(b);
+    return await printBytesNative(mac, b);
   } catch (_) {
     return false;
   }
@@ -82,23 +80,11 @@ Future<bool> printReceipt(
 String _method(String m) =>
     m == 'CASH' ? 'Tunai' : m == 'QRIS_SIMULATED' ? 'QRIS' : m;
 
-/// Connect to the printer, retrying — SPP thermal printers often fail the first
-/// connect attempt even when powered on and paired.
-Future<bool> _ensureConnected(String mac) async {
-  if (await PrintBluetoothThermal.connectionStatus) return true;
-  for (var attempt = 0; attempt < 4; attempt++) {
-    if (await PrintBluetoothThermal.connect(macPrinterAddress: mac)) return true;
-    await Future.delayed(const Duration(milliseconds: 700));
-  }
-  return false;
-}
-
-/// Print a short test slip to confirm the DPOSP connection (Settings diagnostic).
+/// Print a short test slip to confirm the printer connection (Settings diagnostic).
 Future<bool> printTest() async {
   try {
     final mac = await receiptPrinterMac();
     if (mac == null) return false;
-    if (!await _ensureConnected(mac)) return false;
     final g = Generator(PaperSize.mm58, await CapabilityProfile.load());
     final b = <int>[];
     b.addAll(g.text('DPOS',
@@ -109,7 +95,7 @@ Future<bool> printTest() async {
         styles: const PosStyles(align: PosAlign.center)));
     b.addAll(g.feed(2));
     b.addAll(g.cut());
-    return await PrintBluetoothThermal.writeBytes(b);
+    return await printBytesNative(mac, b);
   } catch (_) {
     return false;
   }
