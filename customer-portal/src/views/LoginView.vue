@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import { APP_VERSION, fetchServerVersion } from '../version';
+import logoUrl from '../assets/logo.png';
 
 const auth = useAuth();
 const router = useRouter();
@@ -33,7 +34,7 @@ async function submit() {
 <template>
   <div class="login">
     <div class="hero">
-      <div class="brand-mark">D</div>
+      <img class="brand-mark" :src="logoUrl" alt="D-Customer Portal" />
       <h1>D-Customer Portal</h1>
       <p>Manage sales, staff, inventory, prices and branches for your business.</p>
       <div class="hero-ver">Portal v{{ APP_VERSION }} · Server v{{ serverVersion }}</div>
@@ -80,13 +81,8 @@ async function submit() {
 .hero .brand-mark {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
-  background: var(--gold);
-  color: var(--grad-top);
-  font-weight: 800;
-  font-size: 34px;
-  display: grid;
-  place-items: center;
+  border-radius: 50%;
+  object-fit: contain;
   margin-bottom: 24px;
 }
 .hero h1 {

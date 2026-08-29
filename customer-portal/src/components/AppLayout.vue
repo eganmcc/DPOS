@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue';
 import { RouterView, useRouter } from 'vue-router';
 import { useAuth } from '../stores/auth';
 import { APP_VERSION, fetchServerVersion } from '../version';
+import logoUrl from '../assets/logo.png';
 
 const auth = useAuth();
 const router = useRouter();
@@ -30,7 +31,7 @@ function logout() {
   <div class="shell">
     <aside class="side">
       <div class="brand">
-        <div class="brand-mark">D</div>
+        <img class="brand-mark" :src="logoUrl" alt="D-Customer Portal" />
         <div>
           <div class="brand-name">D-Customer</div>
           <div class="brand-sub">Portal</div>
@@ -97,13 +98,9 @@ function logout() {
 .brand-mark {
   width: 40px;
   height: 40px;
-  border-radius: 12px;
-  background: var(--gold);
-  color: var(--grad-top);
-  font-weight: 800;
-  font-size: 22px;
-  display: grid;
-  place-items: center;
+  border-radius: 50%;
+  object-fit: contain;
+  flex: none;
 }
 .brand-name {
   font-weight: 800;

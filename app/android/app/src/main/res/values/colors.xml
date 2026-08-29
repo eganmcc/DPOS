@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Splash background: flat brand gold (Android 12+ SplashScreen API allows a
-         single opaque color only). The icon's gold half blends into this by design. -->
-    <color name="splash_background">#FFD6AD07</color>
+    <!-- Splash background: flat brand navy (Android 12+ SplashScreen API allows a
+         single opaque color only). The 5k mark's navy half blends into this by design. -->
+    <color name="splash_background">#FF0B2036</color>
+    <!-- Adaptive launcher-icon background (solid navy behind the 5k foreground). -->
+    <color name="ic_launcher_background">#FF0B2036</color>
 </resources>

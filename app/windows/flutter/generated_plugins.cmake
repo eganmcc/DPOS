@@ -5,6 +5,8 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   flutter_tts
+  permission_handler_windows
+  print_bluetooth_thermal
   sqlite3_flutter_libs
 )
 
