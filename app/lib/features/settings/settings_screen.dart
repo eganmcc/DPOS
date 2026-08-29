@@ -160,6 +160,21 @@ class SettingsScreen extends ConsumerWidget {
                             duration: const Duration(seconds: 8), content: Text(status)));
                       },
                     ),
+                    const SizedBox(height: 6),
+                    // RP58_BU print engine is on BLE (Classic SPP connects but never
+                    // prints). Separate BLE/GATT test path.
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.bluetooth, size: 18),
+                      label: const Text('Test print (RP58 BLE)'),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        messenger.showSnackBar(const SnackBar(
+                            duration: Duration(seconds: 1), content: Text('…')));
+                        final status = await printTestRongtaBle();
+                        messenger.showSnackBar(SnackBar(
+                            duration: const Duration(seconds: 8), content: Text(status)));
+                      },
+                    ),
                   ],
                 ),
               ),
