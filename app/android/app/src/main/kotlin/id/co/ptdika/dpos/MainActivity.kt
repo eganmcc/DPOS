@@ -7,6 +7,7 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -61,6 +62,18 @@ class MainActivity : FlutterActivity() {
                             Handler(Looper.getMainLooper()).post { result.success(ok) }
                         }.start()
                     }
+                } else if (call.method == "printBytesRongta") {
+                    // SEPARATE Rongta RP58 path — does not touch printBytes above.
+                    val mac = call.argument<String>("mac")
+                    val bytes = call.argument<ByteArray>("bytes")
+                    if (mac == null || bytes == null) {
+                        result.success(false)
+                    } else {
+                        Thread {
+                            val ok = printBytesRongta(mac, bytes)
+                            Handler(Looper.getMainLooper()).post { result.success(ok) }
+                        }.start()
+                    }
                 } else {
                     result.notImplemented()
                 }
@@ -110,6 +123,77 @@ class MainActivity : FlutterActivity() {
                 // fall through to the next connection method
             }
         }
+        return false
+    }
+
+    // SEPARATE path for the Rongta RP58 (does NOT modify printBytes above).
+    // Differences that address "connects but nothing prints":
+    //  - SDP-resolved sockets ONLY (secure first, then insecure) — the correct
+    //    RFCOMM channel is discovered, never the hard-coded channel-1 reflection
+    //    hack (the prime suspect for a silent no-print).
+    //  - Chunked writes + a generous drain before close (Android BluetoothSocket
+    //    flush() is a no-op; closing too early truncates the job on a slower/
+    //    small-buffer printer).
+    //  - Logs which connector actually worked (adb logcat -s RongtaPrint).
+    private fun printBytesRongta(mac: String, bytes: ByteArray): Boolean {
+        val tag = "RongtaPrint"
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: run {
+            Log.w(tag, "no bluetooth adapter")
+            return false
+        }
+        val device: BluetoothDevice = try {
+            adapter.getRemoteDevice(mac)
+        } catch (e: Exception) {
+            Log.w(tag, "bad mac $mac: ${e.message}")
+            return false
+        }
+        Log.i(tag, "device=${device.name} mac=$mac bond=${device.bondState} bytes=${bytes.size}")
+        try {
+            adapter.cancelDiscovery()
+        } catch (_: Exception) {
+        }
+
+        val makers: List<Pair<String, () -> BluetoothSocket?>> = listOf(
+            "secure-sdp" to { device.createRfcommSocketToServiceRecord(spp) },
+            "insecure-sdp" to { device.createInsecureRfcommSocketToServiceRecord(spp) },
+        )
+
+        for ((label, make) in makers) {
+            var socket: BluetoothSocket? = null
+            try {
+                socket = make() ?: continue
+                socket.connect()
+                Log.i(tag, "connected via $label")
+                val out = socket.outputStream
+                // Chunked write so a small-buffer printer isn't overrun.
+                var off = 0
+                val chunk = 256
+                while (off < bytes.size) {
+                    val end = minOf(off + chunk, bytes.size)
+                    out.write(bytes, off, end - off)
+                    out.flush()
+                    off = end
+                    Thread.sleep(20)
+                }
+                // Generous drain scaled to payload before closing the socket.
+                val drain = maxOf(1500L, bytes.size.toLong())
+                Log.i(tag, "wrote ${bytes.size} bytes via $label, draining ${drain}ms")
+                Thread.sleep(drain)
+                try {
+                    socket.close()
+                } catch (_: Exception) {
+                }
+                Log.i(tag, "done via $label")
+                return true
+            } catch (e: Exception) {
+                Log.w(tag, "$label failed: ${e.message}")
+                try {
+                    socket?.close()
+                } catch (_: Exception) {
+                }
+            }
+        }
+        Log.w(tag, "all connectors failed")
         return false
     }
 }

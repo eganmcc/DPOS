@@ -8,6 +8,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/dpos_printer.dart';
 import '../scanner/receipt_printer.dart';
+import '../scanner/rongta_printer.dart';
 
 /// Settings: preferences (language, theme), build info (app + backend versions),
 /// and logout — all moved out of the order-screen app bar.
@@ -139,6 +140,20 @@ class SettingsScreen extends ConsumerWidget {
                         messenger.showSnackBar(const SnackBar(
                             duration: Duration(seconds: 1), content: Text('…')));
                         final ok = await printTest();
+                        messenger.showSnackBar(
+                            SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
+                      },
+                    ),
+                    const SizedBox(height: 6),
+                    // Separate diagnostic for the Rongta RP58 (isolated print path).
+                    OutlinedButton.icon(
+                      icon: const Icon(Icons.print_outlined, size: 18),
+                      label: const Text('Test print (Rongta RP58)'),
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
+                        messenger.showSnackBar(const SnackBar(
+                            duration: Duration(seconds: 1), content: Text('…')));
+                        final ok = await printTestRongta();
                         messenger.showSnackBar(
                             SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
                       },
