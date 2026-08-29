@@ -172,6 +172,9 @@ class MainActivity : FlutterActivity() {
             try {
                 socket = make() ?: continue
                 socket.connect()
+                // Let the printer's BT module settle before writing — cheap modules
+                // drop bytes sent immediately after the link comes up.
+                Thread.sleep(1000)
                 val out = socket.outputStream
                 var off = 0
                 val chunk = 256
@@ -188,7 +191,7 @@ class MainActivity : FlutterActivity() {
                     socket.close()
                 } catch (_: Exception) {
                 }
-                return "OK via $label | $info drain=${drain}ms"
+                return "OK via $label | $info drain=${drain}ms cd=1000"
             } catch (e: Exception) {
                 errs.append("$label:${e.message}; ")
                 try {
