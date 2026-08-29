@@ -25,7 +25,10 @@ class SettingsScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final isGrocery = session != null &&
         (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isGrocery ?? false);
+    final isFnb = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isFnb ?? false);
     final scannerMode = ref.watch(scannerModeSettingProvider);
+    final onlineDemo = ref.watch(onlineDemoSettingProvider);
     final selectedMac = ref.watch(selectedPrinterProvider);
 
     String show(AsyncValue<String> v) => v.when(
@@ -141,6 +144,19 @@ class SettingsScreen extends ConsumerWidget {
                       },
                     ),
                   ],
+                ),
+              ),
+            ]),
+          ],
+          if (isFnb) ...[
+            const SizedBox(height: 24),
+            _sectionHeader(context, t.onlineOrdersTitle),
+            _card(cs, [
+              _SettingsRow(
+                label: t.onlineDemoLabel,
+                trailing: Switch(
+                  value: onlineDemo,
+                  onChanged: (v) => ref.read(onlineDemoSettingProvider.notifier).set(v),
                 ),
               ),
             ]),

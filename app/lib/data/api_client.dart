@@ -94,6 +94,24 @@ class ApiClient {
     return (res.data as List).cast<Map<String, dynamic>>();
   }
 
+  /// Online-delivery orders for an outlet (NEW first). F&B online-order queue.
+  Future<List<Map<String, dynamic>>> getOnlineOrders(String outletId) async {
+    final res = await _dio.get('/online-orders', queryParameters: {'outletId': outletId});
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Cashier acknowledges a new online order (NEW → ACCEPTED).
+  Future<Map<String, dynamic>> acceptOnlineOrder(String orderId) async {
+    final res = await _dio.post('/online-orders/$orderId/accept');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// DEMO: ask the server to fabricate + ingest a random online order for the outlet.
+  Future<Map<String, dynamic>> simulateOnlineOrder(String outletId) async {
+    final res = await _dio.post('/online-orders/simulate', data: {'outletId': outletId});
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Settle an open bill: attach payment and complete it. Returns the settled order.
   /// [clientSettleId] is the idempotency key.
   Future<Map<String, dynamic>> settleOrder(

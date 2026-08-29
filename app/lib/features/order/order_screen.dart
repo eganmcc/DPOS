@@ -16,6 +16,7 @@ import '../payment/checkout_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 import 'cart.dart';
+import 'online_orders_controller.dart';
 import 'open_bills_screen.dart';
 
 class OrderScreen extends ConsumerWidget {
@@ -26,6 +27,17 @@ class OrderScreen extends ConsumerWidget {
     final t = AppLocalizations.of(context)!;
     final session = ref.watch(sessionProvider)!;
     final catalogAsync = ref.watch(catalogProvider(session.outletId));
+
+    // Online-delivery queue (F&B). The "Pesanan" button shows for open-bill
+    // outlets, or — for immediate-pay F&B — once an online order has arrived; its
+    // red badge counts the unprocessed (NEW) ones.
+    final catalog = catalogAsync.valueOrNull;
+    final isFnb = catalog?.isFnb ?? false;
+    final online = isFnb
+        ? ref.watch(onlineOrdersProvider(session.outletId))
+        : const OnlineOrdersState(loading: false);
+    final showPesanan = (catalog?.isOpenBill ?? false) || online.orders.isNotEmpty;
+    final unprocessed = online.unprocessedCount;
 
     return Scaffold(
       appBar: BrandAppBar(
@@ -49,13 +61,21 @@ class OrderScreen extends ConsumerWidget {
             );
           }),
           const SizedBox(width: 8),
-          if (catalogAsync.valueOrNull?.isOpenBill ?? false)
+          if (showPesanan)
             TextButton(
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const OpenBillsScreen()),
               ),
               style: TextButton.styleFrom(foregroundColor: kBrandGold),
-              child: Text(t.openBillsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+              child: Badge.count(
+                count: unprocessed,
+                isLabelVisible: unprocessed > 0,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child:
+                      Text(t.openBillsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
             ),
           TextButton(
             onPressed: () => Navigator.of(context).push(

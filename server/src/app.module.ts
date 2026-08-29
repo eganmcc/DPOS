@@ -4,6 +4,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
+import { OnlineOrdersModule } from './online-orders/online-orders.module';
 import { AdminModule } from './admin/admin.module';
 import { DemoModule } from './demo/demo.module';
 import { VersionController } from './version.controller';
@@ -15,6 +16,7 @@ import { VersionController } from './version.controller';
     AuthModule,
     CatalogModule,
     OrdersModule,
+    OnlineOrdersModule,
     AdminModule,
     DemoModule,
   ],

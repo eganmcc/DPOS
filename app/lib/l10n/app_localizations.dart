@@ -614,6 +614,30 @@ abstract class AppLocalizations {
   /// **'No open bills'**
   String get emptyOpenBills;
 
+  /// No description provided for @onlineOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online orders'**
+  String get onlineOrdersTitle;
+
+  /// No description provided for @onlineOrderNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get onlineOrderNew;
+
+  /// No description provided for @onlineOrderAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get onlineOrderAccept;
+
+  /// No description provided for @onlineDemoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Online orders (demo)'**
+  String get onlineDemoLabel;
+
   /// No description provided for @searchTable.
   ///
   /// In en, this message translates to:

@@ -36,6 +36,28 @@ enum OrderType {
   RETAIL
 }
 
+// Sales channel. POS = rung in-store on the app. The rest are online-delivery
+// platforms whose orders are ingested server-side (demo simulator now, real
+// provider webhooks later) — the DB stays the source of truth either way.
+enum OrderChannel {
+  POS
+  GOFOOD
+  GRABFOOD
+  SHOPEEFOOD
+}
+
+// Fulfillment lifecycle for an online-delivery order (distinct from payment
+// OrderStatus, which is COMPLETED the moment the platform has paid). NEW = just
+// arrived, not yet acknowledged by the cashier (drives the unprocessed badge).
+enum OnlineOrderStatus {
+  NEW
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
 // Stored lifecycle only — never past COMPLETED. VOIDED/REFUNDED are DERIVED.
 enum OrderStatus {
   DRAFT
@@ -55,6 +77,7 @@ enum OutletPaymentMode {
 enum PaymentMethod {
   CASH
   QRIS_SIMULATED
+  ONLINE // paid by an online-delivery platform (GoFood/GrabFood/ShopeeFood)
 }
 
 enum PaymentDirection {
@@ -322,6 +345,12 @@ model Order {
   tableLabel    String?
   status        OrderStatus @default(COMPLETED)
 
+  // Sales channel + online-delivery metadata (null/POS for in-store sales).
+  channel          OrderChannel       @default(POS)
+  onlineStatus     OnlineOrderStatus?
+  externalOrderRef String? // platform order code (demo: short number)
+  customerName     String?
+
   // Server-authoritative money (integer rupiah)
   subtotal           Int
   discountTotal      Int @default(0)
@@ -347,6 +376,7 @@ model Order {
 
   @@unique([merchantId, clientOrderId])
   @@index([outletId])
+  @@index([outletId, onlineStatus])
   @@map("orders")
 }
 

@@ -285,6 +285,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get emptyOpenBills => 'No open bills';
 
   @override
+  String get onlineOrdersTitle => 'Online orders';
+
+  @override
+  String get onlineOrderNew => 'New';
+
+  @override
+  String get onlineOrderAccept => 'Accept';
+
+  @override
+  String get onlineDemoLabel => 'Online orders (demo)';
+
+  @override
   String get searchTable => 'Search table';
 
   @override

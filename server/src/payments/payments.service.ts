@@ -9,16 +9,18 @@ import {
 } from './payment-provider';
 import { CashProvider } from './providers/cash.provider';
 import { SimulatedQrisProvider } from './providers/simulated-qris.provider';
+import { OnlineProvider } from './providers/online.provider';
 
 /** Resolves the PaymentProvider for a method and applies backend-owned lifecycle rules. */
 @Injectable()
 export class PaymentsService {
   private readonly registry: Map<PaymentMethod, PaymentProvider>;
 
-  constructor(cash: CashProvider, qris: SimulatedQrisProvider) {
+  constructor(cash: CashProvider, qris: SimulatedQrisProvider, online: OnlineProvider) {
     this.registry = new Map<PaymentMethod, PaymentProvider>([
       [cash.method, cash],
       [qris.method, qris],
+      [online.method, online],
     ]);
   }
 

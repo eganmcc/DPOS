@@ -26,11 +26,20 @@ Future<void> _ensureInit() async {
 /// Fire-and-forget — returns as soon as the utterance is queued so the UI can
 /// move on while it plays. Silent (never throws) where TTS is unavailable.
 Future<void> announceReceived(int amount) async {
-  final text = 'diterima ${terbilang(amount)} rupiah';
+  await _speakId('diterima ${terbilang(amount)} rupiah');
+}
+
+/// Announce a newly arrived online-delivery order in Indonesian:
+/// "Ada Online Order Baru dengan nomor {ref} Dari {vendor}". Fire-and-forget.
+Future<void> announceOnlineOrder(String orderRef, String vendorName) async {
+  await _speakId('Ada Online Order Baru dengan nomor $orderRef Dari $vendorName');
+}
+
+/// Speak [text] with the Indonesian voice (falling back to the default voice
+/// when id-ID is unavailable). Fire-and-forget; silent where TTS is unusable.
+Future<void> _speakId(String text) async {
   try {
     await _ensureInit();
-    // Use the Indonesian voice when the device has it; otherwise still speak
-    // (with the default voice) rather than going silent.
     final available = await _tts.isLanguageAvailable('id-ID');
     if (available == true || available == 1) {
       await _tts.setLanguage('id-ID');

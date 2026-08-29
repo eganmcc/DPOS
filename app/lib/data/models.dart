@@ -253,6 +253,11 @@ class OrderResult {
   final List<OrderLineResult> lines;
   final List<PaymentResult> payments;
   final List<OrderVoidResult> voids;
+  // Sales channel + online-delivery metadata (POS / null for in-store sales).
+  final String channel;
+  final String? onlineStatus;
+  final String? externalOrderRef;
+  final String? customerName;
   const OrderResult({
     required this.id,
     this.status = 'COMPLETED',
@@ -269,12 +274,21 @@ class OrderResult {
     required this.lines,
     required this.payments,
     this.voids = const [],
+    this.channel = 'POS',
+    this.onlineStatus,
+    this.externalOrderRef,
+    this.customerName,
   });
 
   /// Derived, never stored — the server sends it and the app only displays it.
   bool get isVoided => effectiveStatus == 'VOIDED';
   bool get isRefunded => effectiveStatus == 'REFUNDED';
   bool get canBeVoided => effectiveStatus == 'COMPLETED';
+
+  /// Online-delivery (GoFood/GrabFood/ShopeeFood) vs an in-store POS sale.
+  bool get isOnline => channel != 'POS';
+  /// A just-arrived online order the cashier has not acknowledged yet.
+  bool get isUnprocessed => onlineStatus == 'NEW';
 
   factory OrderResult.fromJson(Map<String, dynamic> j) => OrderResult(
         id: j['id'],
@@ -289,6 +303,10 @@ class OrderResult {
         taxLabelSnapshot: j['taxLabelSnapshot'],
         effectiveStatus: j['effectiveStatus'] ?? j['status'] ?? 'COMPLETED',
         createdAt: DateTime.tryParse(j['createdAt'] ?? '')?.toLocal() ?? DateTime.now(),
+        channel: j['channel'] ?? 'POS',
+        onlineStatus: j['onlineStatus'],
+        externalOrderRef: j['externalOrderRef'],
+        customerName: j['customerName'],
         lines: ((j['lines'] ?? []) as List)
             .map((l) => OrderLineResult.fromJson(l as Map<String, dynamic>))
             .toList(),

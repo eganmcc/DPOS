@@ -286,6 +286,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get emptyOpenBills => 'Belum ada pesanan terbuka';
 
   @override
+  String get onlineOrdersTitle => 'Pesanan Online';
+
+  @override
+  String get onlineOrderNew => 'Baru';
+
+  @override
+  String get onlineOrderAccept => 'Terima';
+
+  @override
+  String get onlineDemoLabel => 'Pesanan online (demo)';
+
+  @override
   String get searchTable => 'Cari meja';
 
   @override

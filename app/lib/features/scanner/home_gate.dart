@@ -4,6 +4,7 @@ import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../order/order_screen.dart';
+import '../order/online_orders_controller.dart';
 import 'dpos_printer.dart';
 import 'scanner_screen.dart';
 
@@ -22,6 +23,10 @@ class HomeGate extends ConsumerWidget {
 
     return catalogAsync.maybeWhen(
       data: (catalog) {
+        // F&B: keep the online-order queue alive for the whole session so the
+        // badge + TTS work regardless of which screen is on top, and the demo
+        // timer stops on logout (this provider is disposed with HomeGate).
+        if (catalog.isFnb) ref.watch(onlineOrdersProvider(session.outletId));
         if (mode == 'off' || !catalog.isGrocery) return const OrderScreen();
         if (mode == 'on') return const ScannerScreen();
         // 'auto': scanner only when the DPOSP printer is actually paired.
