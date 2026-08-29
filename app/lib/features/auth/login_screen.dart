@@ -138,21 +138,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Image.asset('assets/images/dika_logo.png', height: 64),
-                      const SizedBox(height: 16),
-                      Text('DPOS',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800, color: cs.primary)),
-                      Text('PT DIKA',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5)),
+                      // Brand lockup = the splash components, centred. The wordmark
+                      // PNG is white (for the gold splash), so tint it to the brand
+                      // colour to read on the light login card.
+                      Center(child: Image.asset('assets/images/splash_circle.png', height: 132)),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: ColorFiltered(
+                          colorFilter: ColorFilter.mode(cs.primary, BlendMode.srcIn),
+                          child: Image.asset('assets/images/splash_wordmark.png', height: 52),
+                        ),
+                      ),
                       const SizedBox(height: 12),
                       Text(t.loginTitle,
                           textAlign: TextAlign.center,
