@@ -39,13 +39,15 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 | Domain | `dikapos.ptdika.com` → A record to the EIP |
 | TLS | Let's Encrypt via certbot + nginx; renew timer enabled, nginx reload hook installed |
 | API | `dpos.service` (systemd, `enabled`), node on `127.0.0.1:3000`, nginx proxies 443 → 3000 |
-| Code | `/opt/dpos` (git clone of this repo) |
+| Code | `/opt/dpos` (git clone of this repo) — currently tracks branch **`beta-1`** |
 | Security group | `sg-02adab4f9e3431899` — 22, 80, 443 open; **3000 deliberately closed** |
 | RDS access | RDS security group allows **the EC2 security group** (not an IP) on 5432; resolves privately to `172.31.29.105` |
 | S3 | `amzn-s3-dkpos-bucket`, `menu/` prefix public-read, `ap-southeast-3` |
 | IAM | instance role `EC2-Role-DKPOS-S3` — **no access keys anywhere**, do not add any |
 
-**SSH:** `ssh -i ~/Documents/aws/DPOS.pem ec2-user@16.78.176.250` (key must be `chmod 600`).
+**SSH:** `ssh -i <key> ec2-user@16.78.176.250` (key must be `chmod 600`). The key lives at
+**`C:\aws\DPOS.pem`** on the PC (`/c/aws/DPOS.pem` from Git Bash) and `~/Documents/aws/DPOS.pem` on
+the Mac.
 
 **Redeploy after pushing:**
 ```
