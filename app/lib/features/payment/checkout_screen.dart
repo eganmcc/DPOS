@@ -15,7 +15,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../order/cart.dart';
 import '../receipt/receipt_screen.dart';
-import '../scanner/receipt_printer.dart';
+import '../scanner/rongta_printer.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, required this.grandTotalPreview, this.settleOrderId});
@@ -108,7 +108,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         // Auto-print to the DPOSP thermal printer if one is paired (no-op / silent
         // otherwise — never blocks checkout).
         final cat = ref.read(catalogProvider(session.outletId)).valueOrNull;
-        printReceipt(result, businessName: cat?.merchantName, outletName: cat?.outletName);
+        // Rongta printer → its own path (kept-open socket + cash-drawer on cash);
+        // any other printer → the existing printReceipt flow. Fire-and-forget.
+        printReceiptSmart(result, businessName: cat?.merchantName, outletName: cat?.outletName);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => ReceiptScreen(order: result!)),

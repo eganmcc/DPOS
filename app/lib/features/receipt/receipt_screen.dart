@@ -7,7 +7,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
-import '../scanner/receipt_printer.dart';
+import '../scanner/rongta_printer.dart';
 import '../transactions/transaction_status.dart';
 
 class ReceiptScreen extends ConsumerWidget {
@@ -105,7 +105,7 @@ class ReceiptScreen extends ConsumerWidget {
                             label: Text(t.actionPrint),
                             onPressed: () async {
                               final messenger = ScaffoldMessenger.of(context);
-                              final ok = await printReceipt(order,
+                              final ok = await printReceiptSmart(order,
                                   businessName: businessName, outletName: catalog?.outletName);
                               if (!ok) {
                                 messenger.showSnackBar(SnackBar(content: Text(t.printFailed)));
