@@ -100,5 +100,19 @@
   "serverVersionLabel": "Versi server",
   "preferencesSection": "Preferensi",
   "languageLabel": "Bahasa",
-  "themeLabel": "Tema"
+  "themeLabel": "Tema",
+  "scannerTitle": "Pindai",
+  "scannerHint": "Arahkan kamera ke barcode",
+  "scannerSkuLabel": "SKU",
+  "scannerAdd": "Tambah",
+  "scannerBrowse": "Lihat produk",
+  "scannerAdded": "Ditambahkan: {name}",
+  "scannerSkuNotFound": "SKU tidak ditemukan: {sku}",
+  "scannerOutOfStock": "Stok habis",
+  "scannerModeLabel": "Mode pindai",
+  "scannerModeAuto": "Otomatis",
+  "scannerModeOn": "Aktif",
+  "scannerModeOff": "Nonaktif",
+  "printFailed": "Printer tidak terhubung",
+  "actionPrint": "Cetak"
 }

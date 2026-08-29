@@ -139,6 +139,9 @@ class Catalog {
   /// F&B shows dine-in/takeaway + tables + open bills; other types don't.
   bool get isFnb => businessType == 'FNB';
 
+  /// Grocery/retail: enables the barcode-scanner POS mode.
+  bool get isGrocery => businessType == 'GROCERY';
+
   /// Restaurant flow: confirm the order now (reserves stock), settle later.
   bool get isOpenBill => paymentMode == 'OPEN_BILL';
 

@@ -326,4 +326,50 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get themeLabel => 'Tema';
+
+  @override
+  String get scannerTitle => 'Pindai';
+
+  @override
+  String get scannerHint => 'Arahkan kamera ke barcode';
+
+  @override
+  String get scannerSkuLabel => 'SKU';
+
+  @override
+  String get scannerAdd => 'Tambah';
+
+  @override
+  String get scannerBrowse => 'Lihat produk';
+
+  @override
+  String scannerAdded(String name) {
+    return 'Ditambahkan: $name';
+  }
+
+  @override
+  String scannerSkuNotFound(String sku) {
+    return 'SKU tidak ditemukan: $sku';
+  }
+
+  @override
+  String get scannerOutOfStock => 'Stok habis';
+
+  @override
+  String get scannerModeLabel => 'Mode pindai';
+
+  @override
+  String get scannerModeAuto => 'Otomatis';
+
+  @override
+  String get scannerModeOn => 'Aktif';
+
+  @override
+  String get scannerModeOff => 'Nonaktif';
+
+  @override
+  String get printFailed => 'Printer tidak terhubung';
+
+  @override
+  String get actionPrint => 'Cetak';
 }

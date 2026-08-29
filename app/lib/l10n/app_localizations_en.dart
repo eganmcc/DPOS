@@ -325,4 +325,50 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeLabel => 'Theme';
+
+  @override
+  String get scannerTitle => 'Scan';
+
+  @override
+  String get scannerHint => 'Point the camera at a barcode';
+
+  @override
+  String get scannerSkuLabel => 'SKU';
+
+  @override
+  String get scannerAdd => 'Add';
+
+  @override
+  String get scannerBrowse => 'Browse products';
+
+  @override
+  String scannerAdded(String name) {
+    return 'Added: $name';
+  }
+
+  @override
+  String scannerSkuNotFound(String sku) {
+    return 'SKU not found: $sku';
+  }
+
+  @override
+  String get scannerOutOfStock => 'Out of stock';
+
+  @override
+  String get scannerModeLabel => 'Scanner mode';
+
+  @override
+  String get scannerModeAuto => 'Auto';
+
+  @override
+  String get scannerModeOn => 'On';
+
+  @override
+  String get scannerModeOff => 'Off';
+
+  @override
+  String get printFailed => 'Printer not reachable';
+
+  @override
+  String get actionPrint => 'Print';
 }

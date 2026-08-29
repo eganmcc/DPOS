@@ -4,7 +4,7 @@ import 'core/settings.dart';
 import 'core/theme.dart';
 import 'data/session.dart';
 import 'features/auth/login_screen.dart';
-import 'features/order/order_screen.dart';
+import 'features/scanner/home_gate.dart';
 import 'l10n/app_localizations.dart';
 
 void main() {
@@ -30,7 +30,7 @@ class DposApp extends ConsumerWidget {
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: AppLocalizations.localizationsDelegates,
-      home: session == null ? const LoginScreen() : const OrderScreen(),
+      home: session == null ? const LoginScreen() : const HomeGate(),
     );
   }
 }

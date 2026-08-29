@@ -3,6 +3,20 @@
          without this line every network call in a RELEASE build fails instantly
          ("cek koneksi") while debug builds work fine. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Grocery barcode-scanner mode: camera (soft-required so the app still runs
+         on camera-less devices — they use type-SKU/Browse). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
+
+    <!-- Bluetooth: detect + print to the paired "DPOSP" thermal printer. -->
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
+        android:usesPermissionFlags="neverForLocation"/>
+    <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30"/>
+    <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30"/>
+
     <application
         android:label="DIKA POS"
         android:name="${applicationName}"

@@ -15,6 +15,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../order/cart.dart';
 import '../receipt/receipt_screen.dart';
+import '../scanner/receipt_printer.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, required this.grandTotalPreview, this.settleOrderId});
@@ -104,6 +105,10 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         // Fire-and-forget via the app-wide TTS engine so navigating to the
         // receipt can't cut the announcement off.
         announceReceived(result.grandTotal);
+        // Auto-print to the DPOSP thermal printer if one is paired (no-op / silent
+        // otherwise — never blocks checkout).
+        final cat = ref.read(catalogProvider(session.outletId)).valueOrNull;
+        printReceipt(result, businessName: cat?.merchantName, outletName: cat?.outletName);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => ReceiptScreen(order: result!)),

@@ -24,7 +24,8 @@ android {
         applicationId = "id.co.ptdika.dpos"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // mobile_scanner needs minSdk 21; 24 is a safe floor for the camera + BT plugins.
+        minSdk = maxOf(flutter.minSdkVersion, 24)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

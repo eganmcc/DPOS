@@ -78,13 +78,13 @@ class OrderScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(t.errorCatalog(e.toString()))),
         data: (catalog) {
-          final catalogPanel = _CatalogPanel(catalog: catalog);
+          final catalogPanel = CatalogPanel(catalog: catalog);
           if (isWide(context)) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(child: catalogPanel),
-                SizedBox(width: 340, child: _CartPanel(taxRule: catalog.taxRule, floating: true)),
+                SizedBox(width: 340, child: CartPanel(taxRule: catalog.taxRule, floating: true)),
               ],
             );
           }
@@ -101,15 +101,15 @@ class OrderScreen extends ConsumerWidget {
   }
 }
 
-class _CatalogPanel extends ConsumerStatefulWidget {
-  const _CatalogPanel({required this.catalog});
+class CatalogPanel extends ConsumerStatefulWidget {
+  const CatalogPanel({super.key, required this.catalog});
   final Catalog catalog;
 
   @override
-  ConsumerState<_CatalogPanel> createState() => _CatalogPanelState();
+  ConsumerState<CatalogPanel> createState() => CatalogPanelState();
 }
 
-class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
+class CatalogPanelState extends ConsumerState<CatalogPanel> {
   String? _category;
 
   // Pull-to-refresh: re-fetch the catalog (prices + stock) from the server.
@@ -625,16 +625,16 @@ String _stockLabel(BuildContext context, int remaining) {
 String _stockWord(BuildContext context) =>
     Localizations.localeOf(context).languageCode == 'id' ? 'Stok' : 'Stock';
 
-class _CartPanel extends ConsumerStatefulWidget {
-  const _CartPanel({required this.taxRule, this.floating = false});
+class CartPanel extends ConsumerStatefulWidget {
+  const CartPanel({super.key, required this.taxRule, this.floating = false});
   final TaxRule? taxRule;
   final bool floating;
 
   @override
-  ConsumerState<_CartPanel> createState() => _CartPanelState();
+  ConsumerState<CartPanel> createState() => CartPanelState();
 }
 
-class _CartPanelState extends ConsumerState<_CartPanel> {
+class CartPanelState extends ConsumerState<CartPanel> {
   final _table = TextEditingController();
 
   @override
@@ -1071,7 +1071,7 @@ class _MobileCartBar extends ConsumerWidget {
                             borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
                         builder: (_) => SizedBox(
                           height: MediaQuery.of(context).size.height * 0.85,
-                          child: _CartPanel(taxRule: taxRule),
+                          child: CartPanel(taxRule: taxRule),
                         ),
                       ),
               child: Text(t.viewOrder),

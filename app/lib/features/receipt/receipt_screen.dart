@@ -7,6 +7,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../scanner/receipt_printer.dart';
 import '../transactions/transaction_status.dart';
 
 class ReceiptScreen extends ConsumerWidget {
@@ -97,6 +98,22 @@ class ReceiptScreen extends ConsumerWidget {
                           if (payment.change != null) _row(context, t.labelChange, payment.change!, muted: true),
                         ],
                         const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.print_outlined, size: 18),
+                            label: Text(t.actionPrint),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final ok = await printReceipt(order,
+                                  businessName: businessName, outletName: catalog?.outletName);
+                              if (!ok) {
+                                messenger.showSnackBar(SnackBar(content: Text(t.printFailed)));
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(

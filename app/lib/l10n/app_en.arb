@@ -108,5 +108,21 @@
   "serverVersionLabel": "Server version",
   "preferencesSection": "Preferences",
   "languageLabel": "Language",
-  "themeLabel": "Theme"
+  "themeLabel": "Theme",
+  "scannerTitle": "Scan",
+  "scannerHint": "Point the camera at a barcode",
+  "scannerSkuLabel": "SKU",
+  "scannerAdd": "Add",
+  "scannerBrowse": "Browse products",
+  "scannerAdded": "Added: {name}",
+  "@scannerAdded": { "placeholders": { "name": { "type": "String" } } },
+  "scannerSkuNotFound": "SKU not found: {sku}",
+  "@scannerSkuNotFound": { "placeholders": { "sku": { "type": "String" } } },
+  "scannerOutOfStock": "Out of stock",
+  "scannerModeLabel": "Scanner mode",
+  "scannerModeAuto": "Auto",
+  "scannerModeOn": "On",
+  "scannerModeOff": "Off",
+  "printFailed": "Printer not reachable",
+  "actionPrint": "Print"
 }

@@ -20,6 +20,10 @@ class SettingsScreen extends ConsumerWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     final appVersion = ref.watch(appVersionProvider);
     final serverVersion = ref.watch(serverVersionProvider);
+    final session = ref.watch(sessionProvider);
+    final isGrocery = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isGrocery ?? false);
+    final scannerMode = ref.watch(scannerModeSettingProvider);
 
     String show(AsyncValue<String> v) => v.when(
           data: (s) => s,
@@ -56,6 +60,26 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ]),
+          if (isGrocery) ...[
+            const SizedBox(height: 24),
+            _sectionHeader(context, t.scannerModeLabel),
+            _card(cs, [
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: SegmentedButton<String>(
+                  showSelectedIcon: false,
+                  segments: [
+                    ButtonSegment(value: 'auto', label: Text(t.scannerModeAuto)),
+                    ButtonSegment(value: 'on', label: Text(t.scannerModeOn)),
+                    ButtonSegment(value: 'off', label: Text(t.scannerModeOff)),
+                  ],
+                  selected: {scannerMode},
+                  onSelectionChanged: (s) =>
+                      ref.read(scannerModeSettingProvider.notifier).set(s.first),
+                ),
+              ),
+            ]),
+          ],
           const SizedBox(height: 24),
           _sectionHeader(context, t.aboutSection),
           _card(cs, [

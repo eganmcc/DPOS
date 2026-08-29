@@ -697,6 +697,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Theme'**
   String get themeLabel;
+
+  /// No description provided for @scannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scannerTitle;
+
+  /// No description provided for @scannerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at a barcode'**
+  String get scannerHint;
+
+  /// No description provided for @scannerSkuLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU'**
+  String get scannerSkuLabel;
+
+  /// No description provided for @scannerAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get scannerAdd;
+
+  /// No description provided for @scannerBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse products'**
+  String get scannerBrowse;
+
+  /// No description provided for @scannerAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added: {name}'**
+  String scannerAdded(String name);
+
+  /// No description provided for @scannerSkuNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU not found: {sku}'**
+  String scannerSkuNotFound(String sku);
+
+  /// No description provided for @scannerOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get scannerOutOfStock;
+
+  /// No description provided for @scannerModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanner mode'**
+  String get scannerModeLabel;
+
+  /// No description provided for @scannerModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get scannerModeAuto;
+
+  /// No description provided for @scannerModeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get scannerModeOn;
+
+  /// No description provided for @scannerModeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get scannerModeOff;
+
+  /// No description provided for @printFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer not reachable'**
+  String get printFailed;
+
+  /// No description provided for @actionPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get actionPrint;
 }
 
 class _AppLocalizationsDelegate

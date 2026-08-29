@@ -33,6 +33,12 @@ dependencies:
   # Spoken payment confirmation (Indonesian TTS)
   flutter_tts: ^4.2.0
 
+  # Grocery barcode-scanner POS mode + Bluetooth thermal printing (DPOSP)
+  mobile_scanner: ^5.2.3
+  print_bluetooth_thermal: ^1.1.1
+  esc_pos_utils_plus: ^2.0.4
+  permission_handler: ^11.3.1
+
   # App version for the Settings screen
   package_info_plus: ^8.1.0
 
