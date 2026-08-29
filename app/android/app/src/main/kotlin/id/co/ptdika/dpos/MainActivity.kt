@@ -173,8 +173,8 @@ class MainActivity : FlutterActivity() {
                 socket = make() ?: continue
                 socket.connect()
                 // Let the printer's BT module settle before writing — cheap modules
-                // drop bytes sent immediately after the link comes up.
-                Thread.sleep(1000)
+                // (RP58_BU) drop bytes sent immediately after the link comes up.
+                Thread.sleep(700)
                 val out = socket.outputStream
                 var off = 0
                 val chunk = 256
@@ -185,13 +185,15 @@ class MainActivity : FlutterActivity() {
                     off = end
                     Thread.sleep(20)
                 }
-                val drain = maxOf(1500L, bytes.size.toLong())
+                // Drain scaled to payload before closing (keeps a small floor so a
+                // trailing command — e.g. the cash-drawer pulse — isn't cut off).
+                val drain = maxOf(600L, bytes.size.toLong())
                 Thread.sleep(drain)
                 try {
                     socket.close()
                 } catch (_: Exception) {
                 }
-                return "OK via $label | $info drain=${drain}ms cd=1000"
+                return "OK via $label | $info drain=${drain}ms cd=700"
             } catch (e: Exception) {
                 errs.append("$label:${e.message}; ")
                 try {

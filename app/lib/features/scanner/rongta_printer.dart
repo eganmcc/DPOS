@@ -8,6 +8,15 @@ import 'dpos_printer.dart' show receiptPrinterMac;
 /// builds), so the caller can show it in the UI. Nothing here touches the existing path.
 const _channel = MethodChannel('dpos/printer');
 
+/// ESC/POS "generate pulse" (ESC p m t1 t2) to kick the cash drawer wired to the
+/// printer's RJ11 port. Drawers sit on connector pin 2 (m=0) or pin 5 (m=1); only
+/// the wired pin responds, so we send both. Append to the end of a print job so the
+/// drawer opens right after the receipt prints.
+const List<int> kCashDrawerKick = [
+  0x1B, 0x70, 0x00, 0x19, 0xFA, // ESC p 0 25 250 — pin 2
+  0x1B, 0x70, 0x01, 0x19, 0xFA, // ESC p 1 25 250 — pin 5
+];
+
 /// Send raw bytes to [mac] via the Rongta RP58 native path. Returns the native
 /// status string ("OK via …" / "FAIL: …"). Never throws.
 Future<String> printBytesRongta(String mac, List<int> bytes) async {
@@ -66,6 +75,7 @@ Future<String> printTestRongta() async {
     b.addAll('DPOS - Rongta RP58 test\n'.codeUnits);
     b.addAll('${DateFormat('dd/MM/yy HH:mm').format(DateTime.now())}\n'.codeUnits);
     b.addAll('\n\n\n\n'.codeUnits); // feed past the tear bar (no cut)
+    b.addAll(kCashDrawerKick); // open the cash register after printing
     return await printBytesRongta(mac, b);
   } catch (e) {
     return 'FAIL: $e';
