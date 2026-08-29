@@ -23,17 +23,17 @@ class SplashScreen extends StatelessWidget {
             alignment: const Alignment(0, -0.06),
             child: Image.asset(
               'assets/images/splash_circle.png',
-              width: w * 0.52,
+              width: w * 0.70,
               fit: BoxFit.contain,
             ),
           ),
           // Wordmark — bottom-right.
           Positioned(
-            right: 20,
-            bottom: 32,
+            right: 24,
+            bottom: 40,
             child: Image.asset(
               'assets/images/splash_wordmark.png',
-              width: w * 0.42,
+              width: w * 0.56,
               fit: BoxFit.contain,
             ),
           ),
