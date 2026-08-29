@@ -3,6 +3,8 @@ package id.co.ptdika.dpos
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothSocket
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -22,6 +24,27 @@ class MainActivity : FlutterActivity() {
 
     private val spp: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
 
+    // Instant scanner beep via the system ToneGenerator (no asset, no audio
+    // warm-up / queuing — the audioplayers path was unreliable for rapid scans).
+    private var toneGen: ToneGenerator? = null
+
+    private fun ensureTone() {
+        if (toneGen == null) {
+            try {
+                toneGen = ToneGenerator(AudioManager.STREAM_MUSIC, 90)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    private fun scanBeep() {
+        ensureTone()
+        try {
+            toneGen?.startTone(ToneGenerator.TONE_CDMA_PIP, 120)
+        } catch (_: Exception) {
+        }
+    }
+
     // Native ESC/POS bytes over classic Bluetooth SPP. Tries an INSECURE RFCOMM
     // socket first (cheap thermal printers like RPP02N reject the secure one that
     // the print_bluetooth_thermal plugin uses), then secure, then the reflection
@@ -30,7 +53,13 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "dpos/printer")
             .setMethodCallHandler { call, result ->
-                if (call.method == "printBytes") {
+                if (call.method == "beep") {
+                    scanBeep()
+                    result.success(true)
+                } else if (call.method == "warmupBeep") {
+                    ensureTone()
+                    result.success(true)
+                } else if (call.method == "printBytes") {
                     val mac = call.argument<String>("mac")
                     val bytes = call.argument<ByteArray>("bytes")
                     if (mac == null || bytes == null) {
