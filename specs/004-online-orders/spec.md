@@ -13,7 +13,7 @@ adapter, not a rewrite.
 
 ## User Stories & Acceptance
 1. **Arrival.** While an F&B cashier is logged in, online orders arrive (demo: one every
-   **2–5 min**, random vendor, random in-stock items). Each new order **counts up a red badge**
+   **1–3 min**, random vendor, random in-stock items). Each new order **counts up a red badge**
    on the **"Pesanan"** button and triggers a **TTS** announcement:
    *"Ada Online Order Baru dengan nomor {ref} Dari {vendor}"*.
 2. **Visibility.** On an immediate-pay F&B outlet the "Pesanan" button is hidden until the first
@@ -57,7 +57,7 @@ the payload, and calls the same `ingest`. Platform cancellations map to the exis
 ## App
 - `announceOnlineOrder(ref, vendor)` in `core/tts.dart` (id-ID, rate 0.5, fire-and-forget).
 - `OnlineOrdersNotifier` (`features/order/online_orders_controller.dart`): 15s poll (announces new
-  arrivals), 2–5 min demo timer, `accept`; session-scoped via `HomeGate` watching it (F&B only).
+  arrivals), 1–3 min demo timer, `accept`; session-scoped via `HomeGate` watching it (F&B only).
 - Badge on the "Pesanan" button (`order_screen.dart`); Online section in the Pesanan screen
   (`open_bills_screen.dart`); vendor icon (`vendor_icon.dart`) — official PNG when bundled in
   `assets/images/`, else a brand-colour monogram fallback.
@@ -70,5 +70,5 @@ COMPLETED sales.
 ## Verification
 Server: `POST /online-orders/simulate` (F&B cashier) → COMPLETED online order; `GET /online-orders`
 lists it NEW; `POST /:id/accept` → ACCEPTED; `GET /orders` shows it with `payment.method=ONLINE`;
-inventory decremented. App (F&B): within 2–5 min the badge + TTS fire; Pesanan → Online list; Terima
+inventory decremented. App (F&B): within 1–3 min the badge + TTS fire; Pesanan → Online list; Terima
 clears the badge; Settings toggle Off stops it; grocery login → feature absent.

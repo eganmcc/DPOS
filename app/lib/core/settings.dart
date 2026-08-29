@@ -85,7 +85,7 @@ final scannerModeSettingProvider =
 
 /// Demo generator for F&B online-delivery orders. When on (default), a logged-in
 /// F&B cashier session fabricates a random GoFood/GrabFood/ShopeeFood order every
-/// 2–5 minutes. Off disables the simulation (real orders would still arrive).
+/// 1–3 minutes. Off disables the simulation (real orders would still arrive).
 class OnlineDemoNotifier extends StateNotifier<bool> {
   OnlineDemoNotifier() : super(true) {
     _load();

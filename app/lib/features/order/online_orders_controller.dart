@@ -20,7 +20,7 @@ class OnlineOrdersState {
 
 /// Owns the F&B online-order lifecycle for one outlet: polls the server, announces
 /// each newly-arrived order via TTS, and (for the demo) injects a random order every
-/// 2–5 minutes. Session-scoped — created when the F&B session mounts `HomeGate` and
+/// 1–3 minutes. Session-scoped — created when the F&B session mounts `HomeGate` and
 /// disposed on logout, which cancels both timers.
 class OnlineOrdersNotifier extends StateNotifier<OnlineOrdersState> {
   OnlineOrdersNotifier(this._ref, this._outletId) : super(const OnlineOrdersState()) {
@@ -80,7 +80,7 @@ class OnlineOrdersNotifier extends StateNotifier<OnlineOrdersState> {
     _sim?.cancel();
     _sim = null;
     if (!_ref.read(onlineDemoSettingProvider)) return;
-    final secs = 120 + _rng.nextInt(181); // 120..300s
+    final secs = 60 + _rng.nextInt(121); // 60..180s (1–3 min)
     _sim = Timer(Duration(seconds: secs), () async {
       _sim = null;
       try {
