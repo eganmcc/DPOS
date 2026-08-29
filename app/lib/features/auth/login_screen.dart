@@ -133,7 +133,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.all(24),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -145,15 +145,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       // gold splash), so tint it to the brand colour for the light card.
                       Align(
                         alignment: Alignment.center,
-                        heightFactor: 0.74,
-                        child: Image.asset('assets/images/splash_circle.png', height: 200),
+                        heightFactor: 0.62,
+                        child: Image.asset('assets/images/splash_circle.png', height: 210),
                       ),
                       Align(
                         alignment: Alignment.center,
-                        heightFactor: 0.72,
+                        heightFactor: 0.58,
                         child: ColorFiltered(
                           colorFilter: ColorFilter.mode(cs.primary, BlendMode.srcIn),
-                          child: Image.asset('assets/images/splash_wordmark.png', height: 92),
+                          child: Image.asset('assets/images/splash_wordmark.png', height: 124),
                         ),
                       ),
                       const SizedBox(height: 12),
