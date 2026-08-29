@@ -7,7 +7,6 @@ import android.media.AudioManager
 import android.media.ToneGenerator
 import android.os.Handler
 import android.os.Looper
-import android.util.Log
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -64,14 +63,16 @@ class MainActivity : FlutterActivity() {
                     }
                 } else if (call.method == "printBytesRongta") {
                     // SEPARATE Rongta RP58 path — does not touch printBytes above.
+                    // Returns a human-readable status string (HyperOS suppresses app
+                    // logcat on release builds, so diagnostics are surfaced in the UI).
                     val mac = call.argument<String>("mac")
                     val bytes = call.argument<ByteArray>("bytes")
                     if (mac == null || bytes == null) {
-                        result.success(false)
+                        result.success("FAIL: null args")
                     } else {
                         Thread {
-                            val ok = printBytesRongta(mac, bytes)
-                            Handler(Looper.getMainLooper()).post { result.success(ok) }
+                            val status = printBytesRongta(mac, bytes)
+                            Handler(Looper.getMainLooper()).post { result.success(status) }
                         }.start()
                     }
                 } else {
@@ -127,27 +128,18 @@ class MainActivity : FlutterActivity() {
     }
 
     // SEPARATE path for the Rongta RP58 (does NOT modify printBytes above).
-    // Differences that address "connects but nothing prints":
-    //  - SDP-resolved sockets ONLY (secure first, then insecure) — the correct
-    //    RFCOMM channel is discovered, never the hard-coded channel-1 reflection
-    //    hack (the prime suspect for a silent no-print).
-    //  - Chunked writes + a generous drain before close (Android BluetoothSocket
-    //    flush() is a no-op; closing too early truncates the job on a slower/
-    //    small-buffer printer).
-    //  - Logs which connector actually worked (adb logcat -s RongtaPrint).
-    private fun printBytesRongta(mac: String, bytes: ByteArray): Boolean {
-        val tag = "RongtaPrint"
-        val adapter = BluetoothAdapter.getDefaultAdapter() ?: run {
-            Log.w(tag, "no bluetooth adapter")
-            return false
-        }
+    // Returns a human-readable status string surfaced in the app toast (HyperOS
+    // suppresses app logcat on release builds). SDP-resolved sockets ONLY (secure
+    // first, then insecure) — never the channel-1 reflection hack; chunked write;
+    // generous drain before close.
+    private fun printBytesRongta(mac: String, bytes: ByteArray): String {
+        val adapter = BluetoothAdapter.getDefaultAdapter() ?: return "FAIL: no BT adapter"
         val device: BluetoothDevice = try {
             adapter.getRemoteDevice(mac)
         } catch (e: Exception) {
-            Log.w(tag, "bad mac $mac: ${e.message}")
-            return false
+            return "FAIL: bad mac ($mac)"
         }
-        Log.i(tag, "device=${device.name} mac=$mac bond=${device.bondState} bytes=${bytes.size}")
+        val info = "dev=${device.name} bond=${device.bondState} n=${bytes.size}"
         try {
             adapter.cancelDiscovery()
         } catch (_: Exception) {
@@ -158,14 +150,13 @@ class MainActivity : FlutterActivity() {
             "insecure-sdp" to { device.createInsecureRfcommSocketToServiceRecord(spp) },
         )
 
+        val errs = StringBuilder()
         for ((label, make) in makers) {
             var socket: BluetoothSocket? = null
             try {
                 socket = make() ?: continue
                 socket.connect()
-                Log.i(tag, "connected via $label")
                 val out = socket.outputStream
-                // Chunked write so a small-buffer printer isn't overrun.
                 var off = 0
                 val chunk = 256
                 while (off < bytes.size) {
@@ -175,25 +166,21 @@ class MainActivity : FlutterActivity() {
                     off = end
                     Thread.sleep(20)
                 }
-                // Generous drain scaled to payload before closing the socket.
                 val drain = maxOf(1500L, bytes.size.toLong())
-                Log.i(tag, "wrote ${bytes.size} bytes via $label, draining ${drain}ms")
                 Thread.sleep(drain)
                 try {
                     socket.close()
                 } catch (_: Exception) {
                 }
-                Log.i(tag, "done via $label")
-                return true
+                return "OK via $label | $info drain=${drain}ms"
             } catch (e: Exception) {
-                Log.w(tag, "$label failed: ${e.message}")
+                errs.append("$label:${e.message}; ")
                 try {
                     socket?.close()
                 } catch (_: Exception) {
                 }
             }
         }
-        Log.w(tag, "all connectors failed")
-        return false
+        return "FAIL: $info | $errs"
     }
 }

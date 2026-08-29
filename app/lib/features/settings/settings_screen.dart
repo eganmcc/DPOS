@@ -153,9 +153,11 @@ class SettingsScreen extends ConsumerWidget {
                         final messenger = ScaffoldMessenger.of(context);
                         messenger.showSnackBar(const SnackBar(
                             duration: Duration(seconds: 1), content: Text('…')));
-                        final ok = await printTestRongta();
-                        messenger.showSnackBar(
-                            SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
+                        final status = await printTestRongta();
+                        // Surface the native diagnostic string (logcat is hidden on
+                        // HyperOS release builds).
+                        messenger.showSnackBar(SnackBar(
+                            duration: const Duration(seconds: 8), content: Text(status)));
                       },
                     ),
                   ],
