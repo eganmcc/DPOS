@@ -81,9 +81,11 @@ Future<bool> printReceiptSmart(
   OrderResult order, {
   String? businessName,
   String? outletName,
+  bool openDrawer = false,
 }) async {
   if (await isRongtaSelected()) {
-    return printReceiptRongta(order, businessName: businessName, outletName: outletName);
+    return printReceiptRongta(order,
+        businessName: businessName, outletName: outletName, openDrawer: openDrawer);
   }
   return printReceipt(order, businessName: businessName, outletName: outletName);
 }
@@ -108,6 +110,7 @@ Future<bool> printReceiptRongta(
   OrderResult order, {
   String? businessName,
   String? outletName,
+  bool openDrawer = false,
 }) async {
   try {
     final mac = await receiptPrinterMac();
@@ -166,8 +169,9 @@ Future<bool> printReceiptRongta(
     b.addAll(g.text('Terima kasih', styles: const PosStyles(align: PosAlign.center)));
     b.addAll(g.feed(3)); // no cut — RP58 has no auto-cutter; feed past the tear bar
 
-    // Open the cash drawer ONLY for a cash transaction.
-    if (p?.method == 'CASH') b.addAll(kCashDrawerKick);
+    // Open the cash drawer ONLY on the original cash sale (openDrawer). Reprints
+    // and history prints must NEVER pop the drawer — that's a cash-control risk.
+    if (openDrawer && p?.method == 'CASH') b.addAll(kCashDrawerKick);
 
     final status = await printBytesRongta(mac, b);
     return status.startsWith('OK');

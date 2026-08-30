@@ -110,7 +110,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         final cat = ref.read(catalogProvider(session.outletId)).valueOrNull;
         // Rongta printer → its own path (kept-open socket + cash-drawer on cash);
         // any other printer → the existing printReceipt flow. Fire-and-forget.
-        printReceiptSmart(result, businessName: cat?.merchantName, outletName: cat?.outletName);
+        // openDrawer: true — this is the ORIGINAL sale; reprints never pop the drawer.
+        printReceiptSmart(result,
+            businessName: cat?.merchantName, outletName: cat?.outletName, openDrawer: true);
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (_) => ReceiptScreen(order: result!)),
