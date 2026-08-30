@@ -10,6 +10,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../scanner/rongta_printer.dart';
 import 'transaction_status.dart';
 
 /// US3 (T038/T039) — transaction detail with the owner-gated void action.
@@ -69,14 +70,40 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     }
   }
 
+  /// Reprint this transaction's receipt — routes through the Rongta path when a
+  /// Rongta is selected (kept-open socket + cash-drawer on cash), else printReceipt.
+  Future<void> _printReceipt(OrderResult order) async {
+    final t = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final session = ref.read(sessionProvider);
+    final cat = session == null ? null : ref.read(catalogProvider(session.outletId)).valueOrNull;
+    messenger.showSnackBar(
+        const SnackBar(duration: Duration(seconds: 1), content: Text('…')));
+    final ok = await printReceiptSmart(order,
+        businessName: cat?.merchantName, outletName: cat?.outletName);
+    if (!mounted) return;
+    messenger.showSnackBar(SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final session = ref.watch(sessionProvider)!;
     final async = ref.watch(transactionDetailProvider(widget.orderId));
+    final loaded = async.valueOrNull;
 
     return Scaffold(
-      appBar: BrandAppBar(title: Text(t.transactionTitle)),
+      appBar: BrandAppBar(
+        title: Text(t.transactionTitle),
+        actions: [
+          if (loaded != null)
+            IconButton(
+              tooltip: t.actionPrint,
+              icon: const Icon(Icons.print_outlined),
+              onPressed: () => _printReceipt(loaded),
+            ),
+        ],
+      ),
       body: async.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(t.errorHistory)),
