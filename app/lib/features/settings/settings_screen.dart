@@ -85,6 +85,10 @@ class SettingsScreen extends ConsumerWidget {
                 ),
               ),
             ]),
+          ],
+          // Printer selection + test — relevant to both grocery (scan-to-sell) and
+          // F&B (Rongta receipt/drawer), so it lives outside the grocery-only block.
+          if (isGrocery || isFnb) ...[
             const SizedBox(height: 24),
             _sectionHeader(context, t.printerSection),
             _card(cs, [
