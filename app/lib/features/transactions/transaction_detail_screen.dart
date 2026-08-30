@@ -20,8 +20,14 @@ import 'transaction_status.dart';
 /// movement and writes a REVERSAL payment. This screen just re-reads the server's answer, where
 /// the effective status derives to VOIDED.
 class TransactionDetailScreen extends ConsumerStatefulWidget {
-  const TransactionDetailScreen({super.key, required this.orderId});
+  const TransactionDetailScreen({super.key, required this.orderId, this.fromOnlineQueue = false});
   final String orderId;
+
+  /// True only when opened from the online-orders (Pesanan) queue — that's where an
+  /// active online order gets the "Print receipt" button that also moves it to
+  /// history. Opened from History (default false) it behaves like any cash/QRIS
+  /// detail: a plain app-bar reprint icon, no move.
+  final bool fromOnlineQueue;
 
   @override
   ConsumerState<TransactionDetailScreen> createState() => _TransactionDetailScreenState();
@@ -131,9 +137,10 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       appBar: BrandAppBar(
         title: Text(t.transactionTitle),
         actions: [
-          // Quick reprint for normal transactions (and completed online orders).
-          // Active online orders use the prominent bottom button instead.
-          if (loaded != null && !_isActiveOnline(loaded))
+          // Quick reprint app-bar icon — shown for every detail EXCEPT an active
+          // online order opened from the Pesanan queue (that one uses the bottom
+          // Print-receipt button). History views (including online) get the icon.
+          if (loaded != null && !(widget.fromOnlineQueue && _isActiveOnline(loaded)))
             IconButton(
               tooltip: t.actionPrint,
               icon: const Icon(Icons.print_outlined),
@@ -147,7 +154,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
         data: (order) => _Detail(order: order),
       ),
       bottomNavigationBar: async.maybeWhen(
-        data: (order) => _isActiveOnline(order)
+        data: (order) => (widget.fromOnlineQueue && _isActiveOnline(order))
             ? _PrintReceiptBar(busy: _printing, onPrint: () => _printAndComplete(order))
             : _VoidBar(
                 order: order,

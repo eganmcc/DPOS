@@ -138,7 +138,8 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
       // Details are viewable at any stage — NEW included (the Terima button keeps
       // its own tap for accepting).
       onTap: () => Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => TransactionDetailScreen(orderId: o.id)),
+        MaterialPageRoute(
+            builder: (_) => TransactionDetailScreen(orderId: o.id, fromOnlineQueue: true)),
       ),
     );
   }
