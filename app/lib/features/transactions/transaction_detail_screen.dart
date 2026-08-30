@@ -10,6 +10,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../order/online_orders_controller.dart';
 import '../scanner/rongta_printer.dart';
 import 'transaction_status.dart';
 
@@ -31,6 +32,11 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
   /// so the server treats it as the same void and never restores stock twice (Constitution V).
   String? _clientVoidId;
   bool _voiding = false;
+  bool _printing = false;
+
+  /// An online order still in the active queue (not yet moved to history).
+  bool _isActiveOnline(OrderResult o) =>
+      o.isOnline && o.onlineStatus != 'COMPLETED' && o.onlineStatus != 'CANCELLED';
 
   Future<void> _confirmAndVoid(OrderResult order) async {
     final t = AppLocalizations.of(context)!;
@@ -85,6 +91,35 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     messenger.showSnackBar(SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
   }
 
+  /// Online-order flow: print the receipt, mark the order fulfilled (→ history so it
+  /// leaves the Pesanan queue), refresh both lists, and return to the queue.
+  Future<void> _printAndComplete(OrderResult order) async {
+    final t = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+    final session = ref.read(sessionProvider);
+    final outletId = session?.outletId;
+    final cat = outletId == null ? null : ref.read(catalogProvider(outletId)).valueOrNull;
+
+    setState(() => _printing = true);
+    messenger.showSnackBar(
+        const SnackBar(duration: Duration(seconds: 1), content: Text('…')));
+    final ok = await printReceiptSmart(order,
+        businessName: cat?.merchantName, outletName: cat?.outletName);
+    // Move it to history regardless of the print result — the cashier acted on it;
+    // a failed print can be reprinted from history.
+    try {
+      await ref.read(apiClientProvider).completeOnlineOrder(order.id);
+    } catch (_) {/* the queue poll reconciles */}
+    if (!mounted) return;
+    if (outletId != null) {
+      ref.read(onlineOrdersProvider(outletId).notifier).refresh();
+      ref.invalidate(transactionsProvider(outletId));
+    }
+    messenger.showSnackBar(SnackBar(content: Text(ok ? t.printerOk : t.printFailed)));
+    navigator.pop(); // back to the Pesanan queue (order now gone from it)
+  }
+
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
@@ -96,7 +131,9 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       appBar: BrandAppBar(
         title: Text(t.transactionTitle),
         actions: [
-          if (loaded != null)
+          // Quick reprint for normal transactions (and completed online orders).
+          // Active online orders use the prominent bottom button instead.
+          if (loaded != null && !_isActiveOnline(loaded))
             IconButton(
               tooltip: t.actionPrint,
               icon: const Icon(Icons.print_outlined),
@@ -110,12 +147,14 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
         data: (order) => _Detail(order: order),
       ),
       bottomNavigationBar: async.maybeWhen(
-        data: (order) => _VoidBar(
-          order: order,
-          isOwner: session.isOwner,
-          busy: _voiding,
-          onVoid: () => _confirmAndVoid(order),
-        ),
+        data: (order) => _isActiveOnline(order)
+            ? _PrintReceiptBar(busy: _printing, onPrint: () => _printAndComplete(order))
+            : _VoidBar(
+                order: order,
+                isOwner: session.isOwner,
+                busy: _voiding,
+                onVoid: () => _confirmAndVoid(order),
+              ),
         orElse: () => null,
       ),
     );
@@ -334,6 +373,35 @@ class _VoidBar extends StatelessWidget {
                   ),
                 ],
               ),
+      ),
+    );
+  }
+}
+
+/// Bottom action for an online order still in the queue: print the receipt, which
+/// also marks it fulfilled and moves it to history.
+class _PrintReceiptBar extends StatelessWidget {
+  const _PrintReceiptBar({required this.busy, required this.onPrint});
+  final bool busy;
+  final VoidCallback onPrint;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            icon: busy
+                ? const SizedBox(
+                    width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.print_outlined, size: 18),
+            label: Text(t.actionPrint),
+            onPressed: busy ? null : onPrint,
+          ),
+        ),
       ),
     );
   }

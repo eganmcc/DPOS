@@ -213,7 +213,15 @@ export class OnlineOrdersService {
         merchantId,
         outletId,
         channel: { not: OrderChannel.POS },
-        ...(status ? { onlineStatus: status } : {}),
+        // Default queue = active online orders only; COMPLETED/CANCELLED have left
+        // for history. An explicit status filter overrides this.
+        ...(status
+          ? { onlineStatus: status }
+          : {
+              onlineStatus: {
+                notIn: [OnlineOrderStatus.COMPLETED, OnlineOrderStatus.CANCELLED],
+              },
+            }),
       },
       include: ORDER_INCLUDE,
       orderBy: [{ onlineStatus: 'asc' }, { createdAt: 'desc' }],
@@ -231,6 +239,30 @@ export class OnlineOrdersService {
     await this.prisma.order.updateMany({
       where: { id: orderId, merchantId, onlineStatus: OnlineOrderStatus.NEW },
       data: { onlineStatus: OnlineOrderStatus.ACCEPTED },
+    });
+    const updated = await this.findById(merchantId, orderId);
+    return updated!;
+  }
+
+  /**
+   * Mark an online order fulfilled (→ COMPLETED), which removes it from the active
+   * queue so it lives only in history. Idempotent; a CANCELLED order is left alone.
+   */
+  async complete(merchantId: string, orderId: string): Promise<OrderWithRelations> {
+    const order = await this.prisma.order.findFirst({ where: { id: orderId, merchantId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.channel === OrderChannel.POS) {
+      throw new BadRequestException('Not an online order');
+    }
+    await this.prisma.order.updateMany({
+      where: {
+        id: orderId,
+        merchantId,
+        onlineStatus: {
+          notIn: [OnlineOrderStatus.COMPLETED, OnlineOrderStatus.CANCELLED],
+        },
+      },
+      data: { onlineStatus: OnlineOrderStatus.COMPLETED },
     });
     const updated = await this.findById(merchantId, orderId);
     return updated!;

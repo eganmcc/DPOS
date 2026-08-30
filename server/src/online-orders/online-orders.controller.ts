@@ -37,6 +37,13 @@ export class OnlineOrdersController {
     return mapOrder(order);
   }
 
+  /** Mark fulfilled (→ COMPLETED) — drops it from the active queue into history. */
+  @Post(':id/complete')
+  async complete(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
+    const order = await this.online.complete(user.merchantId, id);
+    return mapOrder(order);
+  }
+
   /**
    * DEMO ONLY: fabricate a random online order for the outlet (random vendor + random
    * in-stock items) and ingest it. Real provider webhooks replace this endpoint later.

@@ -106,6 +106,12 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Mark an online order fulfilled (→ COMPLETED) — moves it out of the queue to history.
+  Future<Map<String, dynamic>> completeOnlineOrder(String orderId) async {
+    final res = await _dio.post('/online-orders/$orderId/complete');
+    return res.data as Map<String, dynamic>;
+  }
+
   /// DEMO: ask the server to fabricate + ingest a random online order for the outlet.
   Future<Map<String, dynamic>> simulateOnlineOrder(String outletId) async {
     final res = await _dio.post('/online-orders/simulate', data: {'outletId': outletId});
