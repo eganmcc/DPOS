@@ -115,12 +115,16 @@ export class SettleOrderDto {
   payment!: PaymentDto;
 }
 
-/** Edit an open bill: replace its lines/discount/table while it is AWAITING_PAYMENT. */
+/** Edit an open bill: replace its lines/discount/type/table while it is AWAITING_PAYMENT. */
 export class OrderReviseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => LineDto)
   lines!: LineDto[];
+
+  @IsOptional()
+  @IsEnum(OrderType)
+  type?: OrderType;
 
   @IsOptional()
   @ValidateNested()

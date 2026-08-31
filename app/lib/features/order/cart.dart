@@ -172,9 +172,12 @@ class CartController extends StateNotifier<CartState> {
   /// Payload for POST /orders/:id/revise — same line shape as a submit, without a
   /// clientOrderId or payment.
   Map<String, dynamic> buildRevisePayload() {
+    final isDineIn = state.type == 'DINE_IN';
     final table = state.tableLabel?.trim().toUpperCase();
     return {
-      if (table != null && table.isNotEmpty) 'tableLabel': table,
+      'type': state.type,
+      // Only a dine-in bill carries a table; switching to takeaway clears it server-side.
+      if (isDineIn && table != null && table.isNotEmpty) 'tableLabel': table,
       if (state.orderDiscountPercentBps > 0)
         'orderDiscount': {'kind': 'PERCENT', 'value': state.orderDiscountPercentBps},
       'lines': state.lines

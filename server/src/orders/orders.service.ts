@@ -397,7 +397,10 @@ export class OrdersService {
       modifierMap,
       taxRule,
     );
-    const normTable = dto.tableLabel?.trim().toUpperCase() || order.tableLabel;
+    const newType = dto.type ?? order.type;
+    // A dine-in bill keeps/updates its table; a takeaway bill has none.
+    const normTable =
+      newType === 'DINE_IN' ? dto.tableLabel?.trim().toUpperCase() || order.tableLabel : null;
 
     // trackInventory for the OLD line variants (to compute the release side of the delta).
     const oldVariants = await this.prisma.productVariant.findMany({
@@ -494,6 +497,7 @@ export class OrdersService {
       await tx.order.update({
         where: { id: order.id },
         data: {
+          type: newType,
           tableLabel: normTable,
           subtotal: computed.subtotal,
           discountTotal: computed.discountTotal,
