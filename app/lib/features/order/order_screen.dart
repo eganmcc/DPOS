@@ -690,6 +690,18 @@ class CartPanelState extends ConsumerState<CartPanel> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && (ref.read(cartProvider).tableLabel ?? '').isEmpty) _table.clear();
       });
+    } else if ((cart.tableLabel ?? '').isNotEmpty && _table.text != cart.tableLabel) {
+      // An open bill loaded for editing carries a table — pre-fill the field.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final tl = ref.read(cartProvider).tableLabel ?? '';
+        if (tl.isNotEmpty && _table.text != tl) {
+          _table.value = TextEditingValue(
+            text: tl,
+            selection: TextSelection.collapsed(offset: tl.length),
+          );
+        }
+      });
     }
 
     final panel = Column(
