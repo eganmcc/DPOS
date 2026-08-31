@@ -157,9 +157,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           letterSpacing: 0.5,
                           shadows: [
                             Shadow(
-                              color: Colors.black.withValues(alpha: 0.25),
-                              offset: const Offset(0, 2),
-                              blurRadius: 4,
+                              color: Colors.black.withValues(alpha: 0.45),
+                              offset: const Offset(0, 3),
+                              blurRadius: 7,
                             ),
                           ],
                         ),

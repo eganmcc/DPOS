@@ -57,3 +57,6 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    # Bundled Quicksand Bold so the DIKASIR wordmark renders offline (google_fonts
+    # uses this local file instead of fetching at runtime).
+    - google_fonts/
