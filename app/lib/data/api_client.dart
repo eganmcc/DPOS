@@ -118,6 +118,12 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Edit an open bill (replace its lines/discount/table) while it is AWAITING_PAYMENT.
+  Future<Map<String, dynamic>> reviseOrder(String orderId, Map<String, dynamic> payload) async {
+    final res = await _dio.post('/orders/$orderId/revise', data: payload);
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Settle an open bill: attach payment and complete it. Returns the settled order.
   /// [clientSettleId] is the idempotency key.
   Future<Map<String, dynamic>> settleOrder(

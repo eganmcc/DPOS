@@ -23,6 +23,7 @@ import { VoidService } from './void.service';
 import {
   OpenOrdersQuery,
   OrderHistoryQuery,
+  OrderReviseDto,
   OrderSubmitDto,
   SettleOrderDto,
   VoidOrderDto,
@@ -67,6 +68,17 @@ export class OrdersController {
   async getOne(@CurrentUser() user: AuthUser, @Param('id', ParseUUIDPipe) id: string) {
     const order = await this.orders.findById(user.merchantId, id);
     if (!order) throw new NotFoundException('Order not found');
+    return mapOrder(order);
+  }
+
+  /** Edit an open bill (replace lines/discount/table) while it is AWAITING_PAYMENT. */
+  @Post(':id/revise')
+  async revise(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: OrderReviseDto,
+  ) {
+    const { order } = await this.orders.revise(user, id, dto);
     return mapOrder(order);
   }
 

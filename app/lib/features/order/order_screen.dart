@@ -920,9 +920,10 @@ Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     await showAppDialog(context, kind: AppDialogKind.warning, message: t.tableRequired);
     return false;
   }
-  // Friendly pre-check; the server enforces uniqueness too (409).
+  // Friendly pre-check; the server enforces uniqueness too (409). Skipped when
+  // editing — the bill being revised already occupies its own table.
   final norm = state.tableLabel?.trim().toUpperCase();
-  if (norm != null && norm.isNotEmpty) {
+  if (!state.isRevising && norm != null && norm.isNotEmpty) {
     final open = await ref.read(openBillsProvider(session.outletId).future);
     if (!context.mounted) return false;
     if (open.any((o) => (o.tableLabel ?? '').toUpperCase() == norm)) {
@@ -931,14 +932,21 @@ Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     }
   }
 
-  final payload = cart.buildPayload(
-    clientOrderId: const Uuid().v4(),
-    outletId: session.outletId,
-    deviceId: session.deviceId,
-    method: null, // open bill — no payment yet
-  );
   try {
-    await ref.read(apiClientProvider).submitOrder(payload);
+    if (state.isRevising) {
+      // Edit an existing open bill in place (server adjusts reserved stock + totals).
+      await ref
+          .read(apiClientProvider)
+          .reviseOrder(state.revisingOrderId!, cart.buildRevisePayload());
+    } else {
+      final payload = cart.buildPayload(
+        clientOrderId: const Uuid().v4(),
+        outletId: session.outletId,
+        deviceId: session.deviceId,
+        method: null, // open bill — no payment yet
+      );
+      await ref.read(apiClientProvider).submitOrder(payload);
+    }
     cart.clear();
     ref.invalidate(catalogProvider(session.outletId)); // stock reserved
     ref.invalidate(openBillsProvider(session.outletId));

@@ -225,11 +225,15 @@ class OrderLineResult {
   final String qty;
   final int unitPriceSnapshot;
   final int lineTotal;
+  final String? variantId; // for reconstructing an open bill into the cart
+  final List<String> modifierIds;
   const OrderLineResult({
     required this.productNameSnapshot,
     required this.qty,
     required this.unitPriceSnapshot,
     required this.lineTotal,
+    this.variantId,
+    this.modifierIds = const [],
   });
 
   factory OrderLineResult.fromJson(Map<String, dynamic> j) => OrderLineResult(
@@ -237,6 +241,11 @@ class OrderLineResult {
         qty: j['qty'].toString(),
         unitPriceSnapshot: j['unitPriceSnapshot'],
         lineTotal: j['lineTotal'],
+        variantId: j['variantId'],
+        modifierIds: ((j['selectedModifiersSnapshot'] ?? const []) as List)
+            .map((m) => (m is Map ? m['id'] : null) as String?)
+            .whereType<String>()
+            .toList(),
       );
 }
 

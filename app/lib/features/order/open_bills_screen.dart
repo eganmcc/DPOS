@@ -10,6 +10,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
 import '../transactions/transaction_detail_screen.dart';
+import 'cart.dart';
 import 'online_orders_controller.dart';
 import 'vendor_icon.dart';
 
@@ -161,11 +162,34 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text('${t.itemsLabel(count)} · ${DateFormat('HH:mm').format(b.createdAt)}'),
-      trailing: Text(formatRupiah(b.grandTotal),
-          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(formatRupiah(b.grandTotal),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            onPressed: () => _editBill(b),
+          ),
+        ],
+      ),
+      // Tapping the row settles the bill; the pencil edits it.
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => CheckoutScreen(grandTotalPreview: b.grandTotal, settleOrderId: b.id),
       )),
     );
+  }
+
+  /// Load this open bill's items into the cart for editing, then return to the order
+  /// screen where the cashier adjusts it and confirms (which revises the bill in place).
+  Future<void> _editBill(OrderResult b) async {
+    final session = ref.read(sessionProvider);
+    if (session == null) return;
+    final catalog = ref.read(catalogProvider(session.outletId)).valueOrNull;
+    if (catalog == null) return;
+    ref.read(cartProvider.notifier).loadFromOrder(b, catalog);
+    if (!mounted) return;
+    Navigator.of(context).pop(); // back to the order screen with the bill loaded
   }
 }

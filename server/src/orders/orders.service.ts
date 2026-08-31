@@ -15,7 +15,7 @@ import {
   VariantInfo,
 } from '../common/money';
 import { AuthUser } from '../auth/auth.types';
-import { OrderSubmitDto, OrderHistoryQuery, SettleOrderDto } from './dto';
+import { OrderSubmitDto, OrderHistoryQuery, OrderReviseDto, SettleOrderDto } from './dto';
 import { ORDER_INCLUDE, OrderWithRelations } from './order.mapper';
 
 export interface CheckoutResult {
@@ -334,6 +334,182 @@ export class OrdersService {
       throw new ConflictException('Order already settled');
     }
     return { order: settled!, replay: false };
+  }
+
+  /**
+   * Edit an open bill (AWAITING_PAYMENT only): replace its lines/discount/table with a
+   * server-authoritative recompute, adjusting reserved stock by the NET change per
+   * variant. The inventory ledger stays append-only — the original SALE movements are
+   * untouched and a single ADJUSTMENT movement records the revision delta (a positive
+   * qtyDelta releases stock, a negative one reserves more; an increase can still
+   * oversell-guard). COMPLETED orders are never editable (Constitution IV).
+   */
+  async revise(user: AuthUser, orderId: string, dto: OrderReviseDto): Promise<CheckoutResult> {
+    const order = await this.findById(user.merchantId, orderId);
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'AWAITING_PAYMENT') {
+      throw new ConflictException('Only an open bill can be edited');
+    }
+
+    // Validate the new lines' variants + modifiers (must belong to this merchant).
+    const variantIds = [...new Set(dto.lines.map((l) => l.variantId))];
+    const variants = await this.prisma.productVariant.findMany({
+      where: { id: { in: variantIds }, product: { merchantId: user.merchantId } },
+      include: { product: true },
+    });
+    if (variants.length !== variantIds.length) {
+      throw new BadRequestException('One or more variants are invalid for this merchant');
+    }
+    const variantMap = new Map<string, VariantInfo>(
+      variants.map((v) => [
+        v.id,
+        { id: v.id, productName: v.product.name, sku: v.sku, price: v.price, costPrice: v.costPrice, trackInventory: v.trackInventory },
+      ]),
+    );
+    const modifierIds = [...new Set(dto.lines.flatMap((l) => l.modifierIds ?? []))];
+    const modifiers = modifierIds.length
+      ? await this.prisma.modifier.findMany({
+          where: { id: { in: modifierIds }, group: { product: { merchantId: user.merchantId } } },
+          include: { group: true },
+        })
+      : [];
+    if (modifiers.length !== modifierIds.length) {
+      throw new BadRequestException('One or more modifiers are invalid for this merchant');
+    }
+    const modifierMap = new Map<string, ModifierInfo>(
+      modifiers.map((m) => [m.id, { id: m.id, name: m.name, priceDelta: m.priceDelta }]),
+    );
+    await this.validateModifierSelection(dto.lines, variants, modifiers);
+
+    const taxRuleRow = await this.prisma.taxRule.findFirst({
+      where: { merchantId: user.merchantId, outletId: order.outletId, isActive: true },
+    });
+    const taxRule: TaxRuleInfo = taxRuleRow
+      ? { label: taxRuleRow.label, rateBps: taxRuleRow.rateBps, serviceChargeBps: taxRuleRow.serviceChargeBps, serviceLabel: taxRuleRow.serviceLabel }
+      : { label: 'NONE', rateBps: 0, serviceChargeBps: null, serviceLabel: null };
+
+    const computed = computeOrder(
+      {
+        lines: dto.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, note: l.note, modifierIds: l.modifierIds, lineDiscount: l.lineDiscount ?? null })),
+        orderDiscount: dto.orderDiscount ?? null,
+      },
+      variantMap,
+      modifierMap,
+      taxRule,
+    );
+    const normTable = dto.tableLabel?.trim().toUpperCase() || order.tableLabel;
+
+    // trackInventory for the OLD line variants (to compute the release side of the delta).
+    const oldVariants = await this.prisma.productVariant.findMany({
+      where: { id: { in: [...new Set(order.lines.map((l) => l.variantId))] } },
+      select: { id: true, trackInventory: true },
+    });
+    const oldTrack = new Map(oldVariants.map((v) => [v.id, v.trackInventory]));
+
+    await this.prisma.$transaction(async (tx) => {
+      const still = await tx.order.findFirst({
+        where: { id: order.id, merchantId: user.merchantId, status: 'AWAITING_PAYMENT' },
+      });
+      if (!still) throw new ConflictException('Only an open bill can be edited');
+
+      // Net stock delta per variant = new reserved - old reserved (tracked variants only).
+      const oldByVariant = new Map<string, number>();
+      for (const l of order.lines) {
+        if (!oldTrack.get(l.variantId)) continue;
+        oldByVariant.set(l.variantId, (oldByVariant.get(l.variantId) ?? 0) + Number(l.qty));
+      }
+      const newByVariant = new Map<string, number>();
+      for (const cl of computed.lines) {
+        if (!cl.trackInventory) continue;
+        newByVariant.set(cl.variantId, (newByVariant.get(cl.variantId) ?? 0) + cl.qty);
+      }
+      for (const variantId of new Set([...oldByVariant.keys(), ...newByVariant.keys()])) {
+        const delta = (newByVariant.get(variantId) ?? 0) - (oldByVariant.get(variantId) ?? 0);
+        if (delta === 0) continue;
+        if (delta > 0) {
+          const dec = await tx.inventoryStock.updateMany({
+            where: { outletId: order.outletId, variantId, quantityOnHand: { gte: delta } },
+            data: { quantityOnHand: { decrement: delta } },
+          });
+          if (dec.count === 0) {
+            const name = computed.lines.find((l) => l.variantId === variantId)?.productNameSnapshot ?? 'item';
+            throw new BadRequestException(`Insufficient stock for ${name}`);
+          }
+        } else {
+          await tx.inventoryStock.updateMany({
+            where: { outletId: order.outletId, variantId },
+            data: { quantityOnHand: { increment: -delta } },
+          });
+        }
+        await tx.inventoryMovement.create({
+          data: {
+            merchantId: user.merchantId,
+            outletId: order.outletId,
+            variantId,
+            qtyDelta: -delta, // reserve more = negative; release = positive
+            reason: InventoryReason.ADJUSTMENT,
+            refType: 'ORDER_REVISE',
+            refId: order.id,
+            createdById: user.staffId,
+          },
+        });
+      }
+
+      // Replace the lines + discounts (an open bill is pre-payment, not immutable history).
+      await tx.orderDiscount.deleteMany({ where: { orderId: order.id } });
+      await tx.orderLine.deleteMany({ where: { orderId: order.id } });
+      const lineIds: string[] = [];
+      for (const cl of computed.lines) {
+        const line = await tx.orderLine.create({
+          data: {
+            orderId: order.id,
+            variantId: cl.variantId,
+            qty: cl.qty,
+            productNameSnapshot: cl.productNameSnapshot,
+            skuSnapshot: cl.skuSnapshot,
+            unitPriceSnapshot: cl.unitPriceSnapshot,
+            costPriceSnapshot: cl.costPriceSnapshot,
+            selectedModifiersSnapshot: cl.selectedModifiersSnapshot as unknown as Prisma.InputJsonValue,
+            lineDiscount: cl.lineDiscount,
+            lineTotal: cl.lineTotal,
+          },
+        });
+        lineIds.push(line.id);
+      }
+      for (const d of computed.discounts) {
+        await tx.orderDiscount.create({
+          data: {
+            orderId: order.id,
+            orderLineId: d.scope === 'LINE' && d.lineIndex != null ? lineIds[d.lineIndex] : null,
+            scope: d.scope,
+            kind: d.kind,
+            value: d.value,
+            discountAmount: d.discountAmount,
+            reason: d.reason ?? null,
+            appliedById: user.staffId,
+            approvedById: d.approvedById ?? null,
+          },
+        });
+      }
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          tableLabel: normTable,
+          subtotal: computed.subtotal,
+          discountTotal: computed.discountTotal,
+          taxTotal: computed.taxTotal,
+          serviceChargeTotal: computed.serviceChargeTotal,
+          grandTotal: computed.grandTotal,
+          taxLabelSnapshot: computed.taxLabelSnapshot,
+          taxRateBpsSnapshot: computed.taxRateBpsSnapshot,
+          serviceChargeLabelSnapshot: computed.serviceChargeLabelSnapshot,
+          serviceChargeRateBpsSnapshot: computed.serviceChargeRateBpsSnapshot,
+        },
+      });
+    });
+
+    const updated = await this.findById(user.merchantId, orderId);
+    return { order: updated!, replay: false };
   }
 
   /** Open bills (AWAITING_PAYMENT) for one outlet, newest first. Tenant-scoped. */
