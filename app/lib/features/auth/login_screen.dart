@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/pin_field.dart';
 import '../../core/settings_actions.dart';
 import '../../data/api_client.dart';
@@ -149,11 +150,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(
                         'DIKASIR',
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: GoogleFonts.quicksand(
                           color: cs.primary,
-                          fontSize: 30,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 3.5,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
                           shadows: [
                             Shadow(
                               color: Colors.black.withValues(alpha: 0.25),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Brand gold from the design guide (#D6AD07) — matches the native launch splash
 /// so the handover is seamless.
@@ -28,17 +29,17 @@ class SplashScreen extends StatelessWidget {
             ),
           ),
           // Wordmark — bottom-right.
-          const Positioned(
+          Positioned(
             right: 24,
             bottom: 40,
             child: Text(
               'DIKASIR',
-              style: TextStyle(
+              style: GoogleFonts.quicksand(
                 color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2.5,
-                shadows: [
+                fontSize: 30,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.6,
+                shadows: const [
                   Shadow(
                     color: Colors.black26,
                     offset: Offset(0, 2),
