@@ -63,7 +63,8 @@ Future<bool> printReceipt(
 
     final p = order.payments.isNotEmpty ? order.payments.first : null;
     if (p != null) {
-      row(_method(p.method), p.amount);
+      // Cash: print the amount handed over (tendered) + change, not the bill again.
+      row(_method(p.method), p.tendered ?? p.amount);
       if ((p.change ?? 0) > 0) row('Kembalian', p.change!);
     }
     b.addAll(g.text('LUNAS', styles: const PosStyles(align: PosAlign.center, bold: true)));

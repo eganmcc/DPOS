@@ -252,7 +252,7 @@ class _Detail extends StatelessWidget {
                 Text(t.paymentTitle, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
                 for (final p in charges) ...[
-                  _row(context, p.method, p.amount, muted: true),
+                  _row(context, p.method, p.tendered ?? p.amount, muted: true),
                   if (p.change != null) _row(context, t.labelChange, p.change!, muted: true),
                 ],
                 for (final r in reversals)

@@ -163,6 +163,7 @@ class PaymentResult {
   final String method;
   final int amount;
   final String status;
+  final int? tendered; // cash handed over (cash payments only)
   final int? change;
   final String? qrPayload;
 
@@ -179,6 +180,7 @@ class PaymentResult {
     required this.status,
     required this.change,
     required this.qrPayload,
+    this.tendered,
     this.direction = 'CHARGE',
     this.reversalType,
   });
@@ -190,6 +192,7 @@ class PaymentResult {
         amount: j['amount'],
         status: j['status'],
         change: j['change'],
+        tendered: j['tendered'],
         qrPayload: j['qrPayload'],
         direction: j['direction'] ?? 'CHARGE',
         reversalType: j['reversalType'],

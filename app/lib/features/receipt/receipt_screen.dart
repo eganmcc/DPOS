@@ -94,8 +94,12 @@ class ReceiptScreen extends ConsumerWidget {
                         ),
                         if (payment != null) ...[
                           const SizedBox(height: 6),
-                          _row(context, payment.method, payment.amount, muted: true),
-                          if (payment.change != null) _row(context, t.labelChange, payment.change!, muted: true),
+                          // For cash, show the amount handed over (tendered), then the
+                          // change — not the bill total again.
+                          _row(context, payment.method, payment.tendered ?? payment.amount,
+                              muted: true),
+                          if (payment.change != null)
+                            _row(context, t.labelChange, payment.change!, muted: true),
                         ],
                         const SizedBox(height: 20),
                         SizedBox(
