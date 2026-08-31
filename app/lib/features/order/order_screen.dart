@@ -932,13 +932,15 @@ Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
     await showAppDialog(context, kind: AppDialogKind.warning, message: t.tableRequired);
     return false;
   }
-  // Friendly pre-check; the server enforces uniqueness too (409). Skipped when
-  // editing — the bill being revised already occupies its own table.
+  // Friendly pre-check; the server enforces uniqueness too (409). When editing,
+  // the bill's own table is excluded so it can keep it — only a clash with a
+  // *different* open bill is rejected.
   final norm = state.tableLabel?.trim().toUpperCase();
-  if (!state.isRevising && norm != null && norm.isNotEmpty) {
+  if (norm != null && norm.isNotEmpty) {
     final open = await ref.read(openBillsProvider(session.outletId).future);
     if (!context.mounted) return false;
-    if (open.any((o) => (o.tableLabel ?? '').toUpperCase() == norm)) {
+    if (open.any((o) =>
+        o.id != state.revisingOrderId && (o.tableLabel ?? '').toUpperCase() == norm)) {
       await showAppDialog(context, kind: AppDialogKind.error, message: t.tableExists);
       return false;
     }

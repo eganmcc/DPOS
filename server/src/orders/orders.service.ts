@@ -402,6 +402,22 @@ export class OrdersService {
     const normTable =
       newType === 'DINE_IN' ? dto.tableLabel?.trim().toUpperCase() || order.tableLabel : null;
 
+    // A table holds at most one open bill — reject a move onto a table another
+    // open bill already occupies (the bill being edited is excluded).
+    if (normTable) {
+      const clash = await this.prisma.order.findFirst({
+        where: {
+          merchantId: user.merchantId,
+          outletId: order.outletId,
+          status: 'AWAITING_PAYMENT',
+          tableLabel: normTable,
+          id: { not: order.id },
+        },
+        select: { id: true },
+      });
+      if (clash) throw new ConflictException('That table already has an open bill');
+    }
+
     // trackInventory for the OLD line variants (to compute the release side of the delta).
     const oldVariants = await this.prisma.productVariant.findMany({
       where: { id: { in: [...new Set(order.lines.map((l) => l.variantId))] } },
