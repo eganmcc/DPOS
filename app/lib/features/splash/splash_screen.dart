@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 const Color kSplashGold = Color(0xFFD6AD07);
 
 /// The Flutter-drawn splash: gold field with the glossy circle mark centred and the
-/// "DPOS · Powered by PT DIKA" wordmark in the bottom-right (per the design). Shown
+/// "DIKASIR" wordmark in the bottom-right (per the design). Shown
 /// briefly on cold start, then cross-faded into login/POS by the root gate.
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -28,13 +28,17 @@ class SplashScreen extends StatelessWidget {
             ),
           ),
           // Wordmark — bottom-right.
-          Positioned(
+          const Positioned(
             right: 24,
             bottom: 40,
-            child: Image.asset(
-              'assets/images/splash_wordmark.png',
-              width: w * 0.56,
-              fit: BoxFit.contain,
+            child: Text(
+              'DIKASIR',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 30,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 3,
+              ),
             ),
           ),
         ],
