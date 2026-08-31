@@ -35,9 +35,16 @@ class SplashScreen extends StatelessWidget {
               'DIKASIR',
               style: TextStyle(
                 color: Colors.white,
-                fontSize: 30,
+                fontSize: 24,
                 fontWeight: FontWeight.w800,
-                letterSpacing: 3,
+                letterSpacing: 2.5,
+                shadows: [
+                  Shadow(
+                    color: Colors.black26,
+                    offset: Offset(0, 2),
+                    blurRadius: 4,
+                  ),
+                ],
               ),
             ),
           ),

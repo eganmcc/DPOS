@@ -151,9 +151,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: cs.primary,
-                          fontSize: 38,
+                          fontSize: 30,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 4,
+                          letterSpacing: 3.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.25),
+                              offset: const Offset(0, 2),
+                              blurRadius: 4,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),
