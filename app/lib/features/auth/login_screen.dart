@@ -163,10 +163,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Text(t.loginTitle,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: cs.onSurfaceVariant)),
                       const SizedBox(height: 20),
 
                       // Shown when an authed call 401'd and signed the user out.
