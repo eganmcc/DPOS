@@ -276,6 +276,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get saveOrder => 'Process order';
 
   @override
+  String get updateOrder => 'Update order';
+
+  @override
   String get orderSaved => 'Order processed';
 
   @override

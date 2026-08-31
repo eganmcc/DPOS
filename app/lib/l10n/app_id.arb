@@ -84,6 +84,7 @@
   "labelQty": "Jumlah",
   "addQtyToOrder": "Tambah {qty} · {amount}",
   "saveOrder": "Proses Pesanan",
+  "updateOrder": "Update Pesanan",
   "orderSaved": "Pesanan diproses",
   "openBillsTitle": "Pesanan",
   "emptyOpenBills": "Belum ada pesanan terbuka",

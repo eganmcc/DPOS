@@ -596,6 +596,12 @@ abstract class AppLocalizations {
   /// **'Process order'**
   String get saveOrder;
 
+  /// No description provided for @updateOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Update order'**
+  String get updateOrder;
+
   /// No description provided for @orderSaved.
   ///
   /// In en, this message translates to:

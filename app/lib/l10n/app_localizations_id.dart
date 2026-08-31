@@ -277,6 +277,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get saveOrder => 'Proses Pesanan';
 
   @override
+  String get updateOrder => 'Update Pesanan';
+
+  @override
   String get orderSaved => 'Pesanan diproses';
 
   @override

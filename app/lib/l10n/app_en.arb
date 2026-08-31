@@ -92,6 +92,7 @@
   "addQtyToOrder": "Add {qty} · {amount}",
   "@addQtyToOrder": { "placeholders": { "qty": { "type": "int" }, "amount": { "type": "String" } } },
   "saveOrder": "Process order",
+  "updateOrder": "Update order",
   "orderSaved": "Order processed",
   "openBillsTitle": "Orders",
   "emptyOpenBills": "No open bills",

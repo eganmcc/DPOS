@@ -985,6 +985,7 @@ class _TotalsBar extends ConsumerWidget {
     final cs = Theme.of(context).colorScheme;
     final session = ref.watch(sessionProvider)!;
     final openBill = ref.watch(catalogProvider(session.outletId)).valueOrNull?.isOpenBill ?? false;
+    final revising = ref.watch(cartProvider).isRevising;
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -1034,7 +1035,7 @@ class _TotalsBar extends ConsumerWidget {
                       }
                     },
               child: Text(openBill
-                  ? t.saveOrder
+                  ? (revising ? t.updateOrder : t.saveOrder)
                   : t.payWithTotal(formatRupiah(preview.grandTotal))),
             ),
           ),
