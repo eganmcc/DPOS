@@ -26,6 +26,12 @@ final transactionsProvider =
   return rows.map(OrderResult.fromJson).toList();
 });
 
+/// Owner/manager sales summary (GET /admin/dashboard). Merchant-wide, last 7 days.
+final dashboardProvider = FutureProvider.autoDispose<DashboardSummary>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  return DashboardSummary.fromJson(await api.getDashboard());
+});
+
 /// One transaction, straight from the server (detail view + post-void refresh).
 final transactionDetailProvider =
     FutureProvider.autoDispose.family<OrderResult, String>((ref, orderId) async {

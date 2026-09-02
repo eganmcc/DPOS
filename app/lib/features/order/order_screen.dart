@@ -13,6 +13,7 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
+import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 import 'cart.dart';
@@ -86,6 +87,17 @@ class OrderScreen extends ConsumerWidget {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          Consumer(builder: (context, ref, _) {
+            final s = ref.watch(sessionProvider);
+            if (s == null || !s.isOwnerOrManager) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: t.reportsTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
+              ),
+              icon: const Icon(Icons.insights_outlined),
+            );
+          }),
           IconButton(
             tooltip: t.settingsTitle,
             onPressed: () => Navigator.of(context).push(

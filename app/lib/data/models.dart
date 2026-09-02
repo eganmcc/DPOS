@@ -330,3 +330,50 @@ class OrderResult {
             .toList(),
       );
 }
+
+int _asInt(dynamic v) => (v as num?)?.toInt() ?? 0;
+
+/// Owner/manager sales summary from GET /admin/dashboard (merchant-wide).
+class DashboardSummary {
+  final int netSales;
+  final int orderCount;
+  final int avgTicket;
+  final String? from;
+  final String? to;
+  final List<({String method, int amount})> paymentBreakdown;
+  final List<({String name, int sales, int count})> byOutlet;
+  final List<({String name, int qty, int sales})> topItems;
+  final List<({String day, int sales})> salesByDay;
+
+  const DashboardSummary({
+    required this.netSales,
+    required this.orderCount,
+    required this.avgTicket,
+    required this.from,
+    required this.to,
+    required this.paymentBreakdown,
+    required this.byOutlet,
+    required this.topItems,
+    required this.salesByDay,
+  });
+
+  factory DashboardSummary.fromJson(Map<String, dynamic> j) {
+    final range = j['range'] as Map<String, dynamic>?;
+    List<T> list<T>(String key, T Function(Map<String, dynamic>) f) =>
+        ((j[key] ?? []) as List).map((e) => f(e as Map<String, dynamic>)).toList();
+    return DashboardSummary(
+      netSales: _asInt(j['netSales']),
+      orderCount: _asInt(j['orderCount']),
+      avgTicket: _asInt(j['avgTicket']),
+      from: range?['from'] as String?,
+      to: range?['to'] as String?,
+      paymentBreakdown:
+          list('paymentBreakdown', (e) => (method: e['method'] as String, amount: _asInt(e['amount']))),
+      byOutlet: list('byOutlet',
+          (e) => (name: e['name'] as String, sales: _asInt(e['sales']), count: _asInt(e['count']))),
+      topItems: list('topItems',
+          (e) => (name: e['name'] as String, qty: _asInt(e['qty']), sales: _asInt(e['sales']))),
+      salesByDay: list('salesByDay', (e) => (day: e['day'] as String, sales: _asInt(e['sales']))),
+    );
+  }
+}

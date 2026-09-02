@@ -127,7 +127,7 @@ export class InventoryController {
 
 @Controller('admin/dashboard')
 @UseGuards(AuthGuard, RolesGuard)
-@Roles(StaffRole.OWNER)
+@Roles(StaffRole.OWNER, StaffRole.MANAGER)
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 

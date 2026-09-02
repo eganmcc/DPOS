@@ -125,5 +125,14 @@
   "printerPaired": "Terpasang",
   "printerNone": "Tidak ditemukan",
   "printerTest": "Tes cetak",
-  "printerOk": "Tercetak"
+  "printerOk": "Tercetak",
+  "reportsTitle": "Laporan",
+  "reportsOrders": "Transaksi",
+  "reportsAvgTicket": "Rata-rata",
+  "reportsPayments": "METODE PEMBAYARAN",
+  "reportsTopItems": "PRODUK TERLARIS",
+  "reportsByOutlet": "PER OUTLET",
+  "reportsByDay": "PENJUALAN HARIAN",
+  "reportsQtySold": "{qty} terjual",
+  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } }
 }

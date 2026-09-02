@@ -16,6 +16,8 @@ class Session {
   });
 
   bool get isOwner => role == 'OWNER';
+  bool get isManager => role == 'MANAGER';
+  bool get isOwnerOrManager => isOwner || isManager;
 }
 
 class SessionNotifier extends StateNotifier<Session?> {

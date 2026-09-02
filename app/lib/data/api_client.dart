@@ -88,6 +88,13 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Owner/manager sales summary for the merchant (all outlets). OWNER/MANAGER
+  /// tokens only — a cashier's token comes back 403.
+  Future<Map<String, dynamic>> getDashboard() async {
+    final res = await _dio.get('/admin/dashboard');
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Open bills (AWAITING_PAYMENT) for an outlet, newest first.
   Future<List<Map<String, dynamic>>> getOpenOrders(String outletId) async {
     final res = await _dio.get('/orders/open', queryParameters: {'outletId': outletId});

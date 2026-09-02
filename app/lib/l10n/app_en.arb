@@ -135,5 +135,14 @@
   "printerPaired": "Paired",
   "printerNone": "None found",
   "printerTest": "Test print",
-  "printerOk": "Printed"
+  "printerOk": "Printed",
+  "reportsTitle": "Reports",
+  "reportsOrders": "Orders",
+  "reportsAvgTicket": "Avg ticket",
+  "reportsPayments": "PAYMENT METHODS",
+  "reportsTopItems": "TOP ITEMS",
+  "reportsByOutlet": "BY OUTLET",
+  "reportsByDay": "SALES BY DAY",
+  "reportsQtySold": "{qty} sold",
+  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } }
 }

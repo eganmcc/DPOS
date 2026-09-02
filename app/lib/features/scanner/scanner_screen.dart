@@ -11,6 +11,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../order/cart.dart';
 import '../order/order_screen.dart'; // CartPanel, CatalogPanel (public)
+import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 
@@ -146,6 +147,13 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          if ((ref.watch(sessionProvider)?.isOwnerOrManager) ?? false)
+            IconButton(
+              tooltip: t.reportsTitle,
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ReportsScreen())),
+              icon: const Icon(Icons.insights_outlined),
+            ),
           IconButton(
             tooltip: t.settingsTitle,
             onPressed: () => Navigator.of(context)
