@@ -560,6 +560,36 @@ abstract class AppLocalizations {
   /// **'You are not allowed to void a sale'**
   String get voidForbidden;
 
+  /// No description provided for @voidWindowExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Voids are only allowed on the same day — issue a refund instead.'**
+  String get voidWindowExpired;
+
+  /// No description provided for @voidReasonWrongItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong item'**
+  String get voidReasonWrongItem;
+
+  /// No description provided for @voidReasonWrongPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong price'**
+  String get voidReasonWrongPrice;
+
+  /// No description provided for @voidReasonCustomerCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer cancelled'**
+  String get voidReasonCustomerCancel;
+
+  /// No description provided for @voidReasonTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test transaction'**
+  String get voidReasonTest;
+
   /// No description provided for @soldOut.
   ///
   /// In en, this message translates to:

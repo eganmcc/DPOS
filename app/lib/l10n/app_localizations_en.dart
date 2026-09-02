@@ -256,6 +256,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voidForbidden => 'You are not allowed to void a sale';
 
   @override
+  String get voidWindowExpired =>
+      'Voids are only allowed on the same day — issue a refund instead.';
+
+  @override
+  String get voidReasonWrongItem => 'Wrong item';
+
+  @override
+  String get voidReasonWrongPrice => 'Wrong price';
+
+  @override
+  String get voidReasonCustomerCancel => 'Customer cancelled';
+
+  @override
+  String get voidReasonTest => 'Test transaction';
+
+  @override
   String get soldOut => 'Sold out';
 
   @override

@@ -182,11 +182,11 @@ class ApiClient {
   Future<Map<String, dynamic>> voidOrder(
     String orderId, {
     required String clientVoidId,
-    String? reason,
+    required String reason,
   }) async {
     final res = await _dio.post('/orders/$orderId/void', data: {
       'clientVoidId': clientVoidId,
-      if (reason != null && reason.isNotEmpty) 'reason': reason,
+      'reason': reason,
     });
     return res.data as Map<String, dynamic>;
   }

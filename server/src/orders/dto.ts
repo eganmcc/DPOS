@@ -3,6 +3,7 @@ import {
   IsArray,
   IsEnum,
   IsInt,
+  IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
@@ -147,9 +148,10 @@ export class VoidOrderDto {
   @IsUUID()
   clientVoidId?: string;
 
-  @IsOptional()
+  /** Required: why the sale is being voided (audit trail). */
   @IsString()
-  reason?: string;
+  @IsNotEmpty({ message: 'A void reason is required' })
+  reason!: string;
 }
 
 export class OrderHistoryQuery {

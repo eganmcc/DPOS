@@ -258,6 +258,22 @@ class AppLocalizationsId extends AppLocalizations {
   String get voidForbidden => 'Anda tidak berhak membatalkan transaksi';
 
   @override
+  String get voidWindowExpired =>
+      'Pembatalan hanya boleh di hari yang sama — lakukan refund.';
+
+  @override
+  String get voidReasonWrongItem => 'Salah item';
+
+  @override
+  String get voidReasonWrongPrice => 'Salah harga';
+
+  @override
+  String get voidReasonCustomerCancel => 'Pelanggan batal';
+
+  @override
+  String get voidReasonTest => 'Transaksi tes';
+
+  @override
   String get soldOut => 'Habis';
 
   @override

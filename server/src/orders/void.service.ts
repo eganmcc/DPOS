@@ -60,6 +60,15 @@ export class VoidService {
       throw new ConflictException('Only a COMPLETED order can be voided');
     }
 
+    // Void is same-business-day only (Asia/Jakarta). Older sales must be corrected
+    // with a refund instead — a full void of a past day would distort closed books.
+    if (jakartaDayKey(order.createdAt) !== jakartaDayKey(new Date())) {
+      throw new ConflictException({
+        code: 'VOID_WINDOW_EXPIRED',
+        message: 'Voids are only allowed on the same day — issue a refund instead',
+      });
+    }
+
     try {
       await this.prisma.$transaction(async (tx) => {
         // 1. The void itself — append-only; the order is left exactly as it was.
@@ -186,4 +195,9 @@ export class VoidService {
       where: { merchantId_clientVoidId: { merchantId, clientVoidId } },
     });
   }
+}
+
+/** Calendar day in Asia/Jakarta (UTC+7) as YYYY-MM-DD — the business-day key. */
+function jakartaDayKey(d: Date): string {
+  return new Date(d.getTime() + 7 * 3600_000).toISOString().slice(0, 10);
 }

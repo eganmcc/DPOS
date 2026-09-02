@@ -50,7 +50,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       context: context,
       builder: (_) => const _VoidReasonDialog(),
     );
-    if (reason == null || !mounted) return; // dismissed = no void
+    if (reason == null || reason.isEmpty || !mounted) return; // dismissed / no reason = no void
 
     setState(() {
       _voiding = true;
@@ -60,7 +60,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       final json = await ref.read(apiClientProvider).voidOrder(
             order.id,
             clientVoidId: _clientVoidId!,
-            reason: reason.isEmpty ? null : reason,
+            reason: reason,
           );
       final voided = OrderResult.fromJson(json);
       if (!mounted) return;
@@ -74,9 +74,13 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     } on DioException catch (e) {
       if (!mounted) return;
       final code = e.response?.statusCode;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(code == 403 ? t.voidForbidden : t.voidFailed)),
-      );
+      final serverCode = e.response?.data is Map ? e.response?.data['code'] : null;
+      final msg = serverCode == 'VOID_WINDOW_EXPIRED'
+          ? t.voidWindowExpired
+          : code == 403
+              ? t.voidForbidden
+              : t.voidFailed;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _voiding = false);
     }
@@ -348,39 +352,45 @@ class _VoidBar extends StatelessWidget {
 
     if (!order.canBeVoided) return const SizedBox.shrink();
 
+    final now = DateTime.now();
+    final sameDay = order.createdAt.year == now.year &&
+        order.createdAt.month == now.month &&
+        order.createdAt.day == now.day;
+
+    Widget child;
+    if (!isOwner) {
+      child = _note(cs, Icons.lock_outline, t.voidOwnerOnly);
+    } else if (!sameDay) {
+      // Past the same-day window — a refund is the correct correction (Phase 2).
+      child = _note(cs, Icons.history, t.voidWindowExpired);
+    } else {
+      child = SizedBox(
+        width: double.infinity,
+        child: FilledButton.icon(
+          style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
+          icon: busy
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.block, size: 18),
+          label: Text(t.actionVoidSale),
+          onPressed: busy ? null : onVoid,
+        ),
+      );
+    }
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: isOwner
-            ? SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: cs.error,
-                    foregroundColor: cs.onError,
-                  ),
-                  icon: busy
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.block, size: 18),
-                  label: Text(t.actionVoidSale),
-                  onPressed: busy ? null : onVoid,
-                ),
-              )
-            : Row(
-                children: [
-                  Icon(Icons.lock_outline, size: 16, color: cs.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(t.voidOwnerOnly,
-                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
-                  ),
-                ],
-              ),
-      ),
+      child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: child),
+    );
+  }
+
+  Widget _note(ColorScheme cs, IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: cs.onSurfaceVariant),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+        ),
+      ],
     );
   }
 }
@@ -435,6 +445,13 @@ class _VoidReasonDialogState extends State<_VoidReasonDialog> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
+    final presets = [
+      t.voidReasonWrongItem,
+      t.voidReasonWrongPrice,
+      t.voidReasonCustomerCancel,
+      t.voidReasonTest,
+    ];
+    final valid = _reason.text.trim().isNotEmpty;
     return AlertDialog(
       title: Text(t.voidConfirmTitle),
       content: Column(
@@ -443,11 +460,27 @@ class _VoidReasonDialogState extends State<_VoidReasonDialog> {
         children: [
           Text(t.voidConfirmBody),
           const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final p in presets)
+                ActionChip(
+                  label: Text(p),
+                  onPressed: () => setState(() {
+                    _reason.text = p;
+                    _reason.selection = TextSelection.collapsed(offset: p.length);
+                  }),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           TextField(
             controller: _reason,
             autofocus: true,
             textInputAction: TextInputAction.done,
-            decoration: InputDecoration(labelText: t.voidReasonLabel, isDense: true),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(labelText: '${t.voidReasonLabel} *', isDense: true),
           ),
         ],
       ),
@@ -458,7 +491,7 @@ class _VoidReasonDialogState extends State<_VoidReasonDialog> {
         ),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
-          onPressed: () => Navigator.of(context).pop(_reason.text.trim()),
+          onPressed: valid ? () => Navigator.of(context).pop(_reason.text.trim()) : null,
           child: Text(t.actionVoidConfirm),
         ),
       ],
