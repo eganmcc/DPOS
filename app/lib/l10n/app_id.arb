@@ -70,7 +70,7 @@
   "voidReasonLabel": "Alasan",
   "voidImmutableNote": "Transaksi tetap tersimpan sebagai catatan — pembatalan dicatat terpisah dan stok telah dikembalikan.",
   "actionVoidSale": "Batalkan transaksi",
-  "voidOwnerOnly": "Hanya pemilik yang dapat membatalkan transaksi.",
+  "voidOwnerOnly": "Hanya pemilik atau manajer yang dapat membatalkan transaksi.",
   "voidConfirmTitle": "Batalkan transaksi ini?",
   "voidConfirmBody": "Transaksi tetap tercatat sebagai dibatalkan, stok dikembalikan, dan tindakan ini dicatat.",
   "actionCancel": "Batal",
@@ -134,5 +134,18 @@
   "reportsByOutlet": "PER OUTLET",
   "reportsByDay": "PENJUALAN HARIAN",
   "reportsQtySold": "{qty} terjual",
-  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } }
+  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } },
+  "reportsOpenCashier": "Buka kasir",
+  "reportsAttendance": "ABSENSI",
+  "reportsNoAttendance": "Belum ada absensi di periode ini",
+  "attendanceOnClock": "Sedang bekerja",
+  "periodDaily": "Harian",
+  "periodWeekly": "Mingguan",
+  "periodMonthly": "Bulanan",
+  "attendanceSection": "Absensi",
+  "attendanceClockIn": "Absen masuk",
+  "attendanceClockOut": "Absen keluar",
+  "attendanceClockedOut": "Belum absen masuk",
+  "attendanceSince": "Bekerja sejak {time}",
+  "@attendanceSince": { "placeholders": { "time": { "type": "String" } } }
 }

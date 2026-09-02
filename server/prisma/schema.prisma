@@ -151,6 +151,7 @@ model Merchant {
   taxRules   TaxRule[]
   productOutlets ProductOutlet[]
   devices    Device[]
+  attendance Attendance[]
 
   @@map("merchants")
 }
@@ -195,10 +196,30 @@ model Staff {
   isActive     Boolean   @default(true)
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
+  attendance Attendance[]
 
   @@unique([merchantId, employeeId])
   @@index([merchantId])
   @@map("staff")
+}
+
+/// One clock-in → clock-out span for a staff member. clockOutAt null = still on
+/// the clock. Attendance reporting aggregates these per staff over a date range.
+model Attendance {
+  id         String    @id @default(uuid())
+  merchantId String
+  staffId    String
+  outletId   String? // where they clocked in (the session outlet)
+  clockInAt  DateTime  @default(now())
+  clockOutAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  staff    Staff    @relation(fields: [staffId], references: [id])
+
+  @@index([merchantId, clockInAt])
+  @@index([staffId, clockInAt])
+  @@map("attendance")
 }
 
 model Device {

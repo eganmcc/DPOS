@@ -333,6 +333,50 @@ class OrderResult {
 
 int _asInt(dynamic v) => (v as num?)?.toInt() ?? 0;
 
+/// The caller's own clock-in span (from /attendance/me, clock-in, clock-out).
+class AttendanceRecord {
+  final String id;
+  final DateTime clockInAt;
+  final DateTime? clockOutAt;
+  const AttendanceRecord({required this.id, required this.clockInAt, this.clockOutAt});
+  bool get open => clockOutAt == null;
+
+  factory AttendanceRecord.fromJson(Map<String, dynamic> j) => AttendanceRecord(
+        id: j['id'] as String,
+        clockInAt: DateTime.parse(j['clockInAt'] as String).toLocal(),
+        clockOutAt:
+            j['clockOutAt'] == null ? null : DateTime.parse(j['clockOutAt'] as String).toLocal(),
+      );
+}
+
+/// One attendance row in the owner/manager report.
+class AttendanceRow {
+  final String staffName;
+  final String role;
+  final DateTime clockInAt;
+  final DateTime? clockOutAt;
+  final int? minutes;
+  final bool open;
+  const AttendanceRow({
+    required this.staffName,
+    required this.role,
+    required this.clockInAt,
+    required this.clockOutAt,
+    required this.minutes,
+    required this.open,
+  });
+
+  factory AttendanceRow.fromJson(Map<String, dynamic> j) => AttendanceRow(
+        staffName: j['staffName'] as String,
+        role: j['role'] as String,
+        clockInAt: DateTime.parse(j['clockInAt'] as String).toLocal(),
+        clockOutAt:
+            j['clockOutAt'] == null ? null : DateTime.parse(j['clockOutAt'] as String).toLocal(),
+        minutes: (j['minutes'] as num?)?.toInt(),
+        open: j['open'] as bool? ?? false,
+      );
+}
+
 /// Owner/manager sales summary from GET /admin/dashboard (merchant-wide).
 class DashboardSummary {
   final int netSales;

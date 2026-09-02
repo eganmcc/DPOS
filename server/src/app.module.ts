@@ -6,6 +6,7 @@ import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
 import { OnlineOrdersModule } from './online-orders/online-orders.module';
 import { AdminModule } from './admin/admin.module';
+import { AttendanceModule } from './attendance/attendance.module';
 import { DemoModule } from './demo/demo.module';
 import { VersionController } from './version.controller';
 
@@ -18,6 +19,7 @@ import { VersionController } from './version.controller';
     OrdersModule,
     OnlineOrdersModule,
     AdminModule,
+    AttendanceModule,
     DemoModule,
   ],
   controllers: [VersionController],

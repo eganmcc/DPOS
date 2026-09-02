@@ -231,7 +231,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionVoidSale => 'Void sale';
 
   @override
-  String get voidOwnerOnly => 'Only an owner can void a sale.';
+  String get voidOwnerOnly => 'Only an owner or manager can void a sale.';
 
   @override
   String get voidConfirmTitle => 'Void this sale?';
@@ -404,4 +404,68 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerOk => 'Printed';
+
+  @override
+  String get reportsTitle => 'Reports';
+
+  @override
+  String get reportsOrders => 'Orders';
+
+  @override
+  String get reportsAvgTicket => 'Avg ticket';
+
+  @override
+  String get reportsPayments => 'PAYMENT METHODS';
+
+  @override
+  String get reportsTopItems => 'TOP ITEMS';
+
+  @override
+  String get reportsByOutlet => 'BY OUTLET';
+
+  @override
+  String get reportsByDay => 'SALES BY DAY';
+
+  @override
+  String reportsQtySold(int qty) {
+    return '$qty sold';
+  }
+
+  @override
+  String get reportsOpenCashier => 'Open cashier';
+
+  @override
+  String get reportsAttendance => 'ATTENDANCE';
+
+  @override
+  String get reportsNoAttendance => 'No attendance in this period';
+
+  @override
+  String get attendanceOnClock => 'On the clock';
+
+  @override
+  String get periodDaily => 'Daily';
+
+  @override
+  String get periodWeekly => 'Weekly';
+
+  @override
+  String get periodMonthly => 'Monthly';
+
+  @override
+  String get attendanceSection => 'Attendance';
+
+  @override
+  String get attendanceClockIn => 'Clock in';
+
+  @override
+  String get attendanceClockOut => 'Clock out';
+
+  @override
+  String get attendanceClockedOut => 'Not clocked in';
+
+  @override
+  String attendanceSince(String time) {
+    return 'On the clock since $time';
+  }
 }

@@ -158,7 +158,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
             ? _PrintReceiptBar(busy: _printing, onPrint: () => _printAndComplete(order))
             : _VoidBar(
                 order: order,
-                isOwner: session.isOwner,
+                isOwner: session.isOwnerOrManager,
                 busy: _voiding,
                 onVoid: () => _confirmAndVoid(order),
               ),

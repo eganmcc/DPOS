@@ -88,11 +88,42 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
-  /// Owner/manager sales summary for the merchant (all outlets). OWNER/MANAGER
-  /// tokens only — a cashier's token comes back 403.
-  Future<Map<String, dynamic>> getDashboard() async {
-    final res = await _dio.get('/admin/dashboard');
+  /// Owner/manager sales summary for the merchant (all outlets), optionally over a
+  /// date range (YYYY-MM-DD). OWNER/MANAGER tokens only — a cashier's is 403.
+  Future<Map<String, dynamic>> getDashboard({String? from, String? to}) async {
+    final res = await _dio.get('/admin/dashboard', queryParameters: {
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
     return res.data as Map<String, dynamic>;
+  }
+
+  /// Owner/manager attendance rows over a date range (YYYY-MM-DD).
+  Future<List<Map<String, dynamic>>> getAdminAttendance({String? from, String? to}) async {
+    final res = await _dio.get('/admin/attendance', queryParameters: {
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// The caller's current open attendance record, or null when clocked out.
+  Future<Map<String, dynamic>?> getMyAttendance() async => _nullableMap(
+        (await _dio.get('/attendance/me')).data,
+      );
+
+  Future<Map<String, dynamic>?> clockIn(String? outletId) async => _nullableMap(
+        (await _dio.post('/attendance/clock-in', data: {if (outletId != null) 'outletId': outletId}))
+            .data,
+      );
+
+  Future<Map<String, dynamic>?> clockOut() async =>
+      _nullableMap((await _dio.post('/attendance/clock-out')).data);
+
+  // A null/empty JSON body (e.g. "not clocked in") comes back as null or ''.
+  Map<String, dynamic>? _nullableMap(dynamic data) {
+    if (data == null || (data is String && data.trim().isEmpty)) return null;
+    return (data as Map).cast<String, dynamic>();
   }
 
   /// Open bills (AWAITING_PAYMENT) for an outlet, newest first.

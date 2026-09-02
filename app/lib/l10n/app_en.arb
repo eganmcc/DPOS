@@ -77,7 +77,7 @@
   "voidReasonLabel": "Reason",
   "voidImmutableNote": "The sale is kept as a record — the void is a separate entry and stock has been restored.",
   "actionVoidSale": "Void sale",
-  "voidOwnerOnly": "Only an owner can void a sale.",
+  "voidOwnerOnly": "Only an owner or manager can void a sale.",
   "voidConfirmTitle": "Void this sale?",
   "voidConfirmBody": "The sale stays in the records as voided, stock is restored, and the action is logged.",
   "actionCancel": "Cancel",
@@ -144,5 +144,18 @@
   "reportsByOutlet": "BY OUTLET",
   "reportsByDay": "SALES BY DAY",
   "reportsQtySold": "{qty} sold",
-  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } }
+  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } },
+  "reportsOpenCashier": "Open cashier",
+  "reportsAttendance": "ATTENDANCE",
+  "reportsNoAttendance": "No attendance in this period",
+  "attendanceOnClock": "On the clock",
+  "periodDaily": "Daily",
+  "periodWeekly": "Weekly",
+  "periodMonthly": "Monthly",
+  "attendanceSection": "Attendance",
+  "attendanceClockIn": "Clock in",
+  "attendanceClockOut": "Clock out",
+  "attendanceClockedOut": "Not clocked in",
+  "attendanceSince": "On the clock since {time}",
+  "@attendanceSince": { "placeholders": { "time": { "type": "String" } } }
 }

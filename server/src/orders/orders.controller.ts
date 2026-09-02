@@ -101,7 +101,7 @@ export class OrdersController {
    */
   @Post(':id/void')
   @HttpCode(200) // contract: 200 whether this is the first void or an idempotent retry
-  @Roles(StaffRole.OWNER)
+  @Roles(StaffRole.OWNER, StaffRole.MANAGER)
   async void(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,

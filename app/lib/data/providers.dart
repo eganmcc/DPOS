@@ -26,10 +26,29 @@ final transactionsProvider =
   return rows.map(OrderResult.fromJson).toList();
 });
 
-/// Owner/manager sales summary (GET /admin/dashboard). Merchant-wide, last 7 days.
-final dashboardProvider = FutureProvider.autoDispose<DashboardSummary>((ref) async {
+/// A YYYY-MM-DD date range used to key the reporting providers.
+typedef DateRange = ({String from, String to});
+
+/// Owner/manager sales summary (GET /admin/dashboard) over a date range.
+final dashboardProvider =
+    FutureProvider.autoDispose.family<DashboardSummary, DateRange>((ref, range) async {
   final api = ref.watch(apiClientProvider);
-  return DashboardSummary.fromJson(await api.getDashboard());
+  return DashboardSummary.fromJson(await api.getDashboard(from: range.from, to: range.to));
+});
+
+/// Owner/manager attendance rows over a date range (GET /admin/attendance).
+final adminAttendanceProvider =
+    FutureProvider.autoDispose.family<List<AttendanceRow>, DateRange>((ref, range) async {
+  final api = ref.watch(apiClientProvider);
+  final rows = await api.getAdminAttendance(from: range.from, to: range.to);
+  return rows.map(AttendanceRow.fromJson).toList();
+});
+
+/// The caller's own current attendance state (null = clocked out).
+final myAttendanceProvider = FutureProvider.autoDispose<AttendanceRecord?>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  final j = await api.getMyAttendance();
+  return j == null ? null : AttendanceRecord.fromJson(j);
 });
 
 /// One transaction, straight from the server (detail view + post-void refresh).

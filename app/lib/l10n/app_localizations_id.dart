@@ -232,7 +232,8 @@ class AppLocalizationsId extends AppLocalizations {
   String get actionVoidSale => 'Batalkan transaksi';
 
   @override
-  String get voidOwnerOnly => 'Hanya pemilik yang dapat membatalkan transaksi.';
+  String get voidOwnerOnly =>
+      'Hanya pemilik atau manajer yang dapat membatalkan transaksi.';
 
   @override
   String get voidConfirmTitle => 'Batalkan transaksi ini?';
@@ -405,4 +406,68 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get printerOk => 'Tercetak';
+
+  @override
+  String get reportsTitle => 'Laporan';
+
+  @override
+  String get reportsOrders => 'Transaksi';
+
+  @override
+  String get reportsAvgTicket => 'Rata-rata';
+
+  @override
+  String get reportsPayments => 'METODE PEMBAYARAN';
+
+  @override
+  String get reportsTopItems => 'PRODUK TERLARIS';
+
+  @override
+  String get reportsByOutlet => 'PER OUTLET';
+
+  @override
+  String get reportsByDay => 'PENJUALAN HARIAN';
+
+  @override
+  String reportsQtySold(int qty) {
+    return '$qty terjual';
+  }
+
+  @override
+  String get reportsOpenCashier => 'Buka kasir';
+
+  @override
+  String get reportsAttendance => 'ABSENSI';
+
+  @override
+  String get reportsNoAttendance => 'Belum ada absensi di periode ini';
+
+  @override
+  String get attendanceOnClock => 'Sedang bekerja';
+
+  @override
+  String get periodDaily => 'Harian';
+
+  @override
+  String get periodWeekly => 'Mingguan';
+
+  @override
+  String get periodMonthly => 'Bulanan';
+
+  @override
+  String get attendanceSection => 'Absensi';
+
+  @override
+  String get attendanceClockIn => 'Absen masuk';
+
+  @override
+  String get attendanceClockOut => 'Absen keluar';
+
+  @override
+  String get attendanceClockedOut => 'Belum absen masuk';
+
+  @override
+  String attendanceSince(String time) {
+    return 'Bekerja sejak $time';
+  }
 }

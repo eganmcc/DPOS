@@ -515,7 +515,7 @@ abstract class AppLocalizations {
   /// No description provided for @voidOwnerOnly.
   ///
   /// In en, this message translates to:
-  /// **'Only an owner can void a sale.'**
+  /// **'Only an owner or manager can void a sale.'**
   String get voidOwnerOnly;
 
   /// No description provided for @voidConfirmTitle.
@@ -847,6 +847,126 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Printed'**
   String get printerOk;
+
+  /// No description provided for @reportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get reportsTitle;
+
+  /// No description provided for @reportsOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get reportsOrders;
+
+  /// No description provided for @reportsAvgTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg ticket'**
+  String get reportsAvgTicket;
+
+  /// No description provided for @reportsPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT METHODS'**
+  String get reportsPayments;
+
+  /// No description provided for @reportsTopItems.
+  ///
+  /// In en, this message translates to:
+  /// **'TOP ITEMS'**
+  String get reportsTopItems;
+
+  /// No description provided for @reportsByOutlet.
+  ///
+  /// In en, this message translates to:
+  /// **'BY OUTLET'**
+  String get reportsByOutlet;
+
+  /// No description provided for @reportsByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'SALES BY DAY'**
+  String get reportsByDay;
+
+  /// No description provided for @reportsQtySold.
+  ///
+  /// In en, this message translates to:
+  /// **'{qty} sold'**
+  String reportsQtySold(int qty);
+
+  /// No description provided for @reportsOpenCashier.
+  ///
+  /// In en, this message translates to:
+  /// **'Open cashier'**
+  String get reportsOpenCashier;
+
+  /// No description provided for @reportsAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'ATTENDANCE'**
+  String get reportsAttendance;
+
+  /// No description provided for @reportsNoAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'No attendance in this period'**
+  String get reportsNoAttendance;
+
+  /// No description provided for @attendanceOnClock.
+  ///
+  /// In en, this message translates to:
+  /// **'On the clock'**
+  String get attendanceOnClock;
+
+  /// No description provided for @periodDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get periodDaily;
+
+  /// No description provided for @periodWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get periodWeekly;
+
+  /// No description provided for @periodMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get periodMonthly;
+
+  /// No description provided for @attendanceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get attendanceSection;
+
+  /// No description provided for @attendanceClockIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock in'**
+  String get attendanceClockIn;
+
+  /// No description provided for @attendanceClockOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out'**
+  String get attendanceClockOut;
+
+  /// No description provided for @attendanceClockedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Not clocked in'**
+  String get attendanceClockedOut;
+
+  /// No description provided for @attendanceSince.
+  ///
+  /// In en, this message translates to:
+  /// **'On the clock since {time}'**
+  String attendanceSince(String time);
 }
 
 class _AppLocalizationsDelegate
