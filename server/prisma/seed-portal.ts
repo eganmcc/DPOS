@@ -185,9 +185,10 @@ async function ensureDemoManager(merchantId: string, name: string, pin: string):
     where: { merchantId, role: StaffRole.MANAGER },
   });
   if (existing) {
+    // Demo account: reset the PIN hash too so the demo PIN always logs in.
     await prisma.staff.update({
       where: { id: existing.id },
-      data: { demoPin: pin, isActive: true },
+      data: { demoPin: pin, pinHash: await bcrypt.hash(pin, 10), isActive: true },
     });
     return;
   }
