@@ -102,7 +102,10 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
     beep();
     HapticFeedback.mediumImpact();
     _setStatus(t.scannerAdded(product.name), error: false);
-    _skuField.clear();
+    // Keep the scanned/typed code visible in the SKU window; the next scan or
+    // manual edit replaces it. (A repeat scan is debounced in _onDetect.)
+    _skuField.text = sku;
+    _skuField.selection = TextSelection.collapsed(offset: _skuField.text.length);
   }
 
   void _setStatus(String msg, {required bool error}) {
