@@ -157,6 +157,11 @@ async function setDemoPins(): Promise<void> {
       where: { merchantId: fnb.id, role: StaffRole.CASHIER },
       data: { demoPin: '1234' },
     });
+    await prisma.staff.updateMany({
+      where: { merchantId: fnb.id, role: StaffRole.OWNER },
+      data: { demoPin: '9999' },
+    });
+    await ensureDemoManager(fnb.id, 'Manajer Demo', '8888');
   }
   const gro = await prisma.merchant.findFirst({ where: { name: 'Toko Sembako Demo' } });
   if (gro) {
@@ -164,8 +169,37 @@ async function setDemoPins(): Promise<void> {
       where: { merchantId: gro.id, role: StaffRole.CASHIER },
       data: { demoPin: '2222' },
     });
+    await prisma.staff.updateMany({
+      where: { merchantId: gro.id, role: StaffRole.OWNER },
+      data: { demoPin: '4321' },
+    });
+    await ensureDemoManager(gro.id, 'Manajer Sembako', '7777');
   }
-  console.log('set demo PINs on cashiers');
+  console.log('set demo PINs on owner / manager / cashier');
+}
+
+/** DEMO ONLY: ensure a MANAGER exists for a demo merchant with the given demo PIN.
+ * Idempotent — updates the PIN if a manager already exists. */
+async function ensureDemoManager(merchantId: string, name: string, pin: string): Promise<void> {
+  const existing = await prisma.staff.findFirst({
+    where: { merchantId, role: StaffRole.MANAGER },
+  });
+  if (existing) {
+    await prisma.staff.update({
+      where: { id: existing.id },
+      data: { demoPin: pin, isActive: true },
+    });
+    return;
+  }
+  await prisma.staff.create({
+    data: {
+      merchantId,
+      name,
+      role: StaffRole.MANAGER,
+      pinHash: await bcrypt.hash(pin, 10),
+      demoPin: pin,
+    },
+  });
 }
 
 async function main(): Promise<void> {

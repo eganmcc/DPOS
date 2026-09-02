@@ -12,14 +12,28 @@ import '../../l10n/app_localizations.dart';
 const _demoMerchantId = 'cad63409-136c-4d01-92d2-26e493dc64ce';
 const _demoOutletId = '91298a41-b8ed-4b1a-a5c9-2e4aaad036b3';
 
+/// Friendly label for a staff role string (OWNER → Owner, …).
+String _roleLabel(String role) {
+  if (role.isEmpty) return role;
+  return role[0].toUpperCase() + role.substring(1).toLowerCase();
+}
+
+/// One selectable demo login (Owner / Manager / Cashier) from GET /demo/directory.
+class _DemoLogin {
+  final String role;
+  final String name;
+  final String pin;
+  _DemoLogin(this.role, this.name, this.pin);
+}
+
 /// One demo merchant from GET /demo/directory.
 class _DemoMerchant {
   final String merchantId;
   final String name;
   final String businessType;
-  final String? cashierPin;
+  final List<_DemoLogin> logins; // Owner first, then Manager, then Cashier
   final List<Map<String, dynamic>> outlets; // [{id, name}]
-  _DemoMerchant(this.merchantId, this.name, this.businessType, this.cashierPin, this.outlets);
+  _DemoMerchant(this.merchantId, this.name, this.businessType, this.logins, this.outlets);
 }
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -39,6 +53,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   List<_DemoMerchant> _directory = [];
   String? _selMerchantId;
   String? _selOutletId;
+  int _selLoginIndex = 0; // which login (Owner/Manager/Cashier) is chosen
 
   @override
   void initState() {
@@ -57,15 +72,23 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadDirectory() async {
     try {
       final rows = await ApiClient.demoDirectory();
-      final dir = rows
-          .map((m) => _DemoMerchant(
-                m['merchantId'] as String,
-                m['name'] as String,
-                m['businessType'] as String,
-                m['cashierPin'] as String?,
-                (m['outlets'] as List).cast<Map<String, dynamic>>(),
-              ))
-          .toList();
+      final dir = rows.map((m) {
+        // Prefer the new `logins` list; fall back to `cashierPin` for older servers.
+        final rawLogins = (m['logins'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+        var logins = rawLogins
+            .map((l) => _DemoLogin(l['role'] as String, l['name'] as String, l['pin'] as String))
+            .toList();
+        if (logins.isEmpty && m['cashierPin'] is String) {
+          logins = [_DemoLogin('CASHIER', 'Cashier', m['cashierPin'] as String)];
+        }
+        return _DemoMerchant(
+          m['merchantId'] as String,
+          m['name'] as String,
+          m['businessType'] as String,
+          logins,
+          (m['outlets'] as List).cast<Map<String, dynamic>>(),
+        );
+      }).toList();
       if (dir.isEmpty || !mounted) return;
       setState(() {
         _directory = dir;
@@ -84,7 +107,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     _merchant.text = merchantId;
     _selOutletId = m.outlets.isNotEmpty ? m.outlets.first['id'] as String : null;
     _outlet.text = _selOutletId ?? '';
-    _pin.text = m.cashierPin ?? '';
+    // Default to the cashier login if present (unchanged behavior); the picker
+    // lets the demo switch to Owner / Manager.
+    final cashierIdx = m.logins.indexWhere((l) => l.role == 'CASHIER');
+    _applyLogin(cashierIdx >= 0 ? cashierIdx : 0);
+  }
+
+  void _applyLogin(int index) {
+    final m = _directory.firstWhere((x) => x.merchantId == _selMerchantId);
+    if (m.logins.isEmpty) return;
+    _selLoginIndex = index.clamp(0, m.logins.length - 1);
+    _pin.text = m.logins[_selLoginIndex].pin;
   }
 
   Future<void> _login() async {
@@ -223,6 +256,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             _outlet.text = v ?? '';
                           }),
                         ),
+                        if (selected.logins.length > 1) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _selLoginIndex,
+                            isExpanded: true,
+                            decoration:
+                                const InputDecoration(labelText: 'Login as', isDense: true),
+                            items: [
+                              for (var i = 0; i < selected.logins.length; i++)
+                                DropdownMenuItem(
+                                  value: i,
+                                  child: Text(
+                                    '${selected.logins[i].name} · ${_roleLabel(selected.logins[i].role)}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _applyLogin(v));
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 18),
                       ],
 

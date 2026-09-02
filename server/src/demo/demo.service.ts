@@ -17,17 +17,30 @@ export class DemoService {
       },
       orderBy: { name: 'asc' },
     });
+    const roleOrder: Record<string, number> = {
+      [StaffRole.OWNER]: 0,
+      [StaffRole.MANAGER]: 1,
+      [StaffRole.CASHIER]: 2,
+      [StaffRole.SERVER]: 3,
+    };
     return merchants
       .map((m) => {
-        const cashier = m.staff.find((s) => s.role === StaffRole.CASHIER && s.demoPin);
+        // Every demo staff that carries a plaintext demo PIN becomes a selectable
+        // login on the app's login screen (Owner / Manager / Cashier).
+        const logins = m.staff
+          .filter((s) => s.demoPin)
+          .map((s) => ({ role: s.role, name: s.name, pin: s.demoPin as string }))
+          .sort((a, b) => (roleOrder[a.role] ?? 9) - (roleOrder[b.role] ?? 9));
+        const cashier = logins.find((l) => l.role === StaffRole.CASHIER);
         return {
           merchantId: m.id,
           name: m.name,
           businessType: m.businessType,
-          cashierPin: cashier?.demoPin ?? null,
+          cashierPin: cashier?.pin ?? null, // kept for backward compatibility
+          logins,
           outlets: m.outlets.map((o) => ({ id: o.id, name: o.name })),
         };
       })
-      .filter((m) => m.cashierPin && m.outlets.length > 0);
+      .filter((m) => m.logins.length > 0 && m.outlets.length > 0);
   }
 }
