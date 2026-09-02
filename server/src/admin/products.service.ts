@@ -37,12 +37,32 @@ export class ProductsService {
       where: { id: variantId, product: { merchantId } },
     });
     if (!v) throw new BadRequestException('Variant not found in this merchant');
+
+    // Normalize SKU: empty/blank clears it (null). Guard against duplicates within
+    // the merchant — barcode scanning in the POS resolves items by SKU.
+    let sku: string | null | undefined;
+    if (dto.sku !== undefined) {
+      sku = dto.sku.trim() || null;
+      if (sku) {
+        const clash = await this.prisma.productVariant.findFirst({
+          where: {
+            id: { not: variantId },
+            product: { merchantId },
+            sku: { equals: sku, mode: 'insensitive' },
+          },
+          select: { id: true },
+        });
+        if (clash) throw new BadRequestException('That SKU is already used by another item');
+      }
+    }
+
     await this.prisma.productVariant.update({
       where: { id: variantId },
       data: {
         ...(dto.price !== undefined ? { price: dto.price } : {}),
         ...(dto.costPrice !== undefined ? { costPrice: dto.costPrice } : {}),
         ...(dto.isAvailable !== undefined ? { isAvailable: dto.isAvailable } : {}),
+        ...(sku !== undefined ? { sku } : {}),
       },
     });
     return { ok: true };

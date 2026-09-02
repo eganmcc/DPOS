@@ -65,6 +65,8 @@ export class UpdateVariantDto {
   @IsOptional() @IsInt() @Min(0) price?: number;
   @IsOptional() @IsInt() @Min(0) costPrice?: number;
   @IsOptional() @IsBoolean() isAvailable?: boolean;
+  /** SKU / barcode. Empty string clears it (stored as null). */
+  @IsOptional() @IsString() sku?: string;
 }
 
 // ---------- Inventory ----------

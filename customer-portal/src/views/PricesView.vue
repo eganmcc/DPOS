@@ -18,6 +18,7 @@ const loading = ref(true);
 const editing = ref<{ product: string; v: Variant } | null>(null);
 const price = ref(0);
 const cost = ref<number | null>(null);
+const sku = ref('');
 const available = ref(true);
 const onHand = ref(0);
 const err = ref('');
@@ -46,6 +47,7 @@ function openEdit(product: string, v: Variant) {
   editing.value = { product, v };
   price.value = v.price;
   cost.value = v.costPrice;
+  sku.value = v.sku ?? '';
   available.value = v.isAvailable;
   onHand.value = stock.value[v.id] ?? 0;
   err.value = '';
@@ -60,6 +62,7 @@ async function save() {
       price: price.value,
       costPrice: cost.value ?? undefined,
       isAvailable: available.value,
+      sku: sku.value.trim(), // '' clears it server-side
     });
     // Update stock for the selected branch when the variant is tracked and changed.
     if (v.trackInventory && onHand.value !== (stock.value[v.id] ?? 0)) {
@@ -116,6 +119,7 @@ async function save() {
   <Modal :open="!!editing" :title="`Edit — ${editing?.product} · ${editing?.v.name}`" @close="editing = null">
     <div class="field"><label>Selling price (Rp)</label><input class="input" type="number" min="0" v-model.number="price" /></div>
     <div class="field"><label>Cost price (Rp)</label><input class="input" type="number" min="0" v-model.number="cost" /></div>
+    <div class="field"><label>SKU / Barcode</label><input class="input" v-model="sku" placeholder="e.g. 8991234567890" /></div>
     <div class="field" v-if="editing?.v.trackInventory">
       <label>On hand — {{ branches.find((b) => b.id === outletId)?.name }}</label>
       <input class="input" type="number" min="0" v-model.number="onHand" />
