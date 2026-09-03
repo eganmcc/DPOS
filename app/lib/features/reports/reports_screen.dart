@@ -6,7 +6,7 @@ import '../../core/money.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
-import '../../data/session.dart';
+import '../../core/attendance_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/home_gate.dart'; // PosHome
 import '../settings/settings_screen.dart';
@@ -71,7 +71,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           IconButton(
             tooltip: t.actionLogout,
-            onPressed: () => ref.read(sessionProvider.notifier).logout(),
+            onPressed: () => promptClockOutThenLogout(context, ref),
             icon: const Icon(Icons.logout),
           ),
           const SizedBox(width: 4),

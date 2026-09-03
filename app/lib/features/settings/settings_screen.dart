@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
+import '../../core/attendance_actions.dart';
 import '../../core/brand.dart';
 import '../../core/settings.dart';
 import '../../core/settings_actions.dart';
@@ -221,9 +222,9 @@ class SettingsScreen extends ConsumerWidget {
           ]),
           const SizedBox(height: 24),
           OutlinedButton.icon(
-            onPressed: () {
-              ref.read(sessionProvider.notifier).logout();
-              Navigator.of(context).popUntil((r) => r.isFirst);
+            onPressed: () async {
+              final out = await promptClockOutThenLogout(context, ref);
+              if (out && context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: cs.error,

@@ -1,9 +1,11 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/brand.dart';
 import '../../core/formatters.dart';
 import '../../core/money.dart';
+import '../../data/api_client.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
@@ -172,6 +174,11 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
             icon: const Icon(Icons.edit_outlined, size: 20),
             onPressed: () => _editBill(b),
           ),
+          IconButton(
+            tooltip: t.actionCancelBill,
+            icon: Icon(Icons.cancel_outlined, size: 20, color: cs.error),
+            onPressed: () => _cancelBill(b),
+          ),
         ],
       ),
       // Tapping the row settles the bill; the pencil edits it.
@@ -191,5 +198,113 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
     ref.read(cartProvider.notifier).loadFromOrder(b, catalog);
     if (!mounted) return;
     Navigator.of(context).pop(); // back to the order screen with the bill loaded
+  }
+
+  /// Cancel an unpaid open bill: confirm + reason, manager PIN for cashiers, then
+  /// release the reserved stock server-side and refresh.
+  Future<void> _cancelBill(OrderResult b) async {
+    final t = AppLocalizations.of(context)!;
+    final messenger = ScaffoldMessenger.of(context);
+    final reason = await _askCancelReason();
+    if (reason == null || reason.isEmpty || !mounted) return;
+
+    final session = ref.read(sessionProvider);
+    String? approverPin;
+    if (session != null && !session.isOwnerOrManager) {
+      approverPin = await _askApproverPin();
+      if (approverPin == null || approverPin.isEmpty || !mounted) return;
+    }
+    try {
+      await ref.read(apiClientProvider).cancelOrder(b.id, reason: reason, approverPin: approverPin);
+      if (!mounted) return;
+      final outletId = session!.outletId;
+      ref.invalidate(openBillsProvider(outletId));
+      ref.invalidate(catalogProvider(outletId)); // reserved stock released
+      messenger.showSnackBar(SnackBar(content: Text(t.cancelSuccess)));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final serverCode = e.response?.data is Map ? e.response?.data['code'] : null;
+      final msg = serverCode == 'APPROVAL_INVALID'
+          ? t.approvalInvalid
+          : serverCode == 'APPROVAL_REQUIRED'
+              ? t.approvalRequired
+              : t.cancelFailed;
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
+  Future<String?> _askCancelReason() {
+    final t = AppLocalizations.of(context)!;
+    final ctrl = TextEditingController();
+    final presets = [t.voidReasonCustomerCancel, t.voidReasonWrongItem, t.voidReasonTest];
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) {
+          final cs = Theme.of(ctx).colorScheme;
+          final valid = ctrl.text.trim().isNotEmpty;
+          return AlertDialog(
+            title: Text(t.cancelBillTitle),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(t.cancelBillBody),
+                const SizedBox(height: 12),
+                Wrap(spacing: 8, runSpacing: 4, children: [
+                  for (final p in presets)
+                    ActionChip(
+                      label: Text(p),
+                      onPressed: () => setLocal(() {
+                        ctrl.text = p;
+                        ctrl.selection = TextSelection.collapsed(offset: p.length);
+                      }),
+                    ),
+                ]),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  onChanged: (_) => setLocal(() {}),
+                  decoration: InputDecoration(labelText: '${t.voidReasonLabel} *', isDense: true),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(t.actionCancel)),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
+                onPressed: valid ? () => Navigator.of(ctx).pop(ctrl.text.trim()) : null,
+                child: Text(t.actionCancelBill),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<String?> _askApproverPin() {
+    final t = AppLocalizations.of(context)!;
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.managerApprovalTitle),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: t.managerPinLabel, isDense: true),
+          onSubmitted: (_) => Navigator.of(ctx).pop(ctrl.text.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(t.actionCancel)),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: Text(t.actionOk)),
+        ],
+      ),
+    );
   }
 }

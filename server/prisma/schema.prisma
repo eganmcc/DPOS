@@ -64,6 +64,7 @@ enum OrderStatus {
   HELD
   AWAITING_PAYMENT
   COMPLETED
+  CANCELLED // an unpaid open bill that was abandoned; reserved stock released
 }
 
 // How an outlet takes payment. IMMEDIATE = pay at checkout (retail/takeaway);

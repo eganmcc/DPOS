@@ -325,6 +325,41 @@ class AppLocalizationsId extends AppLocalizations {
   String get approvalRequired => 'Perlu persetujuan manajer';
 
   @override
+  String get actionCancelBill => 'Batalkan pesanan';
+
+  @override
+  String get cancelBillTitle => 'Batalkan pesanan ini?';
+
+  @override
+  String get cancelBillBody =>
+      'Stok yang direservasi dikembalikan dan pesanan ditutup. Tidak ada pembayaran.';
+
+  @override
+  String get cancelSuccess => 'Pesanan dibatalkan, stok dikembalikan';
+
+  @override
+  String get cancelFailed => 'Pembatalan gagal — coba lagi';
+
+  @override
+  String get clockInPromptTitle => 'Absen masuk sekarang?';
+
+  @override
+  String get actionLater => 'Nanti';
+
+  @override
+  String get clockOutPromptTitle => 'Absen keluar?';
+
+  @override
+  String get clockOutPromptBody =>
+      'Anda masih dalam sesi kerja. Absen keluar sebelum keluar?';
+
+  @override
+  String get actionLogoutOnly => 'Keluar saja';
+
+  @override
+  String get actionClockOutAndLogout => 'Absen keluar & keluar';
+
+  @override
   String get soldOut => 'Habis';
 
   @override

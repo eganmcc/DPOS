@@ -323,6 +323,41 @@ class AppLocalizationsEn extends AppLocalizations {
   String get approvalRequired => 'Manager approval is required';
 
   @override
+  String get actionCancelBill => 'Cancel bill';
+
+  @override
+  String get cancelBillTitle => 'Cancel this bill?';
+
+  @override
+  String get cancelBillBody =>
+      'Reserved stock is released and the bill is closed. No payment was taken.';
+
+  @override
+  String get cancelSuccess => 'Bill cancelled and stock released';
+
+  @override
+  String get cancelFailed => 'Cancel failed — please try again';
+
+  @override
+  String get clockInPromptTitle => 'Clock in now?';
+
+  @override
+  String get actionLater => 'Later';
+
+  @override
+  String get clockOutPromptTitle => 'Clock out?';
+
+  @override
+  String get clockOutPromptBody =>
+      'You\'re still on the clock. Clock out before logging out?';
+
+  @override
+  String get actionLogoutOnly => 'Just log out';
+
+  @override
+  String get actionClockOutAndLogout => 'Clock out & log out';
+
+  @override
   String get soldOut => 'Sold out';
 
   @override

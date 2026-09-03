@@ -15,8 +15,15 @@ import {
   VariantInfo,
 } from '../common/money';
 import { AuthUser } from '../auth/auth.types';
-import { OrderSubmitDto, OrderHistoryQuery, OrderReviseDto, SettleOrderDto } from './dto';
+import {
+  OrderSubmitDto,
+  OrderHistoryQuery,
+  OrderReviseDto,
+  SettleOrderDto,
+  CancelOrderDto,
+} from './dto';
 import { ORDER_INCLUDE, OrderWithRelations } from './order.mapper';
+import { resolveCorrectionApprover } from './approval.util';
 
 export interface CheckoutResult {
   order: OrderWithRelations;
@@ -529,6 +536,97 @@ export class OrdersService {
     });
 
     const updated = await this.findById(user.merchantId, orderId);
+    return { order: updated!, replay: false };
+  }
+
+  /**
+   * Cancel an unpaid open bill (AWAITING_PAYMENT → CANCELLED): release the reserved
+   * stock and close the bill. No money moves (nothing was paid). Owner/manager
+   * self-authorize; a cashier must present a manager PIN. Idempotent-safe via a
+   * conditional status flip so a retry never double-restores stock.
+   */
+  async cancelOpenBill(
+    user: AuthUser,
+    orderId: string,
+    dto: CancelOrderDto,
+  ): Promise<CheckoutResult> {
+    const order = await this.prisma.order.findFirst({
+      where: { id: orderId, merchantId: user.merchantId },
+      include: ORDER_INCLUDE,
+    });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'AWAITING_PAYMENT') {
+      throw new ConflictException('Only an open (unpaid) bill can be cancelled');
+    }
+
+    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+
+    await this.prisma.$transaction(async (tx) => {
+      // Win the flip or bail — prevents a double stock restore on a concurrent retry.
+      const flip = await tx.order.updateMany({
+        where: { id: order.id, merchantId: user.merchantId, status: 'AWAITING_PAYMENT' },
+        data: { status: 'CANCELLED', closedAt: new Date() },
+      });
+      if (flip.count === 0) throw new ConflictException('This bill is no longer open');
+
+      // Release exactly what the bill reserved, from the ledger (the source of truth).
+      const reserved = await tx.inventoryMovement.findMany({
+        where: {
+          merchantId: user.merchantId,
+          refType: 'ORDER',
+          refId: order.id,
+          reason: InventoryReason.SALE,
+        },
+      });
+      for (const m of reserved) {
+        const restore = m.qtyDelta.negated();
+        await tx.inventoryMovement.create({
+          data: {
+            merchantId: user.merchantId,
+            outletId: m.outletId,
+            variantId: m.variantId,
+            qtyDelta: restore,
+            reason: InventoryReason.ADJUSTMENT,
+            refType: 'ORDER_CANCEL',
+            refId: order.id,
+            createdById: user.staffId,
+          },
+        });
+        await tx.inventoryStock.upsert({
+          where: { outletId_variantId: { outletId: m.outletId, variantId: m.variantId } },
+          create: {
+            merchantId: user.merchantId,
+            outletId: m.outletId,
+            variantId: m.variantId,
+            quantityOnHand: restore,
+          },
+          update: { quantityOnHand: { increment: restore } },
+        });
+      }
+
+      await tx.auditLog.create({
+        data: {
+          merchantId: user.merchantId,
+          outletId: order.outletId,
+          actorId: user.staffId,
+          action: 'CANCEL_OPEN_BILL',
+          entityType: 'Order',
+          entityId: order.id,
+          before: { status: 'AWAITING_PAYMENT', grandTotal: order.grandTotal },
+          after: {
+            status: 'CANCELLED',
+            reason: dto.reason,
+            approvedById,
+            releasedMovements: reserved.length,
+          },
+        },
+      });
+    });
+
+    const updated = await this.prisma.order.findFirst({
+      where: { id: orderId, merchantId: user.merchantId },
+      include: ORDER_INCLUDE,
+    });
     return { order: updated!, replay: false };
   }
 

@@ -199,6 +199,18 @@ export class RefundOrderDto {
   approverPin?: string;
 }
 
+export class CancelOrderDto {
+  /** Required: why the unpaid open bill is being cancelled (audit trail). */
+  @IsString()
+  @IsNotEmpty({ message: 'A cancel reason is required' })
+  reason!: string;
+
+  /** Manager/owner PIN authorizing a cashier-initiated cancel (ignored for owner/manager). */
+  @IsOptional()
+  @IsString()
+  approverPin?: string;
+}
+
 export class OrderHistoryQuery {
   @IsUUID()
   outletId!: string;

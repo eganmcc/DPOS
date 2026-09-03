@@ -20,6 +20,7 @@ import { OrdersService } from './orders.service';
 import { VoidService } from './void.service';
 import { RefundService } from './refund.service';
 import {
+  CancelOrderDto,
   OpenOrdersQuery,
   OrderHistoryQuery,
   OrderReviseDto,
@@ -125,6 +126,21 @@ export class OrdersController {
     @Body() dto: RefundOrderDto,
   ) {
     const { order } = await this.refunds.refundOrder(user, id, dto);
+    return mapOrder(order);
+  }
+
+  /**
+   * Cancel an unpaid open bill (releases reserved stock). Any staff may initiate;
+   * a cashier must supply a manager PIN (enforced in the service).
+   */
+  @Post(':id/cancel')
+  @HttpCode(200)
+  async cancel(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CancelOrderDto,
+  ) {
+    const { order } = await this.orders.cancelOpenBill(user, id, dto);
     return mapOrder(order);
   }
 }

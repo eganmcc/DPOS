@@ -692,6 +692,72 @@ abstract class AppLocalizations {
   /// **'Manager approval is required'**
   String get approvalRequired;
 
+  /// No description provided for @actionCancelBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel bill'**
+  String get actionCancelBill;
+
+  /// No description provided for @cancelBillTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this bill?'**
+  String get cancelBillTitle;
+
+  /// No description provided for @cancelBillBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved stock is released and the bill is closed. No payment was taken.'**
+  String get cancelBillBody;
+
+  /// No description provided for @cancelSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill cancelled and stock released'**
+  String get cancelSuccess;
+
+  /// No description provided for @cancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel failed — please try again'**
+  String get cancelFailed;
+
+  /// No description provided for @clockInPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock in now?'**
+  String get clockInPromptTitle;
+
+  /// No description provided for @actionLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get actionLater;
+
+  /// No description provided for @clockOutPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out?'**
+  String get clockOutPromptTitle;
+
+  /// No description provided for @clockOutPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still on the clock. Clock out before logging out?'**
+  String get clockOutPromptBody;
+
+  /// No description provided for @actionLogoutOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Just log out'**
+  String get actionLogoutOnly;
+
+  /// No description provided for @actionClockOutAndLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out & log out'**
+  String get actionClockOutAndLogout;
+
   /// No description provided for @soldOut.
   ///
   /// In en, this message translates to:

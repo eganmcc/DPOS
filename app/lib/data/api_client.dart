@@ -162,6 +162,20 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Cancel an unpaid open bill (releases reserved stock). A cashier must supply a
+  /// manager/owner [approverPin]; owner/manager self-authorize.
+  Future<Map<String, dynamic>> cancelOrder(
+    String orderId, {
+    required String reason,
+    String? approverPin,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/cancel', data: {
+      'reason': reason,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Settle an open bill: attach payment and complete it. Returns the settled order.
   /// [clientSettleId] is the idempotency key.
   Future<Map<String, dynamic>> settleOrder(

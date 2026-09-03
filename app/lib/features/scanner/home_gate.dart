@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/attendance_actions.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
@@ -13,11 +14,29 @@ import 'scanner_screen.dart';
 /// cashiers land on the cashier POS ([PosHome]). The online-order queue is kept
 /// alive here for the whole authenticated session (badge + TTS), regardless of
 /// which surface is on top, and is disposed on logout with this widget.
-class HomeGate extends ConsumerWidget {
+class HomeGate extends ConsumerStatefulWidget {
   const HomeGate({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeGate> createState() => _HomeGateState();
+}
+
+class _HomeGateState extends ConsumerState<HomeGate> {
+  bool _askedClockIn = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Offer to clock in once per session, after the first frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_askedClockIn || !mounted) return;
+      _askedClockIn = true;
+      promptClockInOnLogin(context, ref);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider)!;
     final catalogAsync = ref.watch(catalogProvider(session.outletId));
 
