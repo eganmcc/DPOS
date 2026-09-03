@@ -20,11 +20,13 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/auth.types';
 import { OrdersService } from './orders.service';
 import { VoidService } from './void.service';
+import { RefundService } from './refund.service';
 import {
   OpenOrdersQuery,
   OrderHistoryQuery,
   OrderReviseDto,
   OrderSubmitDto,
+  RefundOrderDto,
   SettleOrderDto,
   VoidOrderDto,
 } from './dto';
@@ -36,6 +38,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly voids: VoidService,
+    private readonly refunds: RefundService,
   ) {}
 
   @Post()
@@ -109,5 +112,21 @@ export class OrdersController {
   ) {
     const { order } = await this.voids.voidOrder(user, id, dto);
     return mapOrder(order); // effectiveStatus = VOIDED (derived, never stored)
+  }
+
+  /**
+   * Refund a completed sale — full or line-level partial. OWNER/MANAGER only.
+   * Idempotent via clientRefundId; multiple partial refunds allowed up to the total.
+   */
+  @Post(':id/refund')
+  @HttpCode(200)
+  @Roles(StaffRole.OWNER, StaffRole.MANAGER)
+  async refund(
+    @CurrentUser() user: AuthUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: RefundOrderDto,
+  ) {
+    const { order } = await this.refunds.refundOrder(user, id, dto);
+    return mapOrder(order);
   }
 }

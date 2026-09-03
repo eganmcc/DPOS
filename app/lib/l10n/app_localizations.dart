@@ -590,6 +590,84 @@ abstract class AppLocalizations {
   /// **'Test transaction'**
   String get voidReasonTest;
 
+  /// No description provided for @actionRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get actionRefund;
+
+  /// No description provided for @refundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund sale'**
+  String get refundTitle;
+
+  /// No description provided for @refundFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get refundFull;
+
+  /// No description provided for @refundPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'By item'**
+  String get refundPartial;
+
+  /// No description provided for @refundReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund reason'**
+  String get refundReasonLabel;
+
+  /// No description provided for @refundEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated refund'**
+  String get refundEstimate;
+
+  /// No description provided for @refundSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund processed'**
+  String get refundSuccess;
+
+  /// No description provided for @refundFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund failed — please try again'**
+  String get refundFailed;
+
+  /// No description provided for @refundedSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded so far'**
+  String get refundedSoFar;
+
+  /// No description provided for @refundNothingLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing left to refund on this sale.'**
+  String get refundNothingLeft;
+
+  /// No description provided for @refundReasonDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'Damaged / defective'**
+  String get refundReasonDamaged;
+
+  /// No description provided for @refundReasonReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer return'**
+  String get refundReasonReturn;
+
+  /// No description provided for @refundReasonQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality issue'**
+  String get refundReasonQuality;
+
   /// No description provided for @soldOut.
   ///
   /// In en, this message translates to:

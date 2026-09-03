@@ -190,6 +190,24 @@ class ApiClient {
     });
     return res.data as Map<String, dynamic>;
   }
+
+  /// Refund a completed sale — [full] for the whole remaining amount, or [lines]
+  /// (list of {orderLineId, qty}) for a line-level partial. OWNER/MANAGER only.
+  Future<Map<String, dynamic>> refundOrder(
+    String orderId, {
+    required String clientRefundId,
+    required String reason,
+    bool full = false,
+    List<Map<String, dynamic>>? lines,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/refund', data: {
+      'clientRefundId': clientRefundId,
+      'reason': reason,
+      if (full) 'full': true,
+      if (!full && lines != null) 'lines': lines,
+    });
+    return res.data as Map<String, dynamic>;
+  }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {

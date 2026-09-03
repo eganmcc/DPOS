@@ -221,6 +221,7 @@ class OrderVoidResult {
 }
 
 class OrderLineResult {
+  final String? id; // order line id — needed to refund specific lines
   final String productNameSnapshot;
   final String qty;
   final int unitPriceSnapshot;
@@ -228,6 +229,7 @@ class OrderLineResult {
   final String? variantId; // for reconstructing an open bill into the cart
   final List<String> modifierIds;
   const OrderLineResult({
+    this.id,
     required this.productNameSnapshot,
     required this.qty,
     required this.unitPriceSnapshot,
@@ -236,7 +238,10 @@ class OrderLineResult {
     this.modifierIds = const [],
   });
 
+  double get qtyNum => double.tryParse(qty) ?? 0;
+
   factory OrderLineResult.fromJson(Map<String, dynamic> j) => OrderLineResult(
+        id: j['id'] as String?,
         productNameSnapshot: j['productNameSnapshot'],
         qty: j['qty'].toString(),
         unitPriceSnapshot: j['unitPriceSnapshot'],
@@ -270,6 +275,9 @@ class OrderResult {
   final String? onlineStatus;
   final String? externalOrderRef;
   final String? customerName;
+  // Refunds: total money returned + how much of each line has been refunded.
+  final int refundedAmount;
+  final Map<String, double> refundedQtyByLine;
   const OrderResult({
     required this.id,
     this.status = 'COMPLETED',
@@ -290,12 +298,19 @@ class OrderResult {
     this.onlineStatus,
     this.externalOrderRef,
     this.customerName,
+    this.refundedAmount = 0,
+    this.refundedQtyByLine = const {},
   });
 
   /// Derived, never stored — the server sends it and the app only displays it.
   bool get isVoided => effectiveStatus == 'VOIDED';
   bool get isRefunded => effectiveStatus == 'REFUNDED';
   bool get canBeVoided => effectiveStatus == 'COMPLETED';
+  /// A completed in-store sale with money still refundable (partial refunds allowed).
+  bool get canBeRefunded => effectiveStatus == 'COMPLETED' && !isOnline && refundedAmount < grandTotal;
+  bool get isPartiallyRefunded => refundedAmount > 0 && !isRefunded && !isVoided;
+  /// Quantity of a given line already refunded across prior refunds.
+  double refundedQty(String? lineId) => lineId == null ? 0 : (refundedQtyByLine[lineId] ?? 0);
 
   /// Online-delivery (GoFood/GrabFood/ShopeeFood) vs an in-store POS sale.
   bool get isOnline => channel != 'POS';
@@ -328,7 +343,22 @@ class OrderResult {
         voids: ((j['voids'] ?? []) as List)
             .map((v) => OrderVoidResult.fromJson(v as Map<String, dynamic>))
             .toList(),
+        refundedAmount: (j['refundedAmount'] as num?)?.toInt() ?? 0,
+        refundedQtyByLine: _refundedQty(j['refunds']),
       );
+}
+
+/// Sum refunded quantity per order line across all refund records.
+Map<String, double> _refundedQty(dynamic refunds) {
+  final map = <String, double>{};
+  for (final r in (refunds ?? const []) as List) {
+    for (final l in ((r as Map)['lines'] ?? const []) as List) {
+      final id = (l as Map)['orderLineId'] as String?;
+      if (id == null) continue;
+      map[id] = (map[id] ?? 0) + ((l['qty'] as num?)?.toDouble() ?? 0);
+    }
+  }
+  return map;
 }
 
 int _asInt(dynamic v) => (v as num?)?.toInt() ?? 0;

@@ -38,6 +38,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
   /// so the server treats it as the same void and never restores stock twice (Constitution V).
   String? _clientVoidId;
   bool _voiding = false;
+  bool _refunding = false;
   bool _printing = false;
 
   /// An online order still in the active queue (not yet moved to history).
@@ -83,6 +84,48 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _voiding = false);
+    }
+  }
+
+  Future<void> _confirmAndRefund(OrderResult order) async {
+    final t = AppLocalizations.of(context)!;
+    final choice = await showModalBottomSheet<_RefundChoice>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _RefundSheet(order: order),
+    );
+    if (choice == null || !mounted) return;
+
+    setState(() => _refunding = true);
+    // A fresh idempotency key per refund attempt (multiple partial refunds are allowed).
+    final clientRefundId = const Uuid().v4();
+    try {
+      final json = await ref.read(apiClientProvider).refundOrder(
+            order.id,
+            clientRefundId: clientRefundId,
+            reason: choice.reason,
+            full: choice.full,
+            lines: choice.full ? null : choice.lines,
+          );
+      final refunded = OrderResult.fromJson(json);
+      if (!mounted) return;
+      ref.invalidate(transactionDetailProvider(order.id));
+      final outletId = ref.read(sessionProvider)?.outletId;
+      if (outletId != null) ref.invalidate(transactionsProvider(outletId));
+      final ok = refunded.refundedAmount > order.refundedAmount;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(ok ? t.refundSuccess : t.refundFailed)));
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final code = e.response?.statusCode;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(code == 403 ? t.voidForbidden : t.refundFailed)),
+      );
+    } finally {
+      if (mounted) setState(() => _refunding = false);
     }
   }
 
@@ -164,7 +207,9 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
                 order: order,
                 isOwner: session.isOwnerOrManager,
                 busy: _voiding,
+                refunding: _refunding,
                 onVoid: () => _confirmAndVoid(order),
+                onRefund: () => _confirmAndRefund(order),
               ),
         orElse: () => null,
       ),
@@ -337,34 +382,48 @@ class _VoidBar extends StatelessWidget {
     required this.order,
     required this.isOwner,
     required this.busy,
+    required this.refunding,
     required this.onVoid,
+    required this.onRefund,
   });
 
   final OrderResult order;
-  final bool isOwner;
+  final bool isOwner; // owner OR manager (may void/refund)
   final bool busy;
+  final bool refunding;
   final VoidCallback onVoid;
+  final VoidCallback onRefund;
 
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
 
+    // Hidden once the sale is voided or fully refunded (or otherwise not correctable).
     if (!order.canBeVoided) return const SizedBox.shrink();
+
+    Widget wrap(Widget child) => SafeArea(
+          child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: child),
+        );
+
+    if (!isOwner) return wrap(_note(cs, Icons.lock_outline, t.voidOwnerOnly));
 
     final now = DateTime.now();
     final sameDay = order.createdAt.year == now.year &&
         order.createdAt.month == now.month &&
         order.createdAt.day == now.day;
+    final canRefund = order.canBeRefunded;
 
-    Widget child;
-    if (!isOwner) {
-      child = _note(cs, Icons.lock_outline, t.voidOwnerOnly);
-    } else if (!sameDay) {
-      // Past the same-day window — a refund is the correct correction (Phase 2).
-      child = _note(cs, Icons.history, t.voidWindowExpired);
-    } else {
-      child = SizedBox(
+    final children = <Widget>[];
+    if (order.isPartiallyRefunded) {
+      children.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: _note(cs, Icons.replay,
+            '${t.refundedSoFar}: ${formatRupiah(order.refundedAmount)}'),
+      ));
+    }
+    if (sameDay) {
+      children.add(SizedBox(
         width: double.infinity,
         child: FilledButton.icon(
           style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
@@ -374,12 +433,27 @@ class _VoidBar extends StatelessWidget {
           label: Text(t.actionVoidSale),
           onPressed: busy ? null : onVoid,
         ),
-      );
+      ));
+    }
+    if (canRefund) {
+      if (children.isNotEmpty && sameDay) children.add(const SizedBox(height: 8));
+      children.add(SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          icon: refunding
+              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+              : const Icon(Icons.currency_exchange, size: 18),
+          label: Text(t.actionRefund),
+          onPressed: refunding ? null : onRefund,
+        ),
+      ));
     }
 
-    return SafeArea(
-      child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: child),
-    );
+    if (children.isEmpty) {
+      // e.g. an online sale older than today: neither void nor in-app refund applies.
+      return wrap(_note(cs, Icons.history, t.voidWindowExpired));
+    }
+    return wrap(Column(mainAxisSize: MainAxisSize.min, children: children));
   }
 
   Widget _note(ColorScheme cs, IconData icon, String text) {
@@ -495,6 +569,180 @@ class _VoidReasonDialogState extends State<_VoidReasonDialog> {
           child: Text(t.actionVoidConfirm),
         ),
       ],
+    );
+  }
+}
+
+/// Result of the refund sheet: a full refund, or line-level quantities, + reason.
+class _RefundChoice {
+  final bool full;
+  final List<Map<String, dynamic>> lines; // [{orderLineId, qty}]
+  final String reason;
+  _RefundChoice({required this.full, required this.lines, required this.reason});
+}
+
+/// Refund composer — choose Full or By-item (with per-line quantity), plus a reason.
+class _RefundSheet extends StatefulWidget {
+  const _RefundSheet({required this.order});
+  final OrderResult order;
+
+  @override
+  State<_RefundSheet> createState() => _RefundSheetState();
+}
+
+class _RefundSheetState extends State<_RefundSheet> {
+  bool _full = true;
+  final Map<String, int> _qty = {}; // orderLineId -> qty to refund
+  final _reason = TextEditingController();
+
+  @override
+  void dispose() {
+    _reason.dispose();
+    super.dispose();
+  }
+
+  /// Remaining refundable quantity for a line (whole units).
+  int _remaining(OrderLineResult l) {
+    final rem = l.qtyNum - widget.order.refundedQty(l.id);
+    return rem.floor().clamp(0, 1 << 31);
+  }
+
+  int _estimate() {
+    final o = widget.order;
+    if (_full) return o.grandTotal - o.refundedAmount;
+    var base = 0;
+    for (final l in o.lines) {
+      final q = _qty[l.id] ?? 0;
+      if (q <= 0 || l.qtyNum <= 0) continue;
+      base += (l.lineTotal * q / l.qtyNum).round();
+    }
+    return o.subtotal > 0 ? (base * o.grandTotal / o.subtotal).round() : base;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final o = widget.order;
+    final refundableLines = o.lines.where((l) => l.id != null && _remaining(l) > 0).toList();
+    final presets = [
+      t.refundReasonDamaged,
+      t.voidReasonWrongItem,
+      t.refundReasonReturn,
+      t.refundReasonQuality,
+    ];
+    final anyQty = _qty.values.any((q) => q > 0);
+    final valid = _reason.text.trim().isNotEmpty && (_full || anyQty);
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 4, 16, 16 + MediaQuery.of(context).viewInsets.bottom),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(t.refundTitle, style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            SegmentedButton<bool>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: true, label: Text(t.refundFull)),
+                ButtonSegment(value: false, label: Text(t.refundPartial)),
+              ],
+              selected: {_full},
+              onSelectionChanged: (s) => setState(() => _full = s.first),
+            ),
+            const SizedBox(height: 12),
+            if (!_full)
+              ...refundableLines.map((l) {
+                final rem = _remaining(l);
+                final q = _qty[l.id] ?? 0;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text(l.productNameSnapshot,
+                              style: const TextStyle(fontWeight: FontWeight.w600)),
+                          Text('${t.labelQty}: ${l.qty} · ${formatRupiah(l.unitPriceSnapshot)}',
+                              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                        ]),
+                      ),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: q > 0 ? () => setState(() => _qty[l.id!] = q - 1) : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Text('$q', style: const TextStyle(fontWeight: FontWeight.w700)),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        onPressed: q < rem ? () => setState(() => _qty[l.id!] = q + 1) : null,
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            if (!_full && refundableLines.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text(t.refundNothingLeft,
+                    style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              children: [
+                for (final p in presets)
+                  ActionChip(
+                    label: Text(p),
+                    onPressed: () => setState(() {
+                      _reason.text = p;
+                      _reason.selection = TextSelection.collapsed(offset: p.length);
+                    }),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _reason,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(labelText: '${t.refundReasonLabel} *', isDense: true),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(t.refundEstimate, style: TextStyle(color: cs.onSurfaceVariant)),
+                Text(formatRupiah(_estimate()),
+                    style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                icon: const Icon(Icons.currency_exchange, size: 18),
+                label: Text(t.actionRefund),
+                onPressed: valid
+                    ? () {
+                        final lines = <Map<String, dynamic>>[];
+                        if (!_full) {
+                          for (final e in _qty.entries) {
+                            if (e.value > 0) lines.add({'orderLineId': e.key, 'qty': e.value});
+                          }
+                        }
+                        Navigator.of(context)
+                            .pop(_RefundChoice(full: _full, lines: lines, reason: _reason.text.trim()));
+                      }
+                    : null,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -272,6 +272,45 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voidReasonTest => 'Test transaction';
 
   @override
+  String get actionRefund => 'Refund';
+
+  @override
+  String get refundTitle => 'Refund sale';
+
+  @override
+  String get refundFull => 'Full';
+
+  @override
+  String get refundPartial => 'By item';
+
+  @override
+  String get refundReasonLabel => 'Refund reason';
+
+  @override
+  String get refundEstimate => 'Estimated refund';
+
+  @override
+  String get refundSuccess => 'Refund processed';
+
+  @override
+  String get refundFailed => 'Refund failed — please try again';
+
+  @override
+  String get refundedSoFar => 'Refunded so far';
+
+  @override
+  String get refundNothingLeft => 'Nothing left to refund on this sale.';
+
+  @override
+  String get refundReasonDamaged => 'Damaged / defective';
+
+  @override
+  String get refundReasonReturn => 'Customer return';
+
+  @override
+  String get refundReasonQuality => 'Quality issue';
+
+  @override
   String get soldOut => 'Sold out';
 
   @override

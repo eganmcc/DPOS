@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -152,6 +153,40 @@ export class VoidOrderDto {
   @IsString()
   @IsNotEmpty({ message: 'A void reason is required' })
   reason!: string;
+}
+
+export class RefundLineDto {
+  @IsUUID()
+  orderLineId!: string;
+
+  /** Quantity of this line to refund (supports fractional/weighed goods). */
+  @IsNumber()
+  @Min(0)
+  qty!: number;
+}
+
+export class RefundOrderDto {
+  /** Device idempotency key — a retry with the same value returns the same refund. */
+  @IsOptional()
+  @IsUUID()
+  clientRefundId?: string;
+
+  /** Required: why the sale is being refunded (audit trail). */
+  @IsString()
+  @IsNotEmpty({ message: 'A refund reason is required' })
+  reason!: string;
+
+  /** Refund the whole remaining amount (ignores `lines`). */
+  @IsOptional()
+  @IsBoolean()
+  full?: boolean;
+
+  /** Line-level partial refund. Required unless `full` is true. */
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => RefundLineDto)
+  lines?: RefundLineDto[];
 }
 
 export class OrderHistoryQuery {

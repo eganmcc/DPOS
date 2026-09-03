@@ -274,6 +274,45 @@ class AppLocalizationsId extends AppLocalizations {
   String get voidReasonTest => 'Transaksi tes';
 
   @override
+  String get actionRefund => 'Refund';
+
+  @override
+  String get refundTitle => 'Refund transaksi';
+
+  @override
+  String get refundFull => 'Penuh';
+
+  @override
+  String get refundPartial => 'Per item';
+
+  @override
+  String get refundReasonLabel => 'Alasan refund';
+
+  @override
+  String get refundEstimate => 'Perkiraan refund';
+
+  @override
+  String get refundSuccess => 'Refund diproses';
+
+  @override
+  String get refundFailed => 'Refund gagal — coba lagi';
+
+  @override
+  String get refundedSoFar => 'Sudah direfund';
+
+  @override
+  String get refundNothingLeft => 'Tidak ada yang bisa direfund lagi.';
+
+  @override
+  String get refundReasonDamaged => 'Rusak / cacat';
+
+  @override
+  String get refundReasonReturn => 'Barang dikembalikan';
+
+  @override
+  String get refundReasonQuality => 'Masalah kualitas';
+
+  @override
   String get soldOut => 'Habis';
 
   @override
