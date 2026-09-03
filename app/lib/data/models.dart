@@ -349,13 +349,16 @@ class OrderResult {
 }
 
 /// Sum refunded quantity per order line across all refund records.
+/// qty may arrive as a number or a Decimal-as-string, so parse defensively.
 Map<String, double> _refundedQty(dynamic refunds) {
   final map = <String, double>{};
   for (final r in (refunds ?? const []) as List) {
     for (final l in ((r as Map)['lines'] ?? const []) as List) {
       final id = (l as Map)['orderLineId'] as String?;
       if (id == null) continue;
-      map[id] = (map[id] ?? 0) + ((l['qty'] as num?)?.toDouble() ?? 0);
+      final q = l['qty'];
+      final qd = q is num ? q.toDouble() : double.tryParse(q?.toString() ?? '') ?? 0;
+      map[id] = (map[id] ?? 0) + qd;
     }
   }
   return map;
