@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted, reactive } from 'vue';
 import { api } from '../api';
 import { formatRupiah, formatNumber } from '../format';
 import Modal from '../components/Modal.vue';
@@ -23,6 +23,61 @@ const available = ref(true);
 const onHand = ref(0);
 const err = ref('');
 const saving = ref(false);
+
+// Add-item modal.
+const showAdd = ref(false);
+const addErr = ref('');
+const addSaving = ref(false);
+const addForm = reactive({
+  name: '',
+  categoryName: '',
+  variantName: '',
+  price: 0,
+  costPrice: null as number | null,
+  sku: '',
+  trackInventory: true,
+  initialStock: 0,
+});
+const categories = computed(() =>
+  [...new Set(products.value.map((p) => p.categoryName))].sort(),
+);
+
+function openAdd() {
+  Object.assign(addForm, {
+    name: '', categoryName: '', variantName: '', price: 0,
+    costPrice: null, sku: '', trackInventory: true, initialStock: 0,
+  });
+  addErr.value = '';
+  showAdd.value = true;
+}
+
+async function saveAdd() {
+  addErr.value = '';
+  if (!addForm.name.trim() || !addForm.categoryName.trim()) {
+    addErr.value = 'Name and category are required.';
+    return;
+  }
+  addSaving.value = true;
+  try {
+    await api.post('/admin/products', {
+      name: addForm.name.trim(),
+      categoryName: addForm.categoryName.trim(),
+      variantName: addForm.variantName.trim() || undefined,
+      price: addForm.price,
+      costPrice: addForm.costPrice ?? undefined,
+      sku: addForm.sku.trim() || undefined,
+      trackInventory: addForm.trackInventory,
+      initialStock: addForm.trackInventory ? addForm.initialStock : undefined,
+      outletId: addForm.trackInventory && addForm.initialStock > 0 ? outletId.value : undefined,
+    });
+    showAdd.value = false;
+    await load();
+  } catch (e) {
+    addErr.value = (e as Error).message;
+  } finally {
+    addSaving.value = false;
+  }
+}
 
 async function loadStock() {
   if (!outletId.value) return;
@@ -85,11 +140,14 @@ async function save() {
 <template>
   <div class="head">
     <div><h1>Prices</h1><p class="muted">Selling / cost price, availability, and on-hand stock per branch.</p></div>
-    <div class="branch">
-      <span class="muted">Branch</span>
-      <select class="select" v-model="outletId" @change="loadStock">
-        <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
-      </select>
+    <div class="actions">
+      <div class="branch">
+        <span class="muted">Branch</span>
+        <select class="select" v-model="outletId" @change="loadStock">
+          <option v-for="b in branches" :key="b.id" :value="b.id">{{ b.name }}</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" @click="openAdd">+ Add item</button>
     </div>
   </div>
 
@@ -116,6 +174,34 @@ async function save() {
     <div v-else class="card-pad muted">Loading…</div>
   </div>
 
+  <Modal :open="showAdd" title="Add item" @close="showAdd = false">
+    <div class="two">
+      <div class="field"><label>Product name</label><input class="input" v-model="addForm.name" placeholder="e.g. Kopi Susu" /></div>
+      <div class="field"><label>Category</label>
+        <input class="input" v-model="addForm.categoryName" list="cat-list" placeholder="e.g. Minuman" />
+        <datalist id="cat-list"><option v-for="c in categories" :key="c" :value="c" /></datalist>
+      </div>
+    </div>
+    <div class="two">
+      <div class="field"><label>Variant / unit</label><input class="input" v-model="addForm.variantName" placeholder="Regular, Pcs…" /></div>
+      <div class="field"><label>SKU / Barcode</label><input class="input" v-model="addForm.sku" placeholder="optional" /></div>
+    </div>
+    <div class="two">
+      <div class="field"><label>Selling price (Rp)</label><input class="input" type="number" min="0" v-model.number="addForm.price" /></div>
+      <div class="field"><label>Cost price (Rp)</label><input class="input" type="number" min="0" v-model.number="addForm.costPrice" /></div>
+    </div>
+    <label class="chk"><input type="checkbox" v-model="addForm.trackInventory" /> Track inventory</label>
+    <div class="field" v-if="addForm.trackInventory">
+      <label>Opening stock — {{ branches.find((b) => b.id === outletId)?.name }}</label>
+      <input class="input" type="number" min="0" v-model.number="addForm.initialStock" />
+    </div>
+    <p v-if="addErr" class="err">{{ addErr }}</p>
+    <template #footer>
+      <button class="btn btn-ghost" @click="showAdd = false">Cancel</button>
+      <button class="btn btn-primary" @click="saveAdd" :disabled="addSaving">{{ addSaving ? 'Saving…' : 'Add item' }}</button>
+    </template>
+  </Modal>
+
   <Modal :open="!!editing" :title="`Edit — ${editing?.product} · ${editing?.v.name}`" @close="editing = null">
     <div class="field"><label>Selling price (Rp)</label><input class="input" type="number" min="0" v-model.number="price" /></div>
     <div class="field"><label>Cost price (Rp)</label><input class="input" type="number" min="0" v-model.number="cost" /></div>
@@ -137,8 +223,10 @@ async function save() {
 .head { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
 .head h1 { font-size: 26px; }
 .head p { margin: 4px 0 0; }
+.actions { display: flex; align-items: center; gap: 12px; }
 .branch { display: flex; align-items: center; gap: 8px; }
 .branch .select { height: 40px; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .small { font-size: 12px; }
 .low { color: var(--error); font-weight: 800; }
 .chk { display: flex; align-items: center; gap: 8px; font-size: 14px; margin: 4px 0 8px; }

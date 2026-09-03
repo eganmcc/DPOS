@@ -69,6 +69,22 @@ export class UpdateVariantDto {
   @IsOptional() @IsString() sku?: string;
 }
 
+/** Create a new product with a single default variant (portal Prices → Add item). */
+export class CreateProductDto {
+  @IsString() @MinLength(1) name!: string;
+  /** Category by name — found or created for this merchant. */
+  @IsString() @MinLength(1) categoryName!: string;
+  /** Variant/unit label (e.g. "Pcs", "Regular"). Defaults server-side when omitted. */
+  @IsOptional() @IsString() variantName?: string;
+  @IsInt() @Min(0) price!: number;
+  @IsOptional() @IsInt() @Min(0) costPrice?: number;
+  @IsOptional() @IsString() sku?: string;
+  @IsOptional() @IsBoolean() trackInventory?: boolean;
+  /** Opening stock to receive at [outletId] (requires outletId, trackInventory). */
+  @IsOptional() @IsInt() @Min(0) initialStock?: number;
+  @IsOptional() @IsUUID() outletId?: string;
+}
+
 // ---------- Inventory ----------
 export class AdjustStockDto {
   @IsUUID() outletId!: string;

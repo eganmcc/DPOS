@@ -21,6 +21,7 @@ import {
   UpdateMerchantDto,
   UpdateStaffDto,
   UpdateVariantDto,
+  CreateProductDto,
 } from './dto';
 
 // Every admin surface is OWNER-only and merchant-scoped from the token.
@@ -96,6 +97,11 @@ export class ProductsController {
   @Get()
   list(@CurrentUser() u: AuthUser) {
     return this.products.list(u.merchantId);
+  }
+
+  @Post()
+  create(@CurrentUser() u: AuthUser, @Body() dto: CreateProductDto) {
+    return this.products.createProduct(u, dto);
   }
 
   @Patch('variants/:id')
