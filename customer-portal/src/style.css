@@ -213,3 +213,12 @@ h3 {
 .mono {
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Responsive ---------- */
+/* Wide tables scroll horizontally instead of breaking the layout. */
+.card { overflow-x: auto; }
+
+/* Two-column form grids collapse to a single column on narrow screens. */
+@media (max-width: 640px) {
+  .two { grid-template-columns: 1fr !important; }
+}

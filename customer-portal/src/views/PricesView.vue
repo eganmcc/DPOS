@@ -174,7 +174,7 @@ async function save() {
     <div v-else class="card-pad muted">Loading…</div>
   </div>
 
-  <Modal :open="showAdd" title="Add item" @close="showAdd = false">
+  <Modal :open="showAdd" title="Add item" wide @close="showAdd = false">
     <div class="two">
       <div class="field"><label>Product name</label><input class="input" v-model="addForm.name" placeholder="e.g. Kopi Susu" /></div>
       <div class="field"><label>Category</label>
@@ -202,9 +202,11 @@ async function save() {
     </template>
   </Modal>
 
-  <Modal :open="!!editing" :title="`Edit — ${editing?.product} · ${editing?.v.name}`" @close="editing = null">
-    <div class="field"><label>Selling price (Rp)</label><input class="input" type="number" min="0" v-model.number="price" /></div>
-    <div class="field"><label>Cost price (Rp)</label><input class="input" type="number" min="0" v-model.number="cost" /></div>
+  <Modal :open="!!editing" :title="`Edit — ${editing?.product} · ${editing?.v.name}`" wide @close="editing = null">
+    <div class="two">
+      <div class="field"><label>Selling price (Rp)</label><input class="input" type="number" min="0" v-model.number="price" /></div>
+      <div class="field"><label>Cost price (Rp)</label><input class="input" type="number" min="0" v-model.number="cost" /></div>
+    </div>
     <div class="field"><label>SKU / Barcode</label><input class="input" v-model="sku" placeholder="e.g. 8991234567890" /></div>
     <div class="field" v-if="editing?.v.trackInventory">
       <label>On hand — {{ branches.find((b) => b.id === outletId)?.name }}</label>

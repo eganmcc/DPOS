@@ -217,4 +217,58 @@ function logout() {
 .logout-btn .ic {
   flex: none;
 }
+
+/* On phones/tablets the fixed side rail becomes a horizontal top nav strip. */
+@media (max-width: 820px) {
+  .shell {
+    flex-direction: column;
+  }
+  .side {
+    width: 100%;
+    height: auto;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .brand {
+    padding: 0 8px 0 0;
+  }
+  .nav {
+    flex-direction: row;
+    flex: 1 1 100%;
+    order: 3;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+  .nav-item {
+    white-space: nowrap;
+    padding: 8px 12px;
+  }
+  .side-foot {
+    border-top: none;
+    padding-top: 0;
+    margin-left: auto;
+  }
+  .ver-btn {
+    width: auto;
+  }
+  .ver-pop {
+    position: absolute;
+    right: 12px;
+    top: 52px;
+    background: var(--grad-bottom);
+  }
+  .content {
+    padding: 16px;
+  }
+  .topbar {
+    padding: 0 16px;
+  }
+}
 </style>
