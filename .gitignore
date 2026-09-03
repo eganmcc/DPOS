@@ -49,3 +49,6 @@ design-import/
 server/server-run.*
 server/npm-install.log
 app/flutter-run.log
+
+# Office lock/owner temp files
+~$*
