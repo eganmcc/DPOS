@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
 import '../../core/attendance_actions.dart';
 import '../../core/brand.dart';
 import '../../core/settings.dart';
 import '../../core/settings_actions.dart';
-import '../../data/api_client.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
@@ -69,49 +67,8 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
           ]),
-          const SizedBox(height: 24),
-          _sectionHeader(context, t.attendanceSection),
-          _card(cs, [
-            Consumer(builder: (context, ref, _) {
-              final me = ref.watch(myAttendanceProvider);
-              return me.when(
-                loading: () => const Padding(padding: EdgeInsets.all(16), child: Text('…')),
-                error: (_, __) => Padding(
-                    padding: const EdgeInsets.all(16), child: Text(t.attendanceClockedOut)),
-                data: (rec) {
-                  final onClock = rec != null && rec.open;
-                  final subtitle = onClock
-                      ? t.attendanceSince(DateFormat('dd/MM HH:mm').format(rec.clockInAt))
-                      : t.attendanceClockedOut;
-                  return Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-                      Text(subtitle, style: TextStyle(color: cs.onSurfaceVariant)),
-                      const SizedBox(height: 10),
-                      FilledButton.icon(
-                        icon: Icon(onClock ? Icons.logout : Icons.login, size: 18),
-                        label: Text(onClock ? t.attendanceClockOut : t.attendanceClockIn),
-                        onPressed: () async {
-                          final messenger = ScaffoldMessenger.of(context);
-                          final api = ref.read(apiClientProvider);
-                          try {
-                            if (onClock) {
-                              await api.clockOut();
-                            } else {
-                              await api.clockIn(session?.outletId);
-                            }
-                            ref.invalidate(myAttendanceProvider);
-                          } catch (_) {
-                            messenger.showSnackBar(SnackBar(content: Text(t.errorSignIn)));
-                          }
-                        },
-                      ),
-                    ]),
-                  );
-                },
-              );
-            }),
-          ]),
+          // Attendance is handled by the clock-in/out prompts at login and logout;
+          // the manual toggle here was confusing, so it's hidden for now.
           if (isGrocery) ...[
             const SizedBox(height: 24),
             _sectionHeader(context, t.scannerModeLabel),
