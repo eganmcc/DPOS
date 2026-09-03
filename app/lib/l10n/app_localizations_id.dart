@@ -262,6 +262,12 @@ class AppLocalizationsId extends AppLocalizations {
       'Pembatalan hanya boleh di hari yang sama — lakukan refund.';
 
   @override
+  String get voidHint => 'Membatalkan seluruh transaksi — hanya hari ini';
+
+  @override
+  String get refundHint => 'Kembalikan sebagian atau semua — kapan saja';
+
+  @override
   String get voidReasonWrongItem => 'Salah item';
 
   @override

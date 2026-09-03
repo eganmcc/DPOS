@@ -79,6 +79,8 @@
   "voidFailed": "Pembatalan gagal — coba lagi",
   "voidForbidden": "Anda tidak berhak membatalkan transaksi",
   "voidWindowExpired": "Pembatalan hanya boleh di hari yang sama — lakukan refund.",
+  "voidHint": "Membatalkan seluruh transaksi — hanya hari ini",
+  "refundHint": "Kembalikan sebagian atau semua — kapan saja",
   "voidReasonWrongItem": "Salah item",
   "voidReasonWrongPrice": "Salah harga",
   "voidReasonCustomerCancel": "Pelanggan batal",

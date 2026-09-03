@@ -86,6 +86,8 @@
   "voidFailed": "Void failed — please try again",
   "voidForbidden": "You are not allowed to void a sale",
   "voidWindowExpired": "Voids are only allowed on the same day — issue a refund instead.",
+  "voidHint": "Cancels the whole sale — today only",
+  "refundHint": "Return part or all — any day",
   "voidReasonWrongItem": "Wrong item",
   "voidReasonWrongPrice": "Wrong price",
   "voidReasonCustomerCancel": "Customer cancelled",

@@ -482,6 +482,7 @@ class _VoidBar extends StatelessWidget {
           onPressed: busy ? null : onVoid,
         ),
       ));
+      children.add(_hint(cs, t.voidHint));
     }
     if (canRefund) {
       if (children.isNotEmpty && sameDay) children.add(const SizedBox(height: 8));
@@ -495,6 +496,7 @@ class _VoidBar extends StatelessWidget {
           onPressed: refunding ? null : onRefund,
         ),
       ));
+      children.add(_hint(cs, t.refundHint));
     }
 
     if (children.isEmpty) {
@@ -503,6 +505,13 @@ class _VoidBar extends StatelessWidget {
     }
     return wrap(Column(mainAxisSize: MainAxisSize.min, children: children));
   }
+
+  Widget _hint(ColorScheme cs, String text) => Padding(
+        padding: const EdgeInsets.only(top: 3, bottom: 2),
+        child: Text(text,
+            textAlign: TextAlign.center,
+            style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+      );
 
   Widget _note(ColorScheme cs, IconData icon, String text) {
     return Row(

@@ -260,6 +260,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Voids are only allowed on the same day — issue a refund instead.';
 
   @override
+  String get voidHint => 'Cancels the whole sale — today only';
+
+  @override
+  String get refundHint => 'Return part or all — any day';
+
+  @override
   String get voidReasonWrongItem => 'Wrong item';
 
   @override

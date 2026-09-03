@@ -566,6 +566,18 @@ abstract class AppLocalizations {
   /// **'Voids are only allowed on the same day — issue a refund instead.'**
   String get voidWindowExpired;
 
+  /// No description provided for @voidHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancels the whole sale — today only'**
+  String get voidHint;
+
+  /// No description provided for @refundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Return part or all — any day'**
+  String get refundHint;
+
   /// No description provided for @voidReasonWrongItem.
   ///
   /// In en, this message translates to:
