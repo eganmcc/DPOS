@@ -454,6 +454,7 @@ model OrderVoid {
   clientVoidId String?
   reason       String?
   voidedById   String
+  approvedById String? // manager/owner who authorized a cashier-initiated void (null = self)
   createdAt    DateTime @default(now())
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
@@ -479,6 +480,7 @@ model Refund {
   amount         Int
   isFull         Boolean  @default(false)
   refundedById   String
+  approvedById   String? // manager/owner who authorized a cashier-initiated refund (null = self)
   createdAt      DateTime @default(now())
 
   merchant Merchant     @relation(fields: [merchantId], references: [id])

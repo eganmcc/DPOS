@@ -183,10 +183,12 @@ class ApiClient {
     String orderId, {
     required String clientVoidId,
     required String reason,
+    String? approverPin,
   }) async {
     final res = await _dio.post('/orders/$orderId/void', data: {
       'clientVoidId': clientVoidId,
       'reason': reason,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
     });
     return res.data as Map<String, dynamic>;
   }
@@ -199,12 +201,14 @@ class ApiClient {
     required String reason,
     bool full = false,
     List<Map<String, dynamic>>? lines,
+    String? approverPin,
   }) async {
     final res = await _dio.post('/orders/$orderId/refund', data: {
       'clientRefundId': clientRefundId,
       'reason': reason,
       if (full) 'full': true,
       if (!full && lines != null) 'lines': lines,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
     });
     return res.data as Map<String, dynamic>;
   }

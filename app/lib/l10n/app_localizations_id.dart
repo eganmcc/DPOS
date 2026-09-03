@@ -313,6 +313,18 @@ class AppLocalizationsId extends AppLocalizations {
   String get refundReasonQuality => 'Masalah kualitas';
 
   @override
+  String get managerApprovalTitle => 'Persetujuan manajer';
+
+  @override
+  String get managerPinLabel => 'PIN manajer / pemilik';
+
+  @override
+  String get approvalInvalid => 'PIN manajer salah';
+
+  @override
+  String get approvalRequired => 'Perlu persetujuan manajer';
+
+  @override
   String get soldOut => 'Habis';
 
   @override

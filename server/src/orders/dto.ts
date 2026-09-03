@@ -153,6 +153,11 @@ export class VoidOrderDto {
   @IsString()
   @IsNotEmpty({ message: 'A void reason is required' })
   reason!: string;
+
+  /** Manager/owner PIN authorizing a cashier-initiated void (ignored for owner/manager). */
+  @IsOptional()
+  @IsString()
+  approverPin?: string;
 }
 
 export class RefundLineDto {
@@ -187,6 +192,11 @@ export class RefundOrderDto {
   @ValidateNested({ each: true })
   @Type(() => RefundLineDto)
   lines?: RefundLineDto[];
+
+  /** Manager/owner PIN authorizing a cashier-initiated refund (ignored for owner/manager). */
+  @IsOptional()
+  @IsString()
+  approverPin?: string;
 }
 
 export class OrderHistoryQuery {

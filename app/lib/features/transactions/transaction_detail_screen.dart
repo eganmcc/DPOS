@@ -53,6 +53,14 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     );
     if (reason == null || reason.isEmpty || !mounted) return; // dismissed / no reason = no void
 
+    // A cashier needs a manager/owner PIN to authorize; owner/manager self-authorize.
+    final session = ref.read(sessionProvider);
+    String? approverPin;
+    if (session != null && !session.isOwnerOrManager) {
+      approverPin = await _askApproverPin();
+      if (approverPin == null || approverPin.isEmpty || !mounted) return;
+    }
+
     setState(() {
       _voiding = true;
       _clientVoidId ??= const Uuid().v4();
@@ -62,6 +70,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
             order.id,
             clientVoidId: _clientVoidId!,
             reason: reason,
+            approverPin: approverPin,
           );
       final voided = OrderResult.fromJson(json);
       if (!mounted) return;
@@ -78,9 +87,13 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       final serverCode = e.response?.data is Map ? e.response?.data['code'] : null;
       final msg = serverCode == 'VOID_WINDOW_EXPIRED'
           ? t.voidWindowExpired
-          : code == 403
-              ? t.voidForbidden
-              : t.voidFailed;
+          : serverCode == 'APPROVAL_INVALID'
+              ? t.approvalInvalid
+              : serverCode == 'APPROVAL_REQUIRED'
+                  ? t.approvalRequired
+                  : code == 403
+                      ? t.voidForbidden
+                      : t.voidFailed;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _voiding = false);
@@ -99,6 +112,13 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     );
     if (choice == null || !mounted) return;
 
+    final session = ref.read(sessionProvider);
+    String? approverPin;
+    if (session != null && !session.isOwnerOrManager) {
+      approverPin = await _askApproverPin();
+      if (approverPin == null || approverPin.isEmpty || !mounted) return;
+    }
+
     setState(() => _refunding = true);
     // A fresh idempotency key per refund attempt (multiple partial refunds are allowed).
     final clientRefundId = const Uuid().v4();
@@ -109,6 +129,7 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
             reason: choice.reason,
             full: choice.full,
             lines: choice.full ? null : choice.lines,
+            approverPin: approverPin,
           );
       final refunded = OrderResult.fromJson(json);
       if (!mounted) return;
@@ -121,12 +142,43 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     } on DioException catch (e) {
       if (!mounted) return;
       final code = e.response?.statusCode;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(code == 403 ? t.voidForbidden : t.refundFailed)),
-      );
+      final serverCode = e.response?.data is Map ? e.response?.data['code'] : null;
+      final msg = serverCode == 'APPROVAL_INVALID'
+          ? t.approvalInvalid
+          : serverCode == 'APPROVAL_REQUIRED'
+              ? t.approvalRequired
+              : code == 403
+                  ? t.voidForbidden
+                  : t.refundFailed;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _refunding = false);
     }
+  }
+
+  /// Ask a manager/owner to authorize a cashier-initiated correction with their PIN.
+  Future<String?> _askApproverPin() {
+    final t = AppLocalizations.of(context)!;
+    final ctrl = TextEditingController();
+    return showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t.managerApprovalTitle),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(labelText: t.managerPinLabel, isDense: true),
+          onSubmitted: (_) => Navigator.of(ctx).pop(ctrl.text.trim()),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(t.actionCancel)),
+          FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: Text(t.actionOk)),
+        ],
+      ),
+    );
   }
 
   /// Reprint this transaction's receipt — routes through the Rongta path when a
@@ -176,7 +228,6 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
   @override
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
-    final session = ref.watch(sessionProvider)!;
     final async = ref.watch(transactionDetailProvider(widget.orderId));
     final loaded = async.valueOrNull;
 
@@ -205,7 +256,6 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
             ? _PrintReceiptBar(busy: _printing, onPrint: () => _printAndComplete(order))
             : _VoidBar(
                 order: order,
-                isOwner: session.isOwnerOrManager,
                 busy: _voiding,
                 refunding: _refunding,
                 onVoid: () => _confirmAndVoid(order),
@@ -380,7 +430,6 @@ class _Detail extends StatelessWidget {
 class _VoidBar extends StatelessWidget {
   const _VoidBar({
     required this.order,
-    required this.isOwner,
     required this.busy,
     required this.refunding,
     required this.onVoid,
@@ -388,7 +437,6 @@ class _VoidBar extends StatelessWidget {
   });
 
   final OrderResult order;
-  final bool isOwner; // owner OR manager (may void/refund)
   final bool busy;
   final bool refunding;
   final VoidCallback onVoid;
@@ -406,8 +454,8 @@ class _VoidBar extends StatelessWidget {
           child: Padding(padding: const EdgeInsets.fromLTRB(16, 8, 16, 12), child: child),
         );
 
-    if (!isOwner) return wrap(_note(cs, Icons.lock_outline, t.voidOwnerOnly));
-
+    // Void/refund are available to any staff; a cashier is prompted for a manager
+    // PIN when they confirm (owner/manager self-authorize).
     final now = DateTime.now();
     final sameDay = order.createdAt.year == now.year &&
         order.createdAt.month == now.month &&

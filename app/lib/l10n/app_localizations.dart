@@ -668,6 +668,30 @@ abstract class AppLocalizations {
   /// **'Quality issue'**
   String get refundReasonQuality;
 
+  /// No description provided for @managerApprovalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager approval'**
+  String get managerApprovalTitle;
+
+  /// No description provided for @managerPinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager / owner PIN'**
+  String get managerPinLabel;
+
+  /// No description provided for @approvalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid manager PIN'**
+  String get approvalInvalid;
+
+  /// No description provided for @approvalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager approval is required'**
+  String get approvalRequired;
+
   /// No description provided for @soldOut.
   ///
   /// In en, this message translates to:

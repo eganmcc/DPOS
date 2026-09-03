@@ -12,6 +12,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { AuthUser } from '../auth/auth.types';
 import { VoidOrderDto } from './dto';
 import { ORDER_INCLUDE, OrderWithRelations, deriveEffectiveStatus } from './order.mapper';
+import { resolveCorrectionApprover } from './approval.util';
 
 export interface VoidResult {
   order: OrderWithRelations;
@@ -69,6 +70,9 @@ export class VoidService {
       });
     }
 
+    // Owner/manager self-authorize; a cashier must present a manager PIN.
+    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+
     try {
       await this.prisma.$transaction(async (tx) => {
         // 1. The void itself — append-only; the order is left exactly as it was.
@@ -80,6 +84,7 @@ export class VoidService {
             clientVoidId: dto.clientVoidId ?? null,
             reason: dto.reason ?? null,
             voidedById: user.staffId,
+            approvedById,
           },
         });
 

@@ -311,6 +311,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get refundReasonQuality => 'Quality issue';
 
   @override
+  String get managerApprovalTitle => 'Manager approval';
+
+  @override
+  String get managerPinLabel => 'Manager / owner PIN';
+
+  @override
+  String get approvalInvalid => 'Invalid manager PIN';
+
+  @override
+  String get approvalRequired => 'Manager approval is required';
+
+  @override
   String get soldOut => 'Sold out';
 
   @override

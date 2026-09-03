@@ -12,6 +12,7 @@ import { PaymentsService } from '../payments/payments.service';
 import { AuthUser } from '../auth/auth.types';
 import { RefundOrderDto } from './dto';
 import { ORDER_INCLUDE, OrderWithRelations, deriveEffectiveStatus } from './order.mapper';
+import { resolveCorrectionApprover } from './approval.util';
 
 export interface RefundResult {
   order: OrderWithRelations;
@@ -123,6 +124,9 @@ export class RefundService {
     });
     const tracks = new Map(variants.map((v) => [v.id, v.trackInventory]));
 
+    // Owner/manager self-authorize; a cashier must present a manager PIN.
+    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+
     try {
       await this.prisma.$transaction(async (tx) => {
         const refund = await tx.refund.create({
@@ -135,6 +139,7 @@ export class RefundService {
             amount,
             isFull,
             refundedById: user.staffId,
+            approvedById,
           },
         });
 

@@ -11,11 +11,9 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { StaffRole } from '@prisma/client';
 import { Response } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { AuthUser } from '../auth/auth.types';
 import { OrdersService } from './orders.service';
@@ -104,7 +102,7 @@ export class OrdersController {
    */
   @Post(':id/void')
   @HttpCode(200) // contract: 200 whether this is the first void or an idempotent retry
-  @Roles(StaffRole.OWNER, StaffRole.MANAGER)
+  // Any staff may initiate; a cashier must supply a manager PIN (enforced in the service).
   async void(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -120,7 +118,7 @@ export class OrdersController {
    */
   @Post(':id/refund')
   @HttpCode(200)
-  @Roles(StaffRole.OWNER, StaffRole.MANAGER)
+  // Any staff may initiate; a cashier must supply a manager PIN (enforced in the service).
   async refund(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
