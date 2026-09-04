@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-08-24._
+_Last updated: 2026-09-04._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,9 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-04 — `main` is the trunk again.** `beta-1` merged into `main` via `--no-ff` (merge **`f48ce2b`**); the cloud session's `claude/correction-path-tests` was merged into `beta-1` first. Live on the trunk now: open bills (confirm-now, settle-later), **corrections — void (same-day + mandatory reason), refund (full & line-level partial), cancel an unpaid open bill (releases reserved stock)**, all with a **manager-PIN override** for cashier-initiated corrections (approver recorded); order **revise**; stock tracking; employee **attendance** (clock-in/out prompted at login/logout); owner/manager **reporting** home (daily/weekly/monthly + payment mix + top items + attendance); the **D-Customer Portal** (now incl. add-item + SKU edit + responsive layout); **online-delivery order** ingestion; TTS; settings; and **DIKASIR** branding (Quicksand wordmark). **Integrity suite: 8 files / 35 tests pass against RDS** (settle · cancel · refund · revise · void · atomicity · idempotency · amounts). All **9 migrations applied to RDS** (`prisma migrate deploy` → none pending). End-to-end verified on the live API: open bill → cancel (reserved stock restored) → new sale → settle → refund (net stock conserved). Constitution is at **v1.6.0**; the feature spec for this work is **`specs/005-corrections-attendance/spec.md`**. Android release builds are now **release-signed** (see `app/android/RELEASE_SIGNING.md`). App version `0.1.0`, build **2070**; server `0.2.0`; portal `0.2.0`.
+
 - **US1 (Take an order & accept payment) — DONE and verified.**
   - Backend: checkout (atomic, idempotent on `UNIQUE(merchant_id, client_order_id)`, server-authoritative amounts), payments (`PaymentProvider` + Cash + SimulatedQRIS), inventory movement + stock. Integrity tests **T018–T020 pass** against RDS (`cd server && npm test`).
   - App: PIN login, category chips + product grid **with photos**, cart, checkout (cash tender/change + simulated QRIS QR), receipt preview; bilingual ID/EN; light/dark DIKA-Bold theme.
@@ -109,7 +112,7 @@ cd app && flutter build apk --release --split-per-abi \
   --dart-define=API_BASE_URL=https://dikapos.ptdika.com/api/v1
 # app-arm64-v8a-release.apk (~22 MB) covers modern phones; the universal APK is ~59 MB
 ```
-Release APKs are **debug-signed** (fine for sideloading, not for Play Store).
+Release APKs are now **release-signed** from `android/key.properties` (falls back to debug when that file is absent). Keystore location + fingerprints: `app/android/RELEASE_SIGNING.md`. The keystore/password live outside git — back them up.
 
 **VS Code:** `.vscode/` is deliberately **git-ignored** — launch configs hold machine-specific emulator ids and SDK paths. Create your own `launch.json` per machine; don't commit it.
 
@@ -142,11 +145,12 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 
 | Branch | What it is | Status |
 |---|---|---|
-| `main` | trunk | **stale — merge `beta-1` into it** |
-| `beta-1` | live line: open bills, cancel, refund, revise, stock, TTS, settings | current |
-| `beta-with-SDP-printer` | thermal-printer spike | fold in or retire |
-| `customer-portal` | Vue customer portal | fold in or retire |
-| `claude/us3-void-implementation-3zl5oh` | US3 void (+23 unrelated commits pushed onto it later) | superseded by `beta-1` |
+| `main` | trunk | **current — `beta-1` merged in on 2026-09-04 (`f48ce2b`); everything below is folded in** |
+| `beta-1` | live working line | in sync with `main` (merged up); keep for ongoing work |
+| `claude/correction-path-tests` | integrity tests for settle/cancel/refund/revise (cloud session) | **merged → `beta-1` → `main`** — safe to retire |
+| `beta-with-SDP-printer` | thermal-printer spike | **fully in `main` (0 commits ahead)** — safe to retire (awaiting your call) |
+| `customer-portal` | Vue customer portal | **fully in `main` (0 commits ahead)** — safe to retire (awaiting your call) |
+| `claude/us3-void-implementation-3zl5oh` | US3 void (early cut) | superseded — fully contained in `main` |
 
 **Why this table matters:** a cloud session reported "open bills can't be cancelled" after reading
 the US3 branch (28 Aug) while the feature had shipped on `beta-1` (3 Sep). Any finding about the
