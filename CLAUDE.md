@@ -32,6 +32,8 @@ assuming the app is wrong: `git fetch --all` and check every branch, not just th
   being reviewable as a single change.)
 - Never commit `server/.env` or anything under `.env*`.
 - Push before switching machines. An unpushed commit is invisible to every other surface.
+- Deleting a **fully-merged** branch loses nothing (its commits live on in `main`); record the tip
+  SHA in the DEVLOG deletion ledger so it can be recreated with `git branch <name> <sha>`.
 
 ## Money and stock
 
@@ -52,9 +54,18 @@ bump for open bills (v1.2.0) is the pattern to follow.
 ## Testing
 
 ```bash
-cd server && npm test     # jest + supertest against Postgres (local or sandbox, never RDS)
+cd server && npm test     # jest + supertest — 8 suites / 35 tests
 ```
-A cloud sandbox cannot reach AWS RDS and has no Android emulator: run backend tests against a local
-Postgres there, and do device testing locally. Report failures as findings with their output — do
-not "fix" a failing test by weakening its assertion; if a test is stale because the product changed,
-say so explicitly and update it to the new contract.
+The suite builds an **isolated `Test <uuid>` merchant** per run and tears it down afterwards
+(`cleanupMerchant` in `test/fixtures.ts`), so it never touches demo/production data.
+
+- **Prefer a local/sandbox Postgres.** A cloud sandbox can't reach AWS RDS anyway, so run there
+  against local Postgres; point `DATABASE_URL` at a throwaway DB when you can.
+- **Running against RDS is tolerated, not the default.** Local `server/.env` currently points at
+  RDS; the suite's per-run isolation + self-cleanup make this safe in practice (verified 2026-09-05),
+  but it still writes transient tenants to the production DB — don't do it casually, and never from a
+  shared/CI runner.
+- Do **device** testing locally (no Android emulator in the sandbox).
+- Report failures as findings **with their output**. Never "fix" a failing test by weakening its
+  assertion; if a test is stale because the product changed, say so explicitly and update it to the
+  new contract.

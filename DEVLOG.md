@@ -15,6 +15,13 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-05 — consolidated to a single trunk.** `main` is now the **only** branch; `beta-1` and the
+> `beta-with-SDP-printer` / `customer-portal` / `claude/*` branches were merged/superseded and retired
+> (restore SHAs in the deletion ledger under the branch map). **EC2 `/opt/dpos` deploys from `main`**
+> and is in sync. The integrity suite (**8 suites / 35 tests**) is green on the merged tree. **Portal
+> hardened to v0.2.1:** an expired-session `401` now clears the token and redirects to login instead of
+> white-screening (plus a Vue `errorHandler` safety net). App on emulator + phone at build **2070**.
+
 > **2026-09-04 — `main` is the trunk again.** `beta-1` merged into `main` via `--no-ff` (merge **`f48ce2b`**); the cloud session's `claude/correction-path-tests` was merged into `beta-1` first. Live on the trunk now: open bills (confirm-now, settle-later), **corrections — void (same-day + mandatory reason), refund (full & line-level partial), cancel an unpaid open bill (releases reserved stock)**, all with a **manager-PIN override** for cashier-initiated corrections (approver recorded); order **revise**; stock tracking; employee **attendance** (clock-in/out prompted at login/logout); owner/manager **reporting** home (daily/weekly/monthly + payment mix + top items + attendance); the **D-Customer Portal** (now incl. add-item + SKU edit + responsive layout); **online-delivery order** ingestion; TTS; settings; and **DIKASIR** branding (Quicksand wordmark). **Integrity suite: 8 files / 35 tests pass against RDS** (settle · cancel · refund · revise · void · atomicity · idempotency · amounts). All **9 migrations applied to RDS** (`prisma migrate deploy` → none pending). End-to-end verified on the live API: open bill → cancel (reserved stock restored) → new sale → settle → refund (net stock conserved). Constitution is at **v1.6.0**; the feature spec for this work is **`specs/005-corrections-attendance/spec.md`**. Android release builds are now **release-signed** (see `app/android/RELEASE_SIGNING.md`). App version `0.1.0`, build **2070**; server `0.2.0`; portal `0.2.0`.
 
 - **US1 (Take an order & accept payment) — DONE and verified.**
@@ -119,7 +126,8 @@ Release APKs are now **release-signed** from `android/key.properties` (falls bac
 ## Seeded demo data
 - Merchant `cad63409-136c-4d01-92d2-26e493dc64ce` ("Warung Kopi Demo 1")
 - Outlet (has stock) `91298a41-b8ed-4b1a-a5c9-2e4aaad036b3` = "Outlet Pusat"; second outlet "Outlet Cabang".
-- Cashier **PIN `1234`** · Owner PIN `9999` / `owner@warungdemo.id` / `owner123`.
+- F&B **Warung Kopi Demo**: Cashier PIN `1234` · Manager `8888` · Owner `9999` / `owner@warungdemo.id` / `owner123`.
+- Grocery **Toko Sembako Demo** (`admin@sembako.id` / `admin123`): Owner PIN `4321` · Manager `7777` · Cashier `2222`. These plaintext demo PINs are prefilled on the app login "Login as" picker (`Staff.demoPin`, DEMO ONLY).
 - 20 products across Minuman / Makanan / Snack, PBJT tax 10% + 5% service. A 2× Kopi Susu sale = **Rp 41.400**.
 - `prisma/seed.ts` only seeds a *fresh* merchant; use `prisma/seed-menu.ts` against an existing one (e.g. RDS, which has orders).
 
