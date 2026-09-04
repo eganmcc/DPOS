@@ -12,13 +12,26 @@ const String kApiBaseUrl = String.fromEnvironment(
 );
 
 class ApiClient {
-  ApiClient(String? token)
+  ApiClient(String? token, {void Function()? onUnauthorized})
       : _dio = Dio(BaseOptions(
           baseUrl: kApiBaseUrl,
           connectTimeout: const Duration(seconds: 8),
           receiveTimeout: const Duration(seconds: 12),
           headers: token == null ? null : {'Authorization': 'Bearer $token'},
-        ));
+        )) {
+    // A 401 on an authenticated call means the token expired or was revoked.
+    // Hand it to [onUnauthorized] (which clears the session and routes to
+    // login) so an expired session never masquerades as a connection error.
+    // Login endpoints use their own Dio, so a wrong-PIN 401 never lands here.
+    if (onUnauthorized != null) {
+      _dio.interceptors.add(InterceptorsWrapper(
+        onError: (e, handler) {
+          if (e.response?.statusCode == 401) onUnauthorized();
+          handler.next(e);
+        },
+      ));
+    }
+  }
 
   final Dio _dio;
 
@@ -34,8 +47,22 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// DEMO: public directory of demo merchants → outlets (+ cashier PIN) for the
+  /// login-screen dropdowns.
+  static Future<List<Map<String, dynamic>>> demoDirectory() async {
+    final dio = Dio(BaseOptions(baseUrl: kApiBaseUrl));
+    final res = await dio.get('/demo/directory');
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
   Future<Map<String, dynamic>> getCatalog(String outletId) async {
     final res = await _dio.get('/catalog', queryParameters: {'outletId': outletId});
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Backend build info: {name, version}. Public endpoint.
+  Future<Map<String, dynamic>> getVersion() async {
+    final res = await _dio.get('/version');
     return res.data as Map<String, dynamic>;
   }
 
@@ -44,9 +71,176 @@ class ApiClient {
     final res = await _dio.post('/orders', data: payload);
     return res.data as Map<String, dynamic>;
   }
+
+  /// Transaction history for an outlet, newest first (server-scoped to the merchant).
+  Future<List<Map<String, dynamic>>> getOrders(String outletId, {String? from, String? to}) async {
+    final res = await _dio.get('/orders', queryParameters: {
+      'outletId': outletId,
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// One transaction with its lines, payments and voids.
+  Future<Map<String, dynamic>> getOrder(String orderId) async {
+    final res = await _dio.get('/orders/$orderId');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Owner/manager sales summary for the merchant (all outlets), optionally over a
+  /// date range (YYYY-MM-DD). OWNER/MANAGER tokens only — a cashier's is 403.
+  Future<Map<String, dynamic>> getDashboard({String? from, String? to}) async {
+    final res = await _dio.get('/admin/dashboard', queryParameters: {
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Owner/manager attendance rows over a date range (YYYY-MM-DD).
+  Future<List<Map<String, dynamic>>> getAdminAttendance({String? from, String? to}) async {
+    final res = await _dio.get('/admin/attendance', queryParameters: {
+      if (from != null) 'from': from,
+      if (to != null) 'to': to,
+    });
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// The caller's current open attendance record, or null when clocked out.
+  Future<Map<String, dynamic>?> getMyAttendance() async => _nullableMap(
+        (await _dio.get('/attendance/me')).data,
+      );
+
+  Future<Map<String, dynamic>?> clockIn(String? outletId) async => _nullableMap(
+        (await _dio.post('/attendance/clock-in', data: {if (outletId != null) 'outletId': outletId}))
+            .data,
+      );
+
+  Future<Map<String, dynamic>?> clockOut() async =>
+      _nullableMap((await _dio.post('/attendance/clock-out')).data);
+
+  // A null/empty JSON body (e.g. "not clocked in") comes back as null or ''.
+  Map<String, dynamic>? _nullableMap(dynamic data) {
+    if (data == null || (data is String && data.trim().isEmpty)) return null;
+    return (data as Map).cast<String, dynamic>();
+  }
+
+  /// Open bills (AWAITING_PAYMENT) for an outlet, newest first.
+  Future<List<Map<String, dynamic>>> getOpenOrders(String outletId) async {
+    final res = await _dio.get('/orders/open', queryParameters: {'outletId': outletId});
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Online-delivery orders for an outlet (NEW first). F&B online-order queue.
+  Future<List<Map<String, dynamic>>> getOnlineOrders(String outletId) async {
+    final res = await _dio.get('/online-orders', queryParameters: {'outletId': outletId});
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Cashier acknowledges a new online order (NEW → ACCEPTED).
+  Future<Map<String, dynamic>> acceptOnlineOrder(String orderId) async {
+    final res = await _dio.post('/online-orders/$orderId/accept');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Mark an online order fulfilled (→ COMPLETED) — moves it out of the queue to history.
+  Future<Map<String, dynamic>> completeOnlineOrder(String orderId) async {
+    final res = await _dio.post('/online-orders/$orderId/complete');
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// DEMO: ask the server to fabricate + ingest a random online order for the outlet.
+  Future<Map<String, dynamic>> simulateOnlineOrder(String outletId) async {
+    final res = await _dio.post('/online-orders/simulate', data: {'outletId': outletId});
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Edit an open bill (replace its lines/discount/table) while it is AWAITING_PAYMENT.
+  Future<Map<String, dynamic>> reviseOrder(String orderId, Map<String, dynamic> payload) async {
+    final res = await _dio.post('/orders/$orderId/revise', data: payload);
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Cancel an unpaid open bill (releases reserved stock). A cashier must supply a
+  /// manager/owner [approverPin]; owner/manager self-authorize.
+  Future<Map<String, dynamic>> cancelOrder(
+    String orderId, {
+    required String reason,
+    String? approverPin,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/cancel', data: {
+      'reason': reason,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Settle an open bill: attach payment and complete it. Returns the settled order.
+  /// [clientSettleId] is the idempotency key.
+  Future<Map<String, dynamic>> settleOrder(
+    String orderId, {
+    required String clientSettleId,
+    required String method, // CASH | QRIS_SIMULATED
+    int? tendered,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/settle', data: {
+      'clientSettleId': clientSettleId,
+      'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Full-void a completed sale. OWNER only — a cashier's token comes back 403.
+  /// [clientVoidId] is the idempotency key: retrying with the same value is a no-op server-side.
+  Future<Map<String, dynamic>> voidOrder(
+    String orderId, {
+    required String clientVoidId,
+    required String reason,
+    String? approverPin,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/void', data: {
+      'clientVoidId': clientVoidId,
+      'reason': reason,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Refund a completed sale — [full] for the whole remaining amount, or [lines]
+  /// (list of {orderLineId, qty}) for a line-level partial. OWNER/MANAGER only.
+  Future<Map<String, dynamic>> refundOrder(
+    String orderId, {
+    required String clientRefundId,
+    required String reason,
+    bool full = false,
+    List<Map<String, dynamic>>? lines,
+    String? approverPin,
+  }) async {
+    final res = await _dio.post('/orders/$orderId/refund', data: {
+      'clientRefundId': clientRefundId,
+      'reason': reason,
+      if (full) 'full': true,
+      if (!full && lines != null) 'lines': lines,
+      if (approverPin != null && approverPin.isNotEmpty) 'approverPin': approverPin,
+    });
+    return res.data as Map<String, dynamic>;
+  }
 }
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final session = ref.watch(sessionProvider);
-  return ApiClient(session?.token);
+  // Capture the notifiers (app-lifetime singletons) so the interceptor callback
+  // stays valid even after this provider rebuilds on logout.
+  final sessionNotifier = ref.read(sessionProvider.notifier);
+  final expired = ref.read(sessionExpiredProvider.notifier);
+  return ApiClient(
+    session?.token,
+    onUnauthorized: session == null
+        ? null
+        : () {
+            expired.state = true;
+            sessionNotifier.logout();
+          },
+  );
 });

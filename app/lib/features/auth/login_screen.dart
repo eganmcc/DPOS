@@ -1,15 +1,40 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/pin_field.dart';
 import '../../core/settings_actions.dart';
 import '../../data/api_client.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 
-// Seeded demo defaults (from `npm run seed`). Prefilled for a quick board demo.
+// Seeded demo defaults (fallback when the demo directory can't be loaded).
 const _demoMerchantId = 'cad63409-136c-4d01-92d2-26e493dc64ce';
 const _demoOutletId = '91298a41-b8ed-4b1a-a5c9-2e4aaad036b3';
+
+/// Friendly label for a staff role string (OWNER → Owner, …).
+String _roleLabel(String role) {
+  if (role.isEmpty) return role;
+  return role[0].toUpperCase() + role.substring(1).toLowerCase();
+}
+
+/// One selectable demo login (Owner / Manager / Cashier) from GET /demo/directory.
+class _DemoLogin {
+  final String role;
+  final String name;
+  final String pin;
+  _DemoLogin(this.role, this.name, this.pin);
+}
+
+/// One demo merchant from GET /demo/directory.
+class _DemoMerchant {
+  final String merchantId;
+  final String name;
+  final String businessType;
+  final List<_DemoLogin> logins; // Owner first, then Manager, then Cashier
+  final List<Map<String, dynamic>> outlets; // [{id, name}]
+  _DemoMerchant(this.merchantId, this.name, this.businessType, this.logins, this.outlets);
+}
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -25,12 +50,74 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _loading = false;
   String? _error;
 
+  List<_DemoMerchant> _directory = [];
+  String? _selMerchantId;
+  String? _selOutletId;
+  int _selLoginIndex = 0; // which login (Owner/Manager/Cashier) is chosen
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDirectory();
+  }
+
   @override
   void dispose() {
     _merchant.dispose();
     _outlet.dispose();
     _pin.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadDirectory() async {
+    try {
+      final rows = await ApiClient.demoDirectory();
+      final dir = rows.map((m) {
+        // Prefer the new `logins` list; fall back to `cashierPin` for older servers.
+        final rawLogins = (m['logins'] as List?)?.cast<Map<String, dynamic>>() ?? const [];
+        var logins = rawLogins
+            .map((l) => _DemoLogin(l['role'] as String, l['name'] as String, l['pin'] as String))
+            .toList();
+        if (logins.isEmpty && m['cashierPin'] is String) {
+          logins = [_DemoLogin('CASHIER', 'Cashier', m['cashierPin'] as String)];
+        }
+        return _DemoMerchant(
+          m['merchantId'] as String,
+          m['name'] as String,
+          m['businessType'] as String,
+          logins,
+          (m['outlets'] as List).cast<Map<String, dynamic>>(),
+        );
+      }).toList();
+      if (dir.isEmpty || !mounted) return;
+      setState(() {
+        _directory = dir;
+        // Prefer the previously-defaulted F&B merchant, else the first.
+        final start = dir.firstWhere((m) => m.merchantId == _demoMerchantId, orElse: () => dir.first);
+        _applyMerchant(start.merchantId);
+      });
+    } catch (_) {
+      // Offline / endpoint missing → keep the manual text-field fallback.
+    }
+  }
+
+  void _applyMerchant(String merchantId) {
+    final m = _directory.firstWhere((x) => x.merchantId == merchantId);
+    _selMerchantId = merchantId;
+    _merchant.text = merchantId;
+    _selOutletId = m.outlets.isNotEmpty ? m.outlets.first['id'] as String : null;
+    _outlet.text = _selOutletId ?? '';
+    // Default to the cashier login if present (unchanged behavior); the picker
+    // lets the demo switch to Owner / Manager.
+    final cashierIdx = m.logins.indexWhere((l) => l.role == 'CASHIER');
+    _applyLogin(cashierIdx >= 0 ? cashierIdx : 0);
+  }
+
+  void _applyLogin(int index) {
+    final m = _directory.firstWhere((x) => x.merchantId == _selMerchantId);
+    if (m.logins.isEmpty) return;
+    _selLoginIndex = index.clamp(0, m.logins.length - 1);
+    _pin.text = m.logins[_selLoginIndex].pin;
   }
 
   Future<void> _login() async {
@@ -47,6 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             role: res['role'] as String,
             outletId: _outlet.text.trim(),
           ));
+      ref.read(sessionExpiredProvider.notifier).state = false;
     } on DioException catch (e) {
       setState(() => _error = e.response?.data?['message']?.toString() ?? t.errorSignIn);
     } catch (_) {
@@ -60,6 +148,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
+    final hasDirectory = _directory.isNotEmpty;
+    final selected =
+        hasDirectory ? _directory.firstWhere((m) => m.merchantId == _selMerchantId) : null;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -75,56 +167,151 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.all(24),
               child: Card(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 28, 24, 24),
+                  padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Image.asset('assets/images/dika_logo.png', height: 64),
-                      const SizedBox(height: 16),
-                      Text('DPOS',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(fontWeight: FontWeight.w800, color: cs.primary)),
-                      Text('PT DIKA',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: cs.onSurfaceVariant,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.5)),
-                      const SizedBox(height: 12),
-                      Text(t.loginTitle,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: cs.onSurfaceVariant)),
-                      const SizedBox(height: 24),
-                      Text(t.fieldPin,
-                          style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      PinField(controller: _pin, length: 4, onSubmit: _login),
-                      const SizedBox(height: 12),
-                      Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-                        child: ExpansionTile(
-                          tilePadding: EdgeInsets.zero,
-                          title: Text(t.advancedSettings,
-                              style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                          childrenPadding: const EdgeInsets.only(bottom: 8),
-                          children: [
-                            TextField(
-                              controller: _merchant,
-                              decoration: InputDecoration(labelText: t.fieldMerchantId, isDense: true),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _outlet,
-                              decoration: InputDecoration(labelText: t.fieldOutletId, isDense: true),
+                      // Brand lockup = the circle mark plus the DIKASIR wordmark.
+                      // The PNG carries transparent vertical margin, so heightFactor
+                      // trims that padding (the art overflows harmlessly).
+                      Align(
+                        alignment: Alignment.center,
+                        heightFactor: 0.62,
+                        child: Image.asset('assets/images/splash_circle.png', height: 210),
+                      ),
+                      Text(
+                        'DIKASIR',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.quicksand(
+                          color: cs.primary,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.45),
+                              offset: const Offset(0, 3),
+                              blurRadius: 7,
                             ),
                           ],
                         ),
                       ),
+                      const SizedBox(height: 20),
+
+                      // Shown when an authed call 401'd and signed the user out.
+                      if (ref.watch(sessionExpiredProvider)) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: cs.errorContainer,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(children: [
+                            Icon(Icons.info_outline, size: 18, color: cs.onErrorContainer),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(t.sessionExpired,
+                                  style: TextStyle(color: cs.onErrorContainer)),
+                            ),
+                          ]),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // Demo directory: pick a business + outlet; PIN prefills.
+                      if (hasDirectory) ...[
+                        DropdownButtonFormField<String>(
+                          initialValue: _selMerchantId,
+                          isExpanded: true,
+                          decoration:
+                              InputDecoration(labelText: t.fieldMerchantId, isDense: true),
+                          items: [
+                            for (final m in _directory)
+                              DropdownMenuItem(
+                                value: m.merchantId,
+                                child: Text('${m.name} · ${m.businessType}',
+                                    overflow: TextOverflow.ellipsis),
+                              ),
+                          ],
+                          onChanged: (v) {
+                            if (v != null) setState(() => _applyMerchant(v));
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selOutletId,
+                          isExpanded: true,
+                          decoration:
+                              InputDecoration(labelText: t.fieldOutletId, isDense: true),
+                          items: [
+                            for (final o in selected!.outlets)
+                              DropdownMenuItem(
+                                value: o['id'] as String,
+                                child: Text(o['name'] as String, overflow: TextOverflow.ellipsis),
+                              ),
+                          ],
+                          onChanged: (v) => setState(() {
+                            _selOutletId = v;
+                            _outlet.text = v ?? '';
+                          }),
+                        ),
+                        if (selected.logins.length > 1) ...[
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<int>(
+                            initialValue: _selLoginIndex,
+                            isExpanded: true,
+                            decoration:
+                                const InputDecoration(labelText: 'Login as', isDense: true),
+                            items: [
+                              for (var i = 0; i < selected.logins.length; i++)
+                                DropdownMenuItem(
+                                  value: i,
+                                  child: Text(
+                                    '${selected.logins[i].name} · ${_roleLabel(selected.logins[i].role)}',
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                            onChanged: (v) {
+                              if (v != null) setState(() => _applyLogin(v));
+                            },
+                          ),
+                        ],
+                        const SizedBox(height: 18),
+                      ],
+
+                      Text(t.fieldPin,
+                          style: TextStyle(
+                              color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600)),
+                      const SizedBox(height: 8),
+                      PinField(controller: _pin, length: 4, onSubmit: _login),
+                      const SizedBox(height: 12),
+
+                      // Manual override only when the directory isn't available.
+                      if (!hasDirectory)
+                        Theme(
+                          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                          child: ExpansionTile(
+                            tilePadding: EdgeInsets.zero,
+                            title: Text(t.advancedSettings,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
+                            childrenPadding: const EdgeInsets.only(bottom: 8),
+                            children: [
+                              TextField(
+                                controller: _merchant,
+                                decoration:
+                                    InputDecoration(labelText: t.fieldMerchantId, isDense: true),
+                              ),
+                              const SizedBox(height: 10),
+                              TextField(
+                                controller: _outlet,
+                                decoration:
+                                    InputDecoration(labelText: t.fieldOutletId, isDense: true),
+                              ),
+                            ],
+                          ),
+                        ),
                       if (_error != null)
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 8),

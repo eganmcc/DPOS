@@ -1,23 +1,101 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.1 → 1.0.2
-Bump rationale: PATCH — reconcile lifecycle wording with the approved append-only model. Stored
-  Order lifecycle ends at COMPLETED; stored Payment lifecycle ends at PAID/FAILED/EXPIRED/
-  CANCELLED. VOIDED/REFUNDED are derived from append-only compensating records (OrderVoid; reversal
-  Payment) and never mutate the completed order or original PAID payment. Clarification, not a
-  weakening — strengthens Principle IV. No migration impact — design not yet built.
+Version change: 1.5.0 → 1.6.0
+Bump rationale: MINOR — codify the corrections lifecycle and two additive domains. Corrections: a
+  VOID is same-business-day only (Asia/Jakarta) and REQUIRES a reason; older sales are corrected by a
+  REFUND, which MAY be full or line-level partial and is recorded as an append-only `Refund` (+
+  `RefundLine`) plus a reversal `REFUND` `Payment`, restoring refunded stock through the ledger —
+  effective `REFUNDED` derives only when the whole grand total has been returned (a partial refund
+  keeps `COMPLETED`). An unpaid open bill (`AWAITING_PAYMENT`) MAY be `CANCELLED` — a new terminal
+  stored status that releases the reserved stock via the ledger (no money moves). Authorization: OWNER
+  and MANAGER may void/refund/cancel directly; a CASHIER MAY initiate one with a manager/owner PIN
+  override, which the server verifies and records as the approver — every correction still writes an
+  `AuditLog`. Additive domains: employee ATTENDANCE (clock-in/out spans feeding an owner/manager
+  report) and in-app owner/manager REPORTING (the app reads the same server-authoritative
+  `/admin/dashboard`). Additive; no money-math or idempotency rule changed, and COMPLETED-immutability
+  is preserved (corrections remain append-only compensating records).
+
+Prior — Version change: 1.4.0 → 1.5.0
+Bump rationale: MINOR — codify online-delivery sales channels as server-authoritative ingestion: an
+  online order (GoFood/GrabFood/ShopeeFood) is a first-class Order created through the same
+  computeOrder + inventory + (merchantId, clientOrderId) idempotency pipeline as an in-store sale (no
+  client money/stock rule); it carries a `channel` and an `onlineStatus` fulfillment lifecycle
+  distinct from payment status, and a platform-paid order lands COMPLETED with a synthetic ONLINE
+  payment. One server-side ingestion seam serves both the demo simulator and future provider webhooks;
+  the DB (not the platform) is authoritative. Online-order intake is F&B-only. Additive; no
+  money/stock/lifecycle rule changed.
+
+Prior — Version change: 1.3.0 → 1.4.0
+Bump rationale: MINOR — codify that peripherals are presentation, never a source of truth: the
+  grocery barcode scanner resolves a SKU and adds via the same server-authoritative add + stock-cap
+  path (no client money/stock rule), and Bluetooth ESC/POS receipt printing is a non-blocking side
+  effect of an already-committed order (silent on failure; the DB record, not the paper, is
+  authoritative). A scanner POS mode is offered only for grocery. Additive; no money/stock/lifecycle
+  rule changed.
+
+Prior — Version change: 1.2.0 → 1.3.0
+Bump rationale: MINOR — add the D-Customer Portal (admin web app) governance: admin mutations are
+  OWNER-gated, merchant-scoped, hash secrets at rest, and route inventory edits through the
+  append-only ledger; introduce `Merchant.businessType` (FNB | GROCERY) as a type-specific
+  behaviour driver (e.g. bill-settlement is F&B-only); and codify version discipline (read from
+  source, surfaced to users, bumped on user-visible change). Additive; no money/stock/lifecycle
+  rule changed.
+
+Prior — Version change: 1.1.0 → 1.2.0
+Bump rationale: MINOR — add deferred settlement (open bills) to Principle IV and the Order
+  lifecycle. An order may be confirmed without payment as `AWAITING_PAYMENT`, reserving stock at
+  confirm time (no more oversell than an immediate sale); settlement is a separate, idempotent,
+  single-guarded-transition action that appends a CHARGE and completes the order without touching
+  stock again; an outlet holds at most one open bill per table. Immediate-vs-open-bill is a
+  per-outlet setting. Additive material guidance, consistent with the existing lifecycle.
 Amendment history:
   - 1.0.0 (2026-08-21): Initial ratification (first adoption).
   - 1.0.1 (2026-08-21): Principle VI tenancy wording reconciled with the Phase 1 schema.
   - 1.0.2 (2026-08-22): Order/Payment lifecycle wording reconciled with the append-only void/
     refund model (derived VOIDED/REFUNDED; immutable original payment).
+  - 1.1.0 (2026-08-28): Principle IV gains stock-availability enforcement (no overselling; zero
+    on-hand is not orderable; client reflects availability).
+  - 1.2.0 (2026-08-28): Principle IV + Order lifecycle gain deferred settlement (open bills):
+    confirm-without-payment reserves stock; atomic idempotent settle; one open bill per table;
+    per-outlet paymentMode.
+  - 1.3.0 (2026-08-28): D-Customer Portal admin governance (OWNER-gated, ledger-routed inventory,
+    hashed secrets); Merchant.businessType (FNB | GROCERY); version discipline.
+  - 1.4.0 (2026-08-29): peripherals-are-presentation (grocery barcode scanner reuses the
+    server-authoritative add/stock path; ESC/POS printing is a non-blocking side effect of a
+    committed order); scanner POS mode is grocery-only.
+  - 1.5.0 (2026-08-29): external sales channels are server-authoritative ingestion (online-delivery
+    orders are first-class Orders via the shared computeOrder/inventory/idempotency pipeline;
+    `channel` + `onlineStatus` fulfillment lifecycle; platform-paid → COMPLETED + synthetic ONLINE
+    payment; one ingestion seam for the demo simulator + real webhooks); online-order intake is
+    F&B-only.
+  - 1.6.0 (2026-09-03): corrections lifecycle — same-day-only VOID (Asia/Jakarta) with a mandatory
+    reason; full/partial (line-level) REFUND as append-only `Refund`/`RefundLine` + reversal
+    `REFUND` `Payment`, stock restored via the ledger, effective `REFUNDED` only when fully
+    refunded; unpaid open bills may be `CANCELLED` (new terminal stored status) releasing reserved
+    stock; OWNER/MANAGER may correct directly and a CASHIER may initiate with a manager-PIN override
+    recorded as the approver, all audited; additive employee ATTENDANCE + in-app owner/manager
+    reporting.
 Modified principles:
-  - IV. Immutable Financial History — void/refund realized as append-only records; wording tightened
-  - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1)
+  - IV. Immutable Financial History — added stock-availability enforcement (1.1.0) and deferred
+    settlement / open-bill rules (1.2.0); void/refund realized as append-only records; refunds may
+    be full or line-level partial (append-only `Refund`/`RefundLine`), a same-day window bounds
+    VOID, and an unpaid open bill may be `CANCELLED` releasing reserved stock (1.6.0)
+  - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1); corrections gated to
+    OWNER/MANAGER, a CASHIER may initiate with a manager-PIN override recorded as the approver, all
+    audited (1.6.0)
 Modified sections:
-  - Technology & Architecture Constraints — "Lifecycles are backend-owned" split into stored
-    lifecycles + derived effective states (1.0.2)
+  - Technology & Architecture Constraints — Stored Order lifecycle gains a `CANCELLED` terminal for
+    abandoned unpaid open bills (stock released via the ledger); employee ATTENDANCE and in-app
+    owner/manager reporting are additive (1.6.0); external sales channels are server-authoritative
+    ingestion (online-delivery orders as first-class Orders; `channel` + `onlineStatus`; one ingestion
+    seam for demo + webhooks); online-order intake is F&B-only (1.5.0); peripherals-are-presentation
+    (barcode scanner + ESC/POS printing); grocery-only scanner mode (1.4.0); D-Customer Portal admin
+    governance + Merchant.
+    businessType (1.3.0); Stored Order lifecycle notes AWAITING_PAYMENT open bills + per-outlet
+    paymentMode (1.2.0); "Lifecycles are backend-owned" split into stored lifecycles + derived
+    effective states (1.0.2)
+  - Development Workflow — version discipline (read from source, surfaced, bumped) (1.3.0)
 Added principles:
   - I. Postgres Is the Authoritative System of Record
   - II. Atomic Business Operations
@@ -94,10 +172,39 @@ be overwritten or physically deleted. Corrections happen only through new, compe
   writes a negative movement and a stock-restoring void writes a positive movement. The
   `inventory_stock` balance is a projection maintained transactionally from the ledger and is
   NEVER edited on its own. A bare `stockQty` MUST NOT be overwritten.
+- **Stock availability is enforced.** For a stock-tracked variant, the server MUST reject any order
+  line whose quantity exceeds the current on-hand balance for the outlet — checked atomically
+  inside the checkout transaction (a conditional decrement), so an order can never oversell or
+  drive stock negative. An item with **zero on-hand MUST NOT be orderable**; the client reflects
+  this by disabling/greying the item and capping quantities at the remaining stock. Remaining
+  quantity is read from the outlet-scoped catalog.
+- **Deferred settlement (open bills) reserves stock up front and completes atomically.** An order
+  MAY be confirmed without a payment and stored as `AWAITING_PAYMENT`; this still writes the
+  negative `inventory_movements` entry and decrements stock at confirm time, so an open bill can no
+  more oversell than an immediate sale. Settlement is a **separate** action that appends a `CHARGE`
+  `Payment` and advances the stored status to `COMPLETED` through a **single guarded transition** —
+  idempotent (a retry or concurrent settle resolves to exactly one `COMPLETED` order with one
+  charge) and it **never touches stock again** (already reserved at confirm). An outlet holds at
+  most one `AWAITING_PAYMENT` order per table label.
 - VOID and REFUND are distinct operations, both realized as **new append-only records** rather
-  than mutations of history: a full VOID is an `OrderVoid`; a REFUND is a reversal `Payment`
+  than mutations of history: a full VOID is an `OrderVoid`; a REFUND is an append-only `Refund`
+  (+ `RefundLine` for line-level detail) accompanied by a reversal `Payment` (`reversalType = REFUND`)
   referencing the original `CHARGE`. The `COMPLETED` order and the original `PAID` payment are
   never rewritten; effective `VOIDED`/`REFUNDED` state is derived from the compensating records.
+  - **A VOID is same-business-day only** (Asia/Jakarta): a full reversal of a past business day is
+    refused (older sales are corrected by a REFUND instead). Every VOID and REFUND **requires a
+    reason** (audit trail).
+  - **A REFUND may be full or line-level partial**, and an order MAY carry several partial refunds
+    up to its grand total. Each restores exactly the refunded quantity's stock through the ledger
+    (an `ADJUSTMENT` movement + transactional projection). Effective `REFUNDED` derives **only when
+    the whole grand total has been returned**; a partial refund leaves the stored status `COMPLETED`
+    with a tracked refunded amount. A refund reverses the record and stock — real money movement
+    (cash returned, PSP refund, platform refund) is a separate operational/provider step.
+- **An unpaid open bill may be cancelled.** An `AWAITING_PAYMENT` order MAY advance to a new terminal
+  stored status **`CANCELLED`**, which **releases the reserved stock** through the ledger (a positive
+  `ADJUSTMENT` movement + projection) and closes the bill. No money moves (nothing was paid); the
+  order is retained as a record, never deleted. This is the only stored-status transition permitted
+  out of `AWAITING_PAYMENT` besides settlement to `COMPLETED`.
 
 Rationale: Financial and stock records are evidence. Append-only history with snapshots makes
 the past reconstructable and audit-safe; in-place edits destroy that.
@@ -128,8 +235,13 @@ Tenant isolation and accountability are built in from the first migration, not r
   inherit tenant ownership through a required, non-nullable parent foreign key instead of
   duplicating `merchantId`, provided ownership is unambiguous. The API MUST enforce tenant
   scoping/authorization from migration one — even where multi-outlet UI ships later.
-- Sensitive actions (VOID, REFUND, price edits) MUST be permission-gated by role and MUST write
-  an `AuditLog` entry recording actor, before/after, and timestamp.
+- Sensitive actions (VOID, REFUND, open-bill CANCEL, price/catalog edits) MUST be permission-gated
+  and MUST write an `AuditLog` entry recording actor, before/after, and timestamp. **OWNER and
+  MANAGER** may perform a correction directly. A **CASHIER MAY initiate** a void/refund/cancel only
+  with a **manager/owner PIN override**: the server verifies the PIN against an active OWNER/MANAGER
+  of the same merchant and records that staff as the **approver** on the record (and in the audit);
+  a missing or wrong PIN is refused. Owner/manager-only administrative reads (the sales dashboard)
+  and edits stay role-gated.
 - A merchant MUST NOT be able to read or write another merchant's data.
 
 Rationale: A shared backend that leaks across merchants, or lets any cashier void sales
@@ -162,18 +274,55 @@ lets the MVP demo convincingly today and go live without re-architecting.
 - **Database**: PostgreSQL. Early development runs local Postgres via Docker Compose; production/
   UAT/board-demo promotes to AWS RDS for PostgreSQL in the Jakarta region (`ap-southeast-3`) once
   the core schema and migrations stabilize. Same engine + Prisma migrations in both places.
-- **Web admin**: a separate Vue 3 + Vite + TypeScript SPA (Pinia, Vue Router) consuming the same
-  REST API. Not Flutter Web.
+- **Web admin (D-Customer Portal)**: a separate Vue 3 + Vite + TypeScript SPA (Pinia, Vue Router)
+  consuming the same REST API. Not Flutter Web. Admin mutations are **OWNER-gated**, merchant-scoped
+  from the token, and obey the same invariants as the app: PINs/passwords are bcrypt-hashed at rest
+  and NEVER returned; inventory edits go through the append-only ledger (an `ADJUSTMENT` movement +
+  transactional projection update, never an in-place balance edit — Principle IV); money stays
+  integer rupiah.
 - **Auth**: JWT issued by the API — owner email/password; staff PIN mapped to a staff account
   under the merchant. Roles gate sensitive actions.
+- **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY`) and drives
+  type-specific behaviour — e.g. the bill-settlement (`Outlet.paymentMode`) setting is surfaced only
+  for F&B; a **barcode-scanner POS mode** is offered only for grocery; **online-delivery order intake**
+  is offered only for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle
+  rules.
+- **Peripherals are presentation, never a source of truth.** Barcode scanning resolves a scanned
+  value to a variant by **SKU** and adds it to the cart through the **same** server-authoritative
+  add + stock-cap path as tapping — it introduces no client-side money or stock rule. Receipt
+  printing (Bluetooth ESC/POS) is a **non-blocking side effect of an already-committed order**: it
+  never gates or alters the sale, a print failure is silent, and the database record — not the
+  paper — is authoritative (Principle I).
+- **External sales channels are server-authoritative ingestion.** Online-delivery orders (GoFood/
+  GrabFood/ShopeeFood) are **first-class Orders**, not a parallel store: they are created through the
+  **same** `computeOrder` totals + inventory decrement + `(merchantId, clientOrderId)` idempotency as
+  an in-store checkout — the client never computes their money or stock. An order carries a `channel`
+  (`POS` in-store; a platform otherwise) and, for online orders, an `onlineStatus` **fulfillment**
+  lifecycle (`NEW → ACCEPTED → …`) that is **distinct from** payment status; a platform-paid order
+  lands `COMPLETED` with a synthetic `ONLINE` `Payment`. Both the demo simulator and future provider
+  webhooks feed **one** ingestion service; the database — not the delivery platform — is authoritative
+  (Principle I). A platform cancellation is an append-only `OrderVoid` (Principle IV), never a mutation.
+- **Attendance and reporting are additive, server-authoritative, and never gate a sale.** Employee
+  attendance is an append-only set of clock-in/out spans (`Attendance`); any staff records their own,
+  and an owner/manager report aggregates them. Owner/manager **reporting** (sales summary by day/
+  week/month, payment mix, top items, by-outlet, plus the attendance view) reads the **same**
+  server-authoritative figures (`/admin/dashboard`, `/admin/attendance`) — the client computes no
+  new money. Neither feature touches the money, stock, or order-lifecycle rules.
 - **Extensibility (F&B now → retail later)**: variants (the sellable unit — own SKU/barcode/
   price/cost/inventory) MUST be modeled distinctly from modifiers (additions/customizations).
   Retail is additive (populate SKU/barcode/cost, enable stock tracking) with no schema break.
 - **Lifecycles are backend-owned**:
-  - **Stored Order lifecycle**: `DRAFT → HELD → AWAITING_PAYMENT → COMPLETED`. The stored status
-    never advances past `COMPLETED`. `VOIDED` and `REFUNDED` are **derived effective states**
-    represented by append-only compensating records (an `OrderVoid`; a reversal `Payment`); they
-    do **not** mutate a `COMPLETED` order.
+  - **Stored Order lifecycle**: `DRAFT → HELD → AWAITING_PAYMENT → COMPLETED`, with an unpaid open
+    bill able to terminate at `CANCELLED` instead (`AWAITING_PAYMENT → CANCELLED`, releasing reserved
+    stock). The stored status never advances past `COMPLETED`. `AWAITING_PAYMENT` is the **open-bill**
+    state (confirm now, settle later); whether an outlet settles immediately or opens a bill is a
+    per-outlet setting (`Outlet.paymentMode` ∈ `IMMEDIATE` | `OPEN_BILL`). `VOIDED` and `REFUNDED`
+    are **derived effective states** represented by append-only compensating records (an `OrderVoid`;
+    a `Refund` + reversal `Payment`); they do **not** mutate a `COMPLETED` order — whereas `CANCELLED`
+    is a **stored** terminal for an open bill that was never paid. An order also carries a `channel`
+    (`POS` | `GOFOOD` | `GRABFOOD` | `SHOPEEFOOD`); an online order additionally tracks an
+    `onlineStatus` **fulfillment** lifecycle (`NEW → ACCEPTED → PREPARING → READY → COMPLETED`,
+    or `CANCELLED`) that is separate from — and never a substitute for — the stored payment status.
   - **Stored Payment lifecycle**: `CREATED → PENDING → PAID`, with `FAILED` / `EXPIRED` /
     `CANCELLED` alternatives. A refund/reversal is a **new** `Payment` record referencing the
     original `CHARGE`; the original `PAID` payment remains **immutable** (never rewritten to
@@ -192,6 +341,11 @@ lets the MVP demo convincingly today and go live without re-architecting.
   inventory ledger movements) — not by assertion alone.
 - **No unscoped scope creep**: changes that add money/stock behavior MUST state how they uphold
   Principles I–VI.
+- **Versions are read from source, never hardcoded**: each deployable (server `package.json`,
+  Flutter `pubspec.yaml`, portal `package.json`) owns its version; the app and portal read their
+  own at build time and the backend's from the public `GET /version` endpoint, and surface both to
+  the user (app Settings; portal login + nav). A user-visible behaviour change ships with a version
+  bump.
 
 ## Governance
 
@@ -209,4 +363,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.0.2 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-08-22
+**Version**: 1.6.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-03

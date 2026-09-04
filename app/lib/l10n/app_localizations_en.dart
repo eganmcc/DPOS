@@ -36,6 +36,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorSignIn => 'Sign-in failed (check connection)';
 
   @override
+  String get sessionExpired => 'Your session expired. Please sign in again.';
+
+  @override
   String get posTitle => 'Cashier';
 
   @override
@@ -172,5 +175,405 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String tableLabelShort(String n) {
     return 'Table $n';
+  }
+
+  @override
+  String get historyTitle => 'Transactions';
+
+  @override
+  String get historyNetSales => 'NET SALES';
+
+  @override
+  String historyCount(int count) {
+    return '$count sale';
+  }
+
+  @override
+  String historyVoidedCount(int count) {
+    return '$count voided';
+  }
+
+  @override
+  String get emptyHistory => 'No transactions yet';
+
+  @override
+  String get errorHistory => 'Failed to load transactions';
+
+  @override
+  String get actionRetry => 'Retry';
+
+  @override
+  String get transactionTitle => 'Transaction';
+
+  @override
+  String get statusCompleted => 'Paid';
+
+  @override
+  String get statusVoided => 'Voided';
+
+  @override
+  String get statusRefunded => 'Refunded';
+
+  @override
+  String get paymentReversal => 'Reversal';
+
+  @override
+  String get voidedHeader => 'Sale voided';
+
+  @override
+  String get voidReasonLabel => 'Reason';
+
+  @override
+  String get voidImmutableNote =>
+      'The sale is kept as a record — the void is a separate entry and stock has been restored.';
+
+  @override
+  String get actionVoidSale => 'Void sale';
+
+  @override
+  String get voidOwnerOnly => 'Only an owner or manager can void a sale.';
+
+  @override
+  String get voidConfirmTitle => 'Void this sale?';
+
+  @override
+  String get voidConfirmBody =>
+      'The sale stays in the records as voided, stock is restored, and the action is logged.';
+
+  @override
+  String get actionCancel => 'Cancel';
+
+  @override
+  String get actionVoidConfirm => 'Void';
+
+  @override
+  String get voidSuccess => 'Sale voided and stock restored';
+
+  @override
+  String get voidFailed => 'Void failed — please try again';
+
+  @override
+  String get voidForbidden => 'You are not allowed to void a sale';
+
+  @override
+  String get voidWindowExpired =>
+      'Voids are only allowed on the same day — issue a refund instead.';
+
+  @override
+  String get voidHint => 'Cancels the whole sale — today only';
+
+  @override
+  String get refundHint => 'Return part or all — any day';
+
+  @override
+  String get voidReasonWrongItem => 'Wrong item';
+
+  @override
+  String get voidReasonWrongPrice => 'Wrong price';
+
+  @override
+  String get voidReasonCustomerCancel => 'Customer cancelled';
+
+  @override
+  String get voidReasonTest => 'Test transaction';
+
+  @override
+  String get actionRefund => 'Refund';
+
+  @override
+  String get refundTitle => 'Refund sale';
+
+  @override
+  String get refundFull => 'Full';
+
+  @override
+  String get refundPartial => 'By item';
+
+  @override
+  String get refundReasonLabel => 'Refund reason';
+
+  @override
+  String get refundEstimate => 'Estimated refund';
+
+  @override
+  String get refundSuccess => 'Refund processed';
+
+  @override
+  String get refundFailed => 'Refund failed — please try again';
+
+  @override
+  String get refundedSoFar => 'Refunded so far';
+
+  @override
+  String get refundNothingLeft => 'Nothing left to refund on this sale.';
+
+  @override
+  String get refundReasonDamaged => 'Damaged / defective';
+
+  @override
+  String get refundReasonReturn => 'Customer return';
+
+  @override
+  String get refundReasonQuality => 'Quality issue';
+
+  @override
+  String get managerApprovalTitle => 'Manager approval';
+
+  @override
+  String get managerPinLabel => 'Manager / owner PIN';
+
+  @override
+  String get approvalInvalid => 'Invalid manager PIN';
+
+  @override
+  String get approvalRequired => 'Manager approval is required';
+
+  @override
+  String get actionCancelBill => 'Cancel bill';
+
+  @override
+  String get cancelBillTitle => 'Cancel this bill?';
+
+  @override
+  String get cancelBillBody =>
+      'Reserved stock is released and the bill is closed. No payment was taken.';
+
+  @override
+  String get cancelSuccess => 'Bill cancelled and stock released';
+
+  @override
+  String get cancelFailed => 'Cancel failed — please try again';
+
+  @override
+  String get clockInPromptTitle => 'Clock in now?';
+
+  @override
+  String get actionLater => 'Later';
+
+  @override
+  String get clockOutPromptTitle => 'Clock out?';
+
+  @override
+  String get clockOutPromptBody =>
+      'You\'re still on the clock. Clock out before logging out?';
+
+  @override
+  String get actionLogoutOnly => 'Just log out';
+
+  @override
+  String get actionClockOutAndLogout => 'Clock out & log out';
+
+  @override
+  String get soldOut => 'Sold out';
+
+  @override
+  String get eachSuffix => 'each';
+
+  @override
+  String get removeItem => 'Remove item';
+
+  @override
+  String get labelQty => 'Qty';
+
+  @override
+  String addQtyToOrder(int qty, String amount) {
+    return 'Add $qty · $amount';
+  }
+
+  @override
+  String get saveOrder => 'Process order';
+
+  @override
+  String get updateOrder => 'Update order';
+
+  @override
+  String get orderSaved => 'Order processed';
+
+  @override
+  String get openBillsTitle => 'Orders';
+
+  @override
+  String get emptyOpenBills => 'No open bills';
+
+  @override
+  String get onlineOrdersTitle => 'Online orders';
+
+  @override
+  String get onlineOrderNew => 'New';
+
+  @override
+  String get onlineOrderAccept => 'Accept';
+
+  @override
+  String get onlineDemoLabel => 'Online orders (demo)';
+
+  @override
+  String get searchTable => 'Search table';
+
+  @override
+  String get tableRequired => 'Enter a table number';
+
+  @override
+  String get tableExists => 'That table already has an open bill';
+
+  @override
+  String get actionOk => 'OK';
+
+  @override
+  String get dialogTitleInfo => 'Information';
+
+  @override
+  String get dialogTitleSuccess => 'Done';
+
+  @override
+  String get dialogTitleWarning => 'Heads up';
+
+  @override
+  String get dialogTitleError => 'Can\'t do that';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get aboutSection => 'About';
+
+  @override
+  String get appVersionLabel => 'App version';
+
+  @override
+  String get serverVersionLabel => 'Server version';
+
+  @override
+  String get preferencesSection => 'Preferences';
+
+  @override
+  String get languageLabel => 'Language';
+
+  @override
+  String get themeLabel => 'Theme';
+
+  @override
+  String get scannerTitle => 'Scan';
+
+  @override
+  String get scannerHint => 'Point the camera at a barcode';
+
+  @override
+  String get scannerSkuLabel => 'SKU';
+
+  @override
+  String get scannerAdd => 'Add';
+
+  @override
+  String get scannerBrowse => 'Browse products';
+
+  @override
+  String scannerAdded(String name) {
+    return 'Added: $name';
+  }
+
+  @override
+  String scannerSkuNotFound(String sku) {
+    return 'SKU not found: $sku';
+  }
+
+  @override
+  String get scannerOutOfStock => 'Out of stock';
+
+  @override
+  String get scannerModeLabel => 'Scanner mode';
+
+  @override
+  String get scannerModeAuto => 'Auto';
+
+  @override
+  String get scannerModeOn => 'On';
+
+  @override
+  String get scannerModeOff => 'Off';
+
+  @override
+  String get printFailed => 'Printer not reachable';
+
+  @override
+  String get actionPrint => 'Print';
+
+  @override
+  String get printerSection => 'Printer';
+
+  @override
+  String get printerPaired => 'Paired';
+
+  @override
+  String get printerNone => 'None found';
+
+  @override
+  String get printerTest => 'Test print';
+
+  @override
+  String get printerOk => 'Printed';
+
+  @override
+  String get reportsTitle => 'Reports';
+
+  @override
+  String get reportsOrders => 'Orders';
+
+  @override
+  String get reportsAvgTicket => 'Avg ticket';
+
+  @override
+  String get reportsPayments => 'PAYMENT METHODS';
+
+  @override
+  String get reportsTopItems => 'TOP ITEMS';
+
+  @override
+  String get reportsByOutlet => 'BY OUTLET';
+
+  @override
+  String get reportsByDay => 'SALES BY DAY';
+
+  @override
+  String reportsQtySold(int qty) {
+    return '$qty sold';
+  }
+
+  @override
+  String get reportsOpenCashier => 'Open cashier';
+
+  @override
+  String get reportsAttendance => 'ATTENDANCE';
+
+  @override
+  String get reportsNoAttendance => 'No attendance in this period';
+
+  @override
+  String get attendanceOnClock => 'On the clock';
+
+  @override
+  String get periodDaily => 'Daily';
+
+  @override
+  String get periodWeekly => 'Weekly';
+
+  @override
+  String get periodMonthly => 'Monthly';
+
+  @override
+  String get attendanceSection => 'Attendance';
+
+  @override
+  String get attendanceClockIn => 'Clock in';
+
+  @override
+  String get attendanceClockOut => 'Clock out';
+
+  @override
+  String get attendanceClockedOut => 'Not clocked in';
+
+  @override
+  String attendanceSince(String time) {
+    return 'On the clock since $time';
   }
 }

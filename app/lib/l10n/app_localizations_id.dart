@@ -36,6 +36,9 @@ class AppLocalizationsId extends AppLocalizations {
   String get errorSignIn => 'Gagal masuk (cek koneksi)';
 
   @override
+  String get sessionExpired => 'Sesi Anda berakhir. Silakan masuk lagi.';
+
+  @override
   String get posTitle => 'Kasir';
 
   @override
@@ -173,5 +176,406 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String tableLabelShort(String n) {
     return 'Meja $n';
+  }
+
+  @override
+  String get historyTitle => 'Transaksi';
+
+  @override
+  String get historyNetSales => 'PENJUALAN BERSIH';
+
+  @override
+  String historyCount(int count) {
+    return '$count transaksi';
+  }
+
+  @override
+  String historyVoidedCount(int count) {
+    return '$count dibatalkan';
+  }
+
+  @override
+  String get emptyHistory => 'Belum ada transaksi';
+
+  @override
+  String get errorHistory => 'Gagal memuat transaksi';
+
+  @override
+  String get actionRetry => 'Coba lagi';
+
+  @override
+  String get transactionTitle => 'Transaksi';
+
+  @override
+  String get statusCompleted => 'Lunas';
+
+  @override
+  String get statusVoided => 'Dibatalkan';
+
+  @override
+  String get statusRefunded => 'Dikembalikan';
+
+  @override
+  String get paymentReversal => 'Pembalikan';
+
+  @override
+  String get voidedHeader => 'Transaksi dibatalkan';
+
+  @override
+  String get voidReasonLabel => 'Alasan';
+
+  @override
+  String get voidImmutableNote =>
+      'Transaksi tetap tersimpan sebagai catatan — pembatalan dicatat terpisah dan stok telah dikembalikan.';
+
+  @override
+  String get actionVoidSale => 'Batalkan transaksi';
+
+  @override
+  String get voidOwnerOnly =>
+      'Hanya pemilik atau manajer yang dapat membatalkan transaksi.';
+
+  @override
+  String get voidConfirmTitle => 'Batalkan transaksi ini?';
+
+  @override
+  String get voidConfirmBody =>
+      'Transaksi tetap tercatat sebagai dibatalkan, stok dikembalikan, dan tindakan ini dicatat.';
+
+  @override
+  String get actionCancel => 'Batal';
+
+  @override
+  String get actionVoidConfirm => 'Batalkan';
+
+  @override
+  String get voidSuccess => 'Transaksi dibatalkan, stok dikembalikan';
+
+  @override
+  String get voidFailed => 'Pembatalan gagal — coba lagi';
+
+  @override
+  String get voidForbidden => 'Anda tidak berhak membatalkan transaksi';
+
+  @override
+  String get voidWindowExpired =>
+      'Pembatalan hanya boleh di hari yang sama — lakukan refund.';
+
+  @override
+  String get voidHint => 'Membatalkan seluruh transaksi — hanya hari ini';
+
+  @override
+  String get refundHint => 'Kembalikan sebagian atau semua — kapan saja';
+
+  @override
+  String get voidReasonWrongItem => 'Salah item';
+
+  @override
+  String get voidReasonWrongPrice => 'Salah harga';
+
+  @override
+  String get voidReasonCustomerCancel => 'Pelanggan batal';
+
+  @override
+  String get voidReasonTest => 'Transaksi tes';
+
+  @override
+  String get actionRefund => 'Refund';
+
+  @override
+  String get refundTitle => 'Refund transaksi';
+
+  @override
+  String get refundFull => 'Penuh';
+
+  @override
+  String get refundPartial => 'Per item';
+
+  @override
+  String get refundReasonLabel => 'Alasan refund';
+
+  @override
+  String get refundEstimate => 'Perkiraan refund';
+
+  @override
+  String get refundSuccess => 'Refund diproses';
+
+  @override
+  String get refundFailed => 'Refund gagal — coba lagi';
+
+  @override
+  String get refundedSoFar => 'Sudah direfund';
+
+  @override
+  String get refundNothingLeft => 'Tidak ada yang bisa direfund lagi.';
+
+  @override
+  String get refundReasonDamaged => 'Rusak / cacat';
+
+  @override
+  String get refundReasonReturn => 'Barang dikembalikan';
+
+  @override
+  String get refundReasonQuality => 'Masalah kualitas';
+
+  @override
+  String get managerApprovalTitle => 'Persetujuan manajer';
+
+  @override
+  String get managerPinLabel => 'PIN manajer / pemilik';
+
+  @override
+  String get approvalInvalid => 'PIN manajer salah';
+
+  @override
+  String get approvalRequired => 'Perlu persetujuan manajer';
+
+  @override
+  String get actionCancelBill => 'Batalkan pesanan';
+
+  @override
+  String get cancelBillTitle => 'Batalkan pesanan ini?';
+
+  @override
+  String get cancelBillBody =>
+      'Stok yang direservasi dikembalikan dan pesanan ditutup. Tidak ada pembayaran.';
+
+  @override
+  String get cancelSuccess => 'Pesanan dibatalkan, stok dikembalikan';
+
+  @override
+  String get cancelFailed => 'Pembatalan gagal — coba lagi';
+
+  @override
+  String get clockInPromptTitle => 'Absen masuk sekarang?';
+
+  @override
+  String get actionLater => 'Nanti';
+
+  @override
+  String get clockOutPromptTitle => 'Absen keluar?';
+
+  @override
+  String get clockOutPromptBody =>
+      'Anda masih dalam sesi kerja. Absen keluar sebelum keluar?';
+
+  @override
+  String get actionLogoutOnly => 'Keluar saja';
+
+  @override
+  String get actionClockOutAndLogout => 'Absen keluar & keluar';
+
+  @override
+  String get soldOut => 'Habis';
+
+  @override
+  String get eachSuffix => '/pcs';
+
+  @override
+  String get removeItem => 'Hapus item';
+
+  @override
+  String get labelQty => 'Jumlah';
+
+  @override
+  String addQtyToOrder(int qty, String amount) {
+    return 'Tambah $qty · $amount';
+  }
+
+  @override
+  String get saveOrder => 'Proses Pesanan';
+
+  @override
+  String get updateOrder => 'Update Pesanan';
+
+  @override
+  String get orderSaved => 'Pesanan diproses';
+
+  @override
+  String get openBillsTitle => 'Pesanan';
+
+  @override
+  String get emptyOpenBills => 'Belum ada pesanan terbuka';
+
+  @override
+  String get onlineOrdersTitle => 'Pesanan Online';
+
+  @override
+  String get onlineOrderNew => 'Baru';
+
+  @override
+  String get onlineOrderAccept => 'Terima';
+
+  @override
+  String get onlineDemoLabel => 'Pesanan online (demo)';
+
+  @override
+  String get searchTable => 'Cari meja';
+
+  @override
+  String get tableRequired => 'Isi nomor meja dulu';
+
+  @override
+  String get tableExists => 'Meja itu sudah punya pesanan terbuka';
+
+  @override
+  String get actionOk => 'Oke';
+
+  @override
+  String get dialogTitleInfo => 'Informasi';
+
+  @override
+  String get dialogTitleSuccess => 'Berhasil';
+
+  @override
+  String get dialogTitleWarning => 'Perhatian';
+
+  @override
+  String get dialogTitleError => 'Tidak bisa';
+
+  @override
+  String get settingsTitle => 'Pengaturan';
+
+  @override
+  String get aboutSection => 'Tentang';
+
+  @override
+  String get appVersionLabel => 'Versi aplikasi';
+
+  @override
+  String get serverVersionLabel => 'Versi server';
+
+  @override
+  String get preferencesSection => 'Preferensi';
+
+  @override
+  String get languageLabel => 'Bahasa';
+
+  @override
+  String get themeLabel => 'Tema';
+
+  @override
+  String get scannerTitle => 'Pindai';
+
+  @override
+  String get scannerHint => 'Arahkan kamera ke barcode';
+
+  @override
+  String get scannerSkuLabel => 'SKU';
+
+  @override
+  String get scannerAdd => 'Tambah';
+
+  @override
+  String get scannerBrowse => 'Lihat produk';
+
+  @override
+  String scannerAdded(String name) {
+    return 'Ditambahkan: $name';
+  }
+
+  @override
+  String scannerSkuNotFound(String sku) {
+    return 'SKU tidak ditemukan: $sku';
+  }
+
+  @override
+  String get scannerOutOfStock => 'Stok habis';
+
+  @override
+  String get scannerModeLabel => 'Mode pindai';
+
+  @override
+  String get scannerModeAuto => 'Otomatis';
+
+  @override
+  String get scannerModeOn => 'Aktif';
+
+  @override
+  String get scannerModeOff => 'Nonaktif';
+
+  @override
+  String get printFailed => 'Printer tidak terhubung';
+
+  @override
+  String get actionPrint => 'Cetak';
+
+  @override
+  String get printerSection => 'Printer';
+
+  @override
+  String get printerPaired => 'Terpasang';
+
+  @override
+  String get printerNone => 'Tidak ditemukan';
+
+  @override
+  String get printerTest => 'Tes cetak';
+
+  @override
+  String get printerOk => 'Tercetak';
+
+  @override
+  String get reportsTitle => 'Laporan';
+
+  @override
+  String get reportsOrders => 'Transaksi';
+
+  @override
+  String get reportsAvgTicket => 'Rata-rata';
+
+  @override
+  String get reportsPayments => 'METODE PEMBAYARAN';
+
+  @override
+  String get reportsTopItems => 'PRODUK TERLARIS';
+
+  @override
+  String get reportsByOutlet => 'PER OUTLET';
+
+  @override
+  String get reportsByDay => 'PENJUALAN HARIAN';
+
+  @override
+  String reportsQtySold(int qty) {
+    return '$qty terjual';
+  }
+
+  @override
+  String get reportsOpenCashier => 'Buka kasir';
+
+  @override
+  String get reportsAttendance => 'ABSENSI';
+
+  @override
+  String get reportsNoAttendance => 'Belum ada absensi di periode ini';
+
+  @override
+  String get attendanceOnClock => 'Sedang bekerja';
+
+  @override
+  String get periodDaily => 'Harian';
+
+  @override
+  String get periodWeekly => 'Mingguan';
+
+  @override
+  String get periodMonthly => 'Bulanan';
+
+  @override
+  String get attendanceSection => 'Absensi';
+
+  @override
+  String get attendanceClockIn => 'Absen masuk';
+
+  @override
+  String get attendanceClockOut => 'Absen keluar';
+
+  @override
+  String get attendanceClockedOut => 'Belum absen masuk';
+
+  @override
+  String attendanceSince(String time) {
+    return 'Bekerja sejak $time';
   }
 }

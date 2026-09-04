@@ -18,6 +18,14 @@ class CartLine {
   int get unitPrice => variant.price + modifiers.fold(0, (s, m) => s + m.priceDelta);
   int get lineTotal => unitPrice * qty;
 
+  /// Identity of an orderable line, independent of quantity: same variant, same
+  /// SET of modifiers (order-independent), same note. Adding an item that matches
+  /// an existing line's key bumps its qty instead of spawning a duplicate row.
+  String get mergeKey {
+    final modIds = modifiers.map((m) => m.id).toList()..sort();
+    return '${variant.id}|${modIds.join(',')}|${note ?? ''}';
+  }
+
   CartLine copyWith({int? qty}) => CartLine(
         product: product,
         variant: variant,
@@ -43,14 +51,17 @@ class CartState {
   final String type; // DINE_IN | TAKEAWAY
   final String? tableLabel;
   final int orderDiscountPercentBps; // 0..10000
+  final String? revisingOrderId; // set when editing an existing open bill
   const CartState({
     this.lines = const [],
     this.type = 'TAKEAWAY',
     this.tableLabel,
     this.orderDiscountPercentBps = 0,
+    this.revisingOrderId,
   });
 
   bool get isEmpty => lines.isEmpty;
+  bool get isRevising => revisingOrderId != null;
 
   CartState copyWith({
     List<CartLine>? lines,
@@ -63,6 +74,7 @@ class CartState {
         type: type ?? this.type,
         tableLabel: tableLabel ?? this.tableLabel,
         orderDiscountPercentBps: orderDiscountPercentBps ?? this.orderDiscountPercentBps,
+        revisingOrderId: revisingOrderId, // preserved across edits; cleared by clear()
       );
 
   CartPreview preview(TaxRule? tax) {
@@ -80,11 +92,20 @@ class CartState {
 class CartController extends StateNotifier<CartState> {
   CartController() : super(const CartState());
 
-  void addItem(Product product, Variant variant, List<Modifier> modifiers, {String? note}) {
-    state = state.copyWith(lines: [
-      ...state.lines,
-      CartLine(product: product, variant: variant, qty: 1, modifiers: modifiers, note: note),
-    ]);
+  void addItem(Product product, Variant variant, List<Modifier> modifiers,
+      {String? note, int qty = 1}) {
+    final incoming =
+        CartLine(product: product, variant: variant, qty: qty, modifiers: modifiers, note: note);
+    final lines = [...state.lines];
+    final i = lines.indexWhere((l) => l.mergeKey == incoming.mergeKey);
+    if (i >= 0) {
+      // Bump qty and move the just-touched line to the top.
+      final existing = lines.removeAt(i);
+      lines.insert(0, existing.copyWith(qty: existing.qty + qty));
+    } else {
+      lines.insert(0, incoming); // newest on top
+    }
+    state = state.copyWith(lines: lines);
   }
 
   void changeQty(int index, int delta) {
@@ -110,20 +131,53 @@ class CartController extends StateNotifier<CartState> {
 
   void clear() => state = const CartState();
 
-  /// Build the submit payload consumed by POST /orders.
-  Map<String, dynamic> buildPayload({
-    required String clientOrderId,
-    required String outletId,
-    String? deviceId,
-    required String method, // CASH | QRIS_SIMULATED
-    int? tendered,
-  }) {
+  /// Load an open bill's items back into the cart for editing. Resolves each line's
+  /// variant + modifiers from the catalog (lines whose variant is no longer in the
+  /// catalog are skipped). Sets revisingOrderId so confirming calls revise, not create.
+  void loadFromOrder(OrderResult order, Catalog catalog) {
+    final variants = <String, (Product, Variant)>{};
+    final mods = <String, Modifier>{};
+    for (final prod in catalog.products) {
+      for (final v in prod.variants) {
+        variants[v.id] = (prod, v);
+      }
+      for (final g in prod.modifierGroups) {
+        for (final m in g.modifiers) {
+          mods[m.id] = m;
+        }
+      }
+    }
+    final lines = <CartLine>[];
+    for (final ol in order.lines) {
+      final vid = ol.variantId;
+      if (vid == null) continue;
+      final pv = variants[vid];
+      if (pv == null) continue;
+      final lineMods = ol.modifierIds.map((id) => mods[id]).whereType<Modifier>().toList();
+      lines.add(CartLine(
+        product: pv.$1,
+        variant: pv.$2,
+        qty: num.tryParse(ol.qty)?.toInt() ?? 1,
+        modifiers: lineMods,
+      ));
+    }
+    state = CartState(
+      lines: lines,
+      type: order.type ?? 'TAKEAWAY',
+      tableLabel: order.tableLabel,
+      revisingOrderId: order.id,
+    );
+  }
+
+  /// Payload for POST /orders/:id/revise — same line shape as a submit, without a
+  /// clientOrderId or payment.
+  Map<String, dynamic> buildRevisePayload() {
+    final isDineIn = state.type == 'DINE_IN';
+    final table = state.tableLabel?.trim().toUpperCase();
     return {
-      'clientOrderId': clientOrderId,
-      'outletId': outletId,
-      if (deviceId != null) 'deviceId': deviceId,
       'type': state.type,
-      if (state.tableLabel != null && state.tableLabel!.isNotEmpty) 'tableLabel': state.tableLabel,
+      // Only a dine-in bill carries a table; switching to takeaway clears it server-side.
+      if (isDineIn && table != null && table.isNotEmpty) 'tableLabel': table,
       if (state.orderDiscountPercentBps > 0)
         'orderDiscount': {'kind': 'PERCENT', 'value': state.orderDiscountPercentBps},
       'lines': state.lines
@@ -134,7 +188,39 @@ class CartController extends StateNotifier<CartState> {
                 if (l.note != null && l.note!.isNotEmpty) 'note': l.note,
               })
           .toList(),
-      'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+    };
+  }
+
+  /// Build the submit payload consumed by POST /orders.
+  ///
+  /// [method] null → confirm an open bill (no payment; the server stores it
+  /// AWAITING_PAYMENT and reserves stock). Non-null → settle immediately.
+  Map<String, dynamic> buildPayload({
+    required String clientOrderId,
+    required String outletId,
+    String? deviceId,
+    String? method, // CASH | QRIS_SIMULATED, or null for an open bill
+    int? tendered,
+  }) {
+    final table = state.tableLabel?.trim().toUpperCase();
+    return {
+      'clientOrderId': clientOrderId,
+      'outletId': outletId,
+      if (deviceId != null) 'deviceId': deviceId,
+      'type': state.type,
+      if (table != null && table.isNotEmpty) 'tableLabel': table,
+      if (state.orderDiscountPercentBps > 0)
+        'orderDiscount': {'kind': 'PERCENT', 'value': state.orderDiscountPercentBps},
+      'lines': state.lines
+          .map((l) => {
+                'variantId': l.variant.id,
+                'qty': l.qty,
+                if (l.modifiers.isNotEmpty) 'modifierIds': l.modifiers.map((m) => m.id).toList(),
+                if (l.note != null && l.note!.isNotEmpty) 'note': l.note,
+              })
+          .toList(),
+      if (method != null)
+        'payment': {'method': method, if (tendered != null) 'tendered': tendered},
     };
   }
 }

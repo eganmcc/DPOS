@@ -21,7 +21,7 @@ description: "Task list for DPOS Mobile POS MVP"
 
 - Backend API: `server/` (NestJS + Prisma) — the only client of PostgreSQL
 - Mobile app: `app/lib/` (Flutter)
-- Web admin: `web-admin/src/` (Vue 3 + Vite)
+- Web admin: `customer-portal/src/` (Vue 3 + Vite)
 
 ---
 
@@ -29,11 +29,11 @@ description: "Task list for DPOS Mobile POS MVP"
 
 **Purpose**: Repository and toolchain initialization.
 
-- [X] T001 Create the multi-component repo structure (`server/`, `app/`, `web-admin/`, `docker-compose.yml`) per [plan.md](./plan.md) Project Structure
+- [X] T001 Create the multi-component repo structure (`server/`, `app/`, `customer-portal/`, `docker-compose.yml`) per [plan.md](./plan.md) Project Structure
 - [X] T002 Initialize the NestJS + Prisma backend in `server/` (TypeScript, Node 20) with base `package.json`, `tsconfig.json`, `nest-cli.json`
 - [X] T003 [P] Initialize the Flutter app in `app/` with Riverpod, `intl`, `qr_flutter`, `drift` dependencies in `app/pubspec.yaml`
-- [ ] T004 [P] Initialize the Vue 3 + Vite + TS admin in `web-admin/` with Pinia and Vue Router
-- [ ] T005 [P] Configure linting/formatting for all three components (ESLint/Prettier in `server/` and `web-admin/`, `analysis_options.yaml` in `app/`)
+- [ ] T004 [P] Initialize the Vue 3 + Vite + TS admin in `customer-portal/` with Pinia and Vue Router
+- [ ] T005 [P] Configure linting/formatting for all three components (ESLint/Prettier in `server/` and `customer-portal/`, `analysis_options.yaml` in `app/`)
 - [ ] T006 Add local PostgreSQL to `docker-compose.yml` and `.env`/`.env.example` with `DATABASE_URL` (dev → Jakarta RDS later)
 
 ---
@@ -54,7 +54,7 @@ description: "Task list for DPOS Mobile POS MVP"
 - [X] T014 Implement a **minimal, read-only** outlet-scoped catalog endpoint in `server/src/catalog/catalog.controller.ts` (`GET /catalog` only) that serves the **seeded** catalog so US1 can display products. **No catalog mutation here — all create/update remains in US2 (T030).**
 - [X] T015 Write the seed script in `server/prisma/seed.ts` (1 merchant, 2 outlets, owner + cashier, categories/products/variants/modifiers, a PBJT `TaxRule`, initial stock)
 - [X] T016 Build the Flutter foundation in `app/lib/`: `core/` (theme, Rupiah/Bahasa i18n via `intl`), `data/` (drift cache schema, API client, offline sync queue keyed by client-generated UUIDs), and a responsive phone/tablet scaffold in `app/lib/core/layout/`
-- [ ] T017 [P] Build the Vue admin foundation in `web-admin/src/`: typed API client (`api/`), auth store (`stores/auth.ts`), and router shell (`router/`)
+- [ ] T017 [P] Build the Vue admin foundation in `customer-portal/src/`: typed API client (`api/`), auth store (`stores/auth.ts`), and router shell (`router/`)
 
 **Checkpoint**: Foundation ready — user stories can now proceed.
 
@@ -116,8 +116,8 @@ description: "Task list for DPOS Mobile POS MVP"
 
 - [ ] T030 [P] [US2] Catalog write endpoints in `server/src/catalog/` (create/update categories, products, variants, modifier groups; `POST /admin/products`)
 - [ ] T031 [US2] Per-outlet `TaxRule` + service-charge config endpoints in `server/src/outlets/tax-rule.controller.ts`
-- [ ] T032 [P] [US2] Vue admin catalog screens in `web-admin/src/views/products/` (products, variants, modifiers) with `applied_by`/threshold-aware discount policy hooks
-- [ ] T033 [US2] Vue admin outlet tax/fee settings screen in `web-admin/src/views/outlets/TaxSettings.vue`
+- [ ] T032 [P] [US2] Vue admin catalog screens in `customer-portal/src/views/products/` (products, variants, modifiers) with `applied_by`/threshold-aware discount policy hooks
+- [ ] T033 [US2] Vue admin outlet tax/fee settings screen in `customer-portal/src/views/outlets/TaxSettings.vue`
 - [ ] T034 [US2] Flutter: honor availability toggle and per-outlet catalog in `app/lib/features/catalog/`
 
 **Checkpoint**: US1 + US2 both work independently.
@@ -132,14 +132,14 @@ description: "Task list for DPOS Mobile POS MVP"
 
 ### Tests for User Story 3 (critical-integrity)
 
-- [ ] T035 [P] [US3] Integration test: void appends immutable `OrderVoid` (`UNIQUE(order_id)`), order unchanged, stock restored, `AuditLog` written, cashier denied — **and idempotency is strict: retrying the same `client_void_id` produces exactly one `OrderVoid`, exactly one applicable `REVERSAL` Payment (`reversal_type=VOID`), and exactly one set of `VOID_RESTORE` movements** — in `server/test/orders.void.e2e-spec.ts` (SC-004, SC-005)
+- [X] T035 [P] [US3] Integration test: void appends immutable `OrderVoid` (`UNIQUE(order_id)`), order unchanged, stock restored, `AuditLog` written, cashier denied — **and idempotency is strict: retrying the same `client_void_id` produces exactly one `OrderVoid`, exactly one applicable `REVERSAL` Payment (`reversal_type=VOID`), and exactly one set of `VOID_RESTORE` movements** — in `server/test/orders.void.e2e-spec.ts` (SC-004, SC-005)
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Void service in `server/src/orders/void.service.ts`: append `OrderVoid` (never mutate order), positive `VOID_RESTORE` movements, `Payment(direction=REVERSAL, reversal_type=VOID)` where charged, `AuditLog` — one transaction; OWNER-gated; idempotent via `UNIQUE(order_id)`/`client_void_id`
-- [ ] T037 [US3] Expose `POST /orders/{id}/void` and `GET /orders` (history, outlet-scoped) in `server/src/orders/orders.controller.ts`
-- [ ] T038 [P] [US3] Flutter transaction history + detail in `app/lib/features/transactions/`
-- [ ] T039 [US3] Flutter void action (owner-gated) + derived effective-status display in `app/lib/features/transactions/`
+- [X] T036 [US3] Void service in `server/src/orders/void.service.ts`: append `OrderVoid` (never mutate order), positive `VOID_RESTORE` movements, `Payment(direction=REVERSAL, reversal_type=VOID)` where charged, `AuditLog` — one transaction; OWNER-gated; idempotent via `UNIQUE(order_id)`/`client_void_id`
+- [X] T037 [US3] Expose `POST /orders/{id}/void` and `GET /orders` (history, outlet-scoped) in `server/src/orders/orders.controller.ts`
+- [X] T038 [P] [US3] Flutter transaction history + detail in `app/lib/features/transactions/`
+- [X] T039 [US3] Flutter void action (owner-gated) + derived effective-status display in `app/lib/features/transactions/`
 
 **Checkpoint**: US1–US3 independently functional.
 
@@ -204,8 +204,8 @@ description: "Task list for DPOS Mobile POS MVP"
 
 ### Implementation for User Story 7
 
-- [ ] T049 [P] [US7] Vue admin outlets + staff management screens in `web-admin/src/views/outlets/` and `web-admin/src/views/staff/`
-- [ ] T050 [US7] Vue admin sales dashboard in `web-admin/src/views/dashboard/` (consumes `GET /reports/daily`)
+- [ ] T049 [P] [US7] Vue admin outlets + staff management screens in `customer-portal/src/views/outlets/` and `customer-portal/src/views/staff/`
+- [ ] T050 [US7] Vue admin sales dashboard in `customer-portal/src/views/dashboard/` (consumes `GET /reports/daily`)
 
 **Checkpoint**: US1–US7 independently functional.
 

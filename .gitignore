@@ -27,9 +27,14 @@ app/pubspec.lock
 web-admin/dist/
 web-admin/node_modules/
 
-# Editor / OS
+# Editor / OS — everything here is per-machine, never synced.
+# .vscode/ holds launch.json + settings tied to this machine's SDK paths and
+# device ids; sharing it would clobber the other machine's VS Code setup.
 .vscode/
+*.code-workspace
+.history/
 .idea/
+*.iml
 .DS_Store
 Thumbs.db
 
@@ -44,3 +49,6 @@ design-import/
 server/server-run.*
 server/npm-install.log
 app/flutter-run.log
+
+# Office lock/owner temp files
+~$*

@@ -4,17 +4,26 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/brand.dart';
+import '../../core/formatters.dart';
 import '../../core/money.dart';
+import '../../core/tts.dart';
 import '../../core/theme.dart';
+import '../../data/api_client.dart';
+import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../order/cart.dart';
 import '../receipt/receipt_screen.dart';
+import '../scanner/rongta_printer.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
-  const CheckoutScreen({super.key, required this.grandTotalPreview});
+  const CheckoutScreen({super.key, required this.grandTotalPreview, this.settleOrderId});
   final int grandTotalPreview;
+
+  /// Non-null → settle an existing open bill (no cart, no offline queue).
+  final String? settleOrderId;
+  bool get isSettle => settleOrderId != null;
 
   @override
   ConsumerState<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -47,14 +56,15 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   }
 
   void _setTender(int v) => setState(() {
-        _tender.text = v.toString();
+        // Route through the formatter so the field shows grouped digits (1.500.000).
+        _tender.value = ThousandsTextInputFormatter()
+            .formatEditUpdate(const TextEditingValue(), TextEditingValue(text: v.toString()));
         _selectedTender = v;
       });
 
   Future<void> _submit() async {
     final t = AppLocalizations.of(context)!;
     final session = ref.read(sessionProvider)!;
-    final cart = ref.read(cartProvider.notifier);
     if (_method == 'CASH' && (_tenderValue ?? 0) < widget.grandTotalPreview) {
       setState(() => _error = t.errorCashShort);
       return;
@@ -63,22 +73,52 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
       _submitting = true;
       _error = null;
     });
-    final payload = cart.buildPayload(
-      clientOrderId: const Uuid().v4(),
-      outletId: session.outletId,
-      deviceId: session.deviceId,
-      method: _method,
-      tendered: _method == 'CASH' ? _tenderValue : null,
-    );
     try {
-      final result = await ref.read(syncQueueProvider).submit(payload);
+      OrderResult? result;
+      if (widget.isSettle) {
+        // Settling an existing open bill: post to the settle endpoint (online only).
+        final json = await ref.read(apiClientProvider).settleOrder(
+              widget.settleOrderId!,
+              clientSettleId: const Uuid().v4(),
+              method: _method,
+              tendered: _method == 'CASH' ? _tenderValue : null,
+            );
+        result = OrderResult.fromJson(json);
+        ref.invalidate(openBillsProvider(session.outletId));
+        ref.invalidate(catalogProvider(session.outletId));
+      } else {
+        // New immediate sale: build from the cart and go through the offline queue.
+        final cart = ref.read(cartProvider.notifier);
+        final payload = cart.buildPayload(
+          clientOrderId: const Uuid().v4(),
+          outletId: session.outletId,
+          deviceId: session.deviceId,
+          method: _method,
+          tendered: _method == 'CASH' ? _tenderValue : null,
+        );
+        result = await ref.read(syncQueueProvider).submit(payload);
+        cart.clear();
+        if (result != null) ref.invalidate(catalogProvider(session.outletId));
+      }
       if (!mounted) return;
-      cart.clear();
       if (result != null) {
+        // Fire-and-forget via the app-wide TTS engine so navigating to the
+        // receipt can't cut the announcement off.
+        announceReceived(result.grandTotal);
+        // Auto-print to the DPOSP thermal printer if one is paired (no-op / silent
+        // otherwise — never blocks checkout).
+        final cat = ref.read(catalogProvider(session.outletId)).valueOrNull;
+        // Rongta printer → its own path (kept-open socket + cash-drawer on cash);
+        // any other printer → the existing printReceipt flow. Fire-and-forget.
+        // openDrawer: true — this is the ORIGINAL sale; reprints never pop the drawer.
+        printReceiptSmart(result,
+            businessName: cat?.merchantName, outletName: cat?.outletName, openDrawer: true);
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => ReceiptScreen(order: result)),
+          MaterialPageRoute(builder: (_) => ReceiptScreen(order: result!)),
         );
       } else {
+        // Immediate sale queued offline (no receipt yet).
         Navigator.of(context).popUntil((r) => r.isFirst);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(t.msgQueuedOffline)));
       }
@@ -145,7 +185,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   child: _submitting
                       ? const SizedBox(
                           height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text(_method == 'CASH' ? t.actionComplete : t.actionMarkPaid),
+                      : Text(t.actionComplete),
                 ),
               ),
             ],
@@ -207,6 +247,8 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
         TextField(
           controller: _tender,
           keyboardType: TextInputType.number,
+          textAlign: TextAlign.end,
+          inputFormatters: [ThousandsTextInputFormatter()],
           decoration: InputDecoration(labelText: t.fieldCashReceived, prefixText: 'Rp '),
           onChanged: (_) => setState(() => _selectedTender = null),
         ),

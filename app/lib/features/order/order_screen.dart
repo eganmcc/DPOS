@@ -1,15 +1,24 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:uuid/uuid.dart';
+import '../../core/app_dialog.dart';
 import '../../core/brand.dart';
+import '../../core/formatters.dart';
 import '../../core/money.dart';
-import '../../core/settings_actions.dart';
 import '../../core/theme.dart';
+import '../../data/api_client.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../payment/checkout_screen.dart';
+import '../reports/reports_screen.dart';
+import '../settings/settings_screen.dart';
+import '../transactions/transactions_screen.dart';
 import 'cart.dart';
+import 'online_orders_controller.dart';
+import 'open_bills_screen.dart';
 
 class OrderScreen extends ConsumerWidget {
   const OrderScreen({super.key});
@@ -20,9 +29,20 @@ class OrderScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider)!;
     final catalogAsync = ref.watch(catalogProvider(session.outletId));
 
+    // Online-delivery queue (F&B). The "Pesanan" button shows for open-bill
+    // outlets, or — for immediate-pay F&B — once an online order has arrived; its
+    // red badge counts the unprocessed (NEW) ones.
+    final catalog = catalogAsync.valueOrNull;
+    final isFnb = catalog?.isFnb ?? false;
+    final online = isFnb
+        ? ref.watch(onlineOrdersProvider(session.outletId))
+        : const OnlineOrdersState(loading: false);
+    final showPesanan = (catalog?.isOpenBill ?? false) || online.orders.isNotEmpty;
+    final unprocessed = online.unprocessedCount;
+
     return Scaffold(
       appBar: BrandAppBar(
-        title: Text(catalogAsync.valueOrNull?.outletName ?? t.posTitle),
+        title: Text(t.posTitle),
         actions: [
           Consumer(builder: (context, ref, _) {
             final cart = ref.watch(cartProvider);
@@ -42,17 +62,48 @@ class OrderScreen extends ConsumerWidget {
             );
           }),
           const SizedBox(width: 8),
+          if (showPesanan)
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const OpenBillsScreen()),
+              ),
+              style: TextButton.styleFrom(foregroundColor: kBrandGold),
+              child: Badge.count(
+                count: unprocessed,
+                isLabelVisible: unprocessed > 0,
+                // Nudge the badge clear of the label so it doesn't sit over the text.
+                offset: const Offset(8, -4),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child:
+                      Text(t.openBillsTitle, style: const TextStyle(fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ),
           TextButton(
-            onPressed: () => ScaffoldMessenger.of(context)
-                .showSnackBar(SnackBar(content: Text(t.historyLabel))),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const TransactionsScreen()),
+            ),
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
-          const SettingsActions(),
+          Consumer(builder: (context, ref, _) {
+            final s = ref.watch(sessionProvider);
+            if (s == null || !s.isOwnerOrManager) return const SizedBox.shrink();
+            return IconButton(
+              tooltip: t.reportsTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReportsScreen()),
+              ),
+              icon: const Icon(Icons.insights_outlined),
+            );
+          }),
           IconButton(
-            tooltip: t.actionLogout,
-            onPressed: () => ref.read(sessionProvider.notifier).logout(),
-            icon: const Icon(Icons.logout),
+            tooltip: t.settingsTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SettingsScreen()),
+            ),
+            icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 4),
         ],
@@ -61,13 +112,13 @@ class OrderScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text(t.errorCatalog(e.toString()))),
         data: (catalog) {
-          final catalogPanel = _CatalogPanel(catalog: catalog);
+          final catalogPanel = CatalogPanel(catalog: catalog);
           if (isWide(context)) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(child: catalogPanel),
-                SizedBox(width: 340, child: _CartPanel(taxRule: catalog.taxRule, floating: true)),
+                SizedBox(width: 340, child: CartPanel(taxRule: catalog.taxRule, floating: true)),
               ],
             );
           }
@@ -84,16 +135,23 @@ class OrderScreen extends ConsumerWidget {
   }
 }
 
-class _CatalogPanel extends ConsumerStatefulWidget {
-  const _CatalogPanel({required this.catalog});
+class CatalogPanel extends ConsumerStatefulWidget {
+  const CatalogPanel({super.key, required this.catalog});
   final Catalog catalog;
 
   @override
-  ConsumerState<_CatalogPanel> createState() => _CatalogPanelState();
+  ConsumerState<CatalogPanel> createState() => CatalogPanelState();
 }
 
-class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
+class CatalogPanelState extends ConsumerState<CatalogPanel> {
   String? _category;
+
+  // Pull-to-refresh: re-fetch the catalog (prices + stock) from the server.
+  Future<void> _refresh() async {
+    final outletId = widget.catalog.outletId;
+    ref.invalidate(catalogProvider(outletId));
+    await ref.read(catalogProvider(outletId).future);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -103,7 +161,19 @@ class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
     final filtered =
         _category == null ? products : products.where((p) => p.categoryName == _category).toList();
 
-    if (products.isEmpty) return Center(child: Text(t.emptyCatalog));
+    if (products.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: _refresh,
+        color: kBrandGold,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          children: [
+            const SizedBox(height: 120),
+            Center(child: Text(t.emptyCatalog)),
+          ],
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,16 +194,21 @@ class _CatalogPanelState extends ConsumerState<_CatalogPanel> {
           child: LayoutBuilder(
             builder: (context, box) {
               final cols = (box.maxWidth / 175).floor().clamp(2, 6);
-              return GridView.builder(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.86,
+              return RefreshIndicator(
+                onRefresh: _refresh,
+                color: kBrandGold,
+                child: GridView.builder(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: cols,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: 0.78,
+                  ),
+                  itemCount: filtered.length,
+                  itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
                 ),
-                itemCount: filtered.length,
-                itemBuilder: (context, i) => _ProductCard(product: filtered[i]),
               );
             },
           ),
@@ -169,37 +244,92 @@ class _ProductCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final ext = brandColors(context);
-    final qty = ref.watch(cartProvider).lines
+    final cart = ref.watch(cartProvider);
+    final qty = cart.lines
         .where((l) => l.product.id == product.id)
         .fold<int>(0, (s, l) => s + l.qty);
     final from = product.variants.isEmpty
         ? 0
         : product.variants.map((v) => v.price).reduce((a, b) => a < b ? a : b);
 
-    return Card(
+    // Remaining sellable units, counted live against the cart: a sale isn't
+    // committed until checkout, so items already in the cart are treated as
+    // reserved. The badge ticks down and the tile greys the instant nothing is
+    // left to add.
+    int cartQtyOf(String variantId) =>
+        cart.lines.where((l) => l.variant.id == variantId).fold<int>(0, (s, l) => s + l.qty);
+    final trackedVariants =
+        product.variants.where((v) => v.isAvailable && v.trackInventory).toList();
+    final isTracked = trackedVariants.isNotEmpty;
+    var remaining = 0;
+    for (final v in trackedVariants) {
+      final r = (v.stock ?? 0) - cartQtyOf(v.id);
+      if (r > 0) remaining += r;
+    }
+    final orderableExists = product.variants.any((v) =>
+        v.isAvailable && (!v.trackInventory || ((v.stock ?? 0) - cartQtyOf(v.id)) > 0));
+    final available = product.isAvailable && orderableExists;
+
+    final t = AppLocalizations.of(context)!;
+    return Opacity(
+      opacity: available ? 1 : 0.5,
+      child: Card(
+      clipBehavior: Clip.antiAlias, // keep the photo inside the card's rounded corners
       child: InkWell(
-        onTap: () => _pickAndAdd(context, ref, product),
+        onTap: available ? () => _pickAndAdd(context, ref, product) : null,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Stack(
-              clipBehavior: Clip.none,
               children: [
-                Container(
-                  height: 64,
-                  decoration: BoxDecoration(gradient: ext.headerGradient),
-                  alignment: Alignment.center,
-                  child: Text(
-                    product.name.isNotEmpty ? product.name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                        color: kBrandGold, fontSize: 26, fontWeight: FontWeight.w800),
-                  ),
+                AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: _ProductPhoto(product: product),
                 ),
-                if (qty > 0)
+                // Always-visible remaining-stock badge (tracked items with stock left).
+                if (isTracked && available)
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.inventory_2_outlined, size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text('${_stockWord(context)} $remaining',
+                              style: const TextStyle(
+                                  color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ),
+                if (!available)
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      alignment: Alignment.center,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: cs.error,
+                          borderRadius: BorderRadius.circular(100),
+                        ),
+                        child: Text(t.soldOut,
+                            style: const TextStyle(
+                                color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12)),
+                      ),
+                    ),
+                  ),
+                if (available && qty > 0)
                   Positioned(
                     right: 8,
-                    top: 48,
+                    bottom: 8,
                     child: Container(
                       width: 24,
                       height: 24,
@@ -233,6 +363,7 @@ class _ProductCard extends ConsumerWidget {
           ],
         ),
       ),
+      ),
     );
   }
 
@@ -240,11 +371,61 @@ class _ProductCard extends ConsumerWidget {
       Localizations.localeOf(context).languageCode == 'id' ? 'dari' : 'from';
 }
 
+/// Product photo from the API's `imageUrl` (Wikimedia today, S3 later).
+///
+/// `BoxFit.cover` fills the 4:3 frame without distorting the source — the photo
+/// is centre-cropped, never stretched, whatever its original proportions. Any
+/// missing URL, slow load or offline device degrades to the brand initial tile,
+/// so a card is never blank.
+class _ProductPhoto extends StatelessWidget {
+  const _ProductPhoto({required this.product});
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final url = product.imageUrl;
+    if (url == null || url.isEmpty) return _InitialTile(name: product.name);
+    return Image.network(
+      url,
+      fit: BoxFit.cover,
+      width: double.infinity,
+      height: double.infinity,
+      filterQuality: FilterQuality.medium,
+      errorBuilder: (_, __, ___) => _InitialTile(name: product.name),
+      loadingBuilder: (context, child, progress) =>
+          progress == null ? child : _InitialTile(name: product.name),
+    );
+  }
+}
+
+/// DIKA-gradient tile showing the product's initial — placeholder and fallback.
+class _InitialTile extends StatelessWidget {
+  const _InitialTile({required this.name});
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final ext = brandColors(context);
+    return Container(
+      decoration: BoxDecoration(gradient: ext.headerGradient),
+      alignment: Alignment.center,
+      child: Text(
+        name.isNotEmpty ? name[0].toUpperCase() : '?',
+        style: const TextStyle(color: kBrandGold, fontSize: 26, fontWeight: FontWeight.w800),
+      ),
+    );
+  }
+}
+
 Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
   final t = AppLocalizations.of(context)!;
   final cs = Theme.of(context).colorScheme;
-  Variant selectedVariant = p.variants.firstWhere((v) => v.isAvailable, orElse: () => p.variants.first);
+  Variant selectedVariant = p.variants.firstWhere(
+    (v) => v.isAvailable && v.inStock,
+    orElse: () => p.variants.firstWhere((v) => v.isAvailable, orElse: () => p.variants.first),
+  );
   final Set<String> selectedMods = {};
+  int qty = 1; // add several at once without reopening the sheet
 
   await showModalBottomSheet<void>(
     context: context,
@@ -273,52 +454,156 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
                     spacing: 8,
                     children: p.variants.map((v) {
                       final sel = selectedVariant.id == v.id;
+                      final orderable = v.isAvailable && v.inStock;
                       return ChoiceChip(
-                        label: Text('${v.name} · ${formatRupiah(v.price)}'),
+                        label: Text(orderable
+                            ? '${v.name} · ${formatRupiah(v.price)}'
+                            : '${v.name} · ${t.soldOut}'),
                         selected: sel,
                         showCheckmark: false,
                         selectedColor: cs.primary,
                         labelStyle: TextStyle(color: sel ? cs.onPrimary : cs.onSurfaceVariant),
-                        onSelected: v.isAvailable ? (_) => setSheet(() => selectedVariant = v) : null,
+                        onSelected: orderable ? (_) => setSheet(() => selectedVariant = v) : null,
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 12),
                 ],
                 for (final g in p.modifierGroups) ...[
-                  Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                  ...g.modifiers.map((m) => CheckboxListTile(
+                  Row(
+                    children: [
+                      Text(g.name, style: const TextStyle(fontWeight: FontWeight.w600)),
+                      const SizedBox(width: 8),
+                      Text(_groupHint(context, g),
+                          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  if (_isSingleSelect(g))
+                    // One choice out of the set: chips, like the variant row above.
+                    // Checkboxes here are what let "Less sugar" and "Normal" both
+                    // be ticked on the same drink.
+                    Wrap(
+                      spacing: 8,
+                      children: g.modifiers.map((m) {
+                        final sel = selectedMods.contains(m.id);
+                        return ChoiceChip(
+                          label: Text(_modLabel(m)),
+                          selected: sel,
+                          showCheckmark: false,
+                          selectedColor: cs.primary,
+                          labelStyle:
+                              TextStyle(color: sel ? cs.onPrimary : cs.onSurfaceVariant),
+                          onSelected: (_) => setSheet(() {
+                            final wasSelected = sel;
+                            selectedMods.removeWhere(
+                                (id) => g.modifiers.any((x) => x.id == id));
+                            // Re-tapping clears an optional choice; a required
+                            // group always keeps exactly one selected.
+                            if (!wasSelected || _minFor(g) > 0) selectedMods.add(m.id);
+                          }),
+                        );
+                      }).toList(),
+                    )
+                  else
+                    ...g.modifiers.map((m) {
+                      final on = selectedMods.contains(m.id);
+                      final atCap = _selectedIn(g, selectedMods) >= g.maxSelect;
+                      return CheckboxListTile(
                         dense: true,
                         contentPadding: EdgeInsets.zero,
-                        title: Text(
-                            '${m.name}${m.priceDelta != 0 ? ' (+${formatRupiah(m.priceDelta)})' : ''}'),
-                        value: selectedMods.contains(m.id),
-                        onChanged: (on) => setSheet(() {
-                          if (on == true) {
-                            selectedMods.add(m.id);
-                          } else {
-                            selectedMods.remove(m.id);
-                          }
-                        }),
-                      )),
+                        title: Text(_modLabel(m)),
+                        value: on,
+                        // Greyed out once the group's cap is reached.
+                        onChanged: (!on && atCap)
+                            ? null
+                            : (checked) => setSheet(() {
+                                  if (checked == true) {
+                                    selectedMods.add(m.id);
+                                  } else {
+                                    selectedMods.remove(m.id);
+                                  }
+                                }),
+                      );
+                    }),
                   const SizedBox(height: 8),
                 ],
                 const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: Text(t.actionAddToOrder),
-                    onPressed: () {
-                      final mods = p.modifierGroups
-                          .expand((g) => g.modifiers)
-                          .where((m) => selectedMods.contains(m.id))
-                          .toList();
-                      ref.read(cartProvider.notifier).addItem(p, selectedVariant, mods);
-                      Navigator.of(context).pop();
-                    },
-                  ),
-                ),
+                Builder(builder: (context) {
+                  final unmet = _unmetGroups(p, selectedMods);
+                  // How many of this variant are already in the cart — the picker
+                  // can't add past the remaining stock.
+                  final inCart = ref
+                      .read(cartProvider)
+                      .lines
+                      .where((l) => l.variant.id == selectedVariant.id)
+                      .fold<int>(0, (s, l) => s + l.qty);
+                  final remaining = selectedVariant.trackInventory
+                      ? (selectedVariant.stock ?? 0) - inCart
+                      : null;
+                  final soldOut = remaining != null && remaining <= 0;
+                  // Keep qty within what's left to add.
+                  if (remaining != null && qty > remaining && remaining > 0) qty = remaining;
+                  if (qty < 1) qty = 1;
+                  final atQtyCap = remaining != null && qty >= remaining;
+                  final blocked = unmet.isNotEmpty || soldOut;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Remaining count, live against the chosen quantity: pick 3
+                      // of 6 and it reads "tinggal 3".
+                      if (remaining != null) ...[
+                        Text(_stockLabel(context, (remaining - qty).clamp(0, remaining)),
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: soldOut ? cs.error : cs.onSurfaceVariant)),
+                        const SizedBox(height: 8),
+                      ],
+                      if (unmet.isNotEmpty) ...[
+                        Text(
+                          _requiredWarning(context, unmet),
+                          style: TextStyle(fontSize: 13, color: cs.error),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      if (!soldOut) ...[
+                        Row(
+                          children: [
+                            Text(t.labelQty, style: const TextStyle(fontWeight: FontWeight.w600)),
+                            const Spacer(),
+                            _QtyStepper(
+                              qty: qty,
+                              onMinus: qty > 1 ? () => setSheet(() => qty--) : () {},
+                              onPlus: atQtyCap ? null : () => setSheet(() => qty++),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          icon: const Icon(Icons.add),
+                          label: Text(
+                              t.addQtyToOrder(qty, formatRupiah(selectedVariant.price * qty))),
+                          onPressed: blocked
+                              ? null
+                              : () {
+                                  final mods = p.modifierGroups
+                                      .expand((g) => g.modifiers)
+                                      .where((m) => selectedMods.contains(m.id))
+                                      .toList();
+                                  ref
+                                      .read(cartProvider.notifier)
+                                      .addItem(p, selectedVariant, mods, qty: qty);
+                                  Navigator.of(context).pop();
+                                },
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ],
             ),
           );
@@ -328,18 +613,108 @@ Future<void> _pickAndAdd(BuildContext context, WidgetRef ref, Product p) async {
   );
 }
 
-class _CartPanel extends ConsumerWidget {
-  const _CartPanel({required this.taxRule, this.floating = false});
+// --- Modifier group rules -------------------------------------------------
+// The API defines each group's minSelect/maxSelect/required; these mirror them
+// in the UI. The server enforces the same rules on checkout, so a stale build
+// cannot submit an impossible combination.
+
+/// Radio-style: exactly one of several options (e.g. sugar level, spice level).
+/// A one-option group stays a checkbox so it can be toggled off.
+bool _isSingleSelect(ModifierGroup g) => g.maxSelect == 1 && g.modifiers.length > 1;
+
+int _selectedIn(ModifierGroup g, Set<String> selected) =>
+    g.modifiers.where((m) => selected.contains(m.id)).length;
+
+/// Effective minimum: `required` implies at least one even if minSelect is 0.
+int _minFor(ModifierGroup g) => g.required ? (g.minSelect < 1 ? 1 : g.minSelect) : g.minSelect;
+
+List<ModifierGroup> _unmetGroups(Product p, Set<String> selected) =>
+    p.modifierGroups.where((g) => _selectedIn(g, selected) < _minFor(g)).toList();
+
+String _modLabel(Modifier m) =>
+    '${m.name}${m.priceDelta != 0 ? ' (+${formatRupiah(m.priceDelta)})' : ''}';
+
+String _groupHint(BuildContext context, ModifierGroup g) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  if (_isSingleSelect(g)) {
+    if (_minFor(g) > 0) return id ? '· pilih 1' : '· choose 1';
+    return id ? '· pilih 1, opsional' : '· choose 1, optional';
+  }
+  if (g.maxSelect > 1) return id ? '· maks ${g.maxSelect}' : '· max ${g.maxSelect}';
+  return id ? '· opsional' : '· optional';
+}
+
+String _requiredWarning(BuildContext context, List<ModifierGroup> unmet) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  final names = unmet.map((g) => g.name).join(', ');
+  return id ? 'Pilih dulu: $names' : 'Choose first: $names';
+}
+
+String _stockLabel(BuildContext context, int remaining) {
+  final id = Localizations.localeOf(context).languageCode == 'id';
+  if (remaining <= 0) return id ? 'Stok habis' : 'Out of stock';
+  return id ? 'Stok tinggal $remaining' : '$remaining in stock';
+}
+
+String _stockWord(BuildContext context) =>
+    Localizations.localeOf(context).languageCode == 'id' ? 'Stok' : 'Stock';
+
+class CartPanel extends ConsumerStatefulWidget {
+  const CartPanel({super.key, required this.taxRule, this.floating = false});
   final TaxRule? taxRule;
   final bool floating;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartPanel> createState() => CartPanelState();
+}
+
+class CartPanelState extends ConsumerState<CartPanel> {
+  final _table = TextEditingController();
+
+  @override
+  void dispose() {
+    _table.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final cart = ref.watch(cartProvider);
     final ctrl = ref.read(cartProvider.notifier);
+    final taxRule = widget.taxRule;
+    final floating = widget.floating;
     final preview = cart.preview(taxRule);
+    // Dine-in/takeaway + tables are F&B-only concepts.
+    final session = ref.watch(sessionProvider)!;
+    final isFnb = ref.watch(catalogProvider(session.outletId)).valueOrNull?.isFnb ?? true;
+    // Non-F&B is always takeaway (no dine-in).
+    if (!isFnb && cart.type != 'TAKEAWAY') {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) ref.read(cartProvider.notifier).setType('TAKEAWAY');
+      });
+    }
+
+    // After a confirm clears the cart, drop any stale table text so the next
+    // dine-in order starts blank.
+    if ((cart.tableLabel ?? '').isEmpty && _table.text.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && (ref.read(cartProvider).tableLabel ?? '').isEmpty) _table.clear();
+      });
+    } else if ((cart.tableLabel ?? '').isNotEmpty && _table.text != cart.tableLabel) {
+      // An open bill loaded for editing carries a table — pre-fill the field.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final tl = ref.read(cartProvider).tableLabel ?? '';
+        if (tl.isNotEmpty && _table.text != tl) {
+          _table.value = TextEditingValue(
+            text: tl,
+            selection: TextSelection.collapsed(offset: tl.length),
+          );
+        }
+      });
+    }
 
     final panel = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -348,22 +723,26 @@ class _CartPanel extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
           child: Text(t.cartHeader, style: Theme.of(context).textTheme.titleMedium),
         ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: SegmentedButton<String>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(value: 'DINE_IN', label: Text(t.typeDineIn)),
-              ButtonSegment(value: 'TAKEAWAY', label: Text(t.typeTakeaway)),
-            ],
-            selected: {cart.type},
-            onSelectionChanged: (s) => ctrl.setType(s.first),
+        if (isFnb)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              segments: [
+                ButtonSegment(value: 'DINE_IN', label: Text(t.typeDineIn)),
+                ButtonSegment(value: 'TAKEAWAY', label: Text(t.typeTakeaway)),
+              ],
+              selected: {cart.type},
+              onSelectionChanged: (s) => ctrl.setType(s.first),
+            ),
           ),
-        ),
-        if (cart.type == 'DINE_IN')
+        if (isFnb && cart.type == 'DINE_IN')
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
             child: TextField(
+              controller: _table,
+              inputFormatters: [UpperCaseTextInputFormatter()],
+              textCapitalization: TextCapitalization.characters,
               decoration: InputDecoration(labelText: t.fieldTableNo, isDense: true),
               onChanged: ctrl.setTableLabel,
             ),
@@ -380,13 +759,15 @@ class _CartPanel extends ConsumerWidget {
                     ],
                   ),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              : ListView.separated(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   itemCount: cart.lines.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) => _CartLine(index: i),
                 ),
         ),
-        _TotalsBar(preview: preview, taxRule: taxRule, cartEmpty: cart.isEmpty),
+        _TotalsBar(
+            preview: preview, taxRule: taxRule, cartEmpty: cart.isEmpty, floating: floating),
       ],
     );
 
@@ -413,57 +794,224 @@ class _CartLine extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
-    final l = ref.watch(cartProvider).lines[index];
+    final cart = ref.watch(cartProvider);
+    final l = cart.lines[index];
     final ctrl = ref.read(cartProvider.notifier);
+    final t = AppLocalizations.of(context)!;
     final mods = l.modifiers.map((m) => m.name).join(', ');
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    // Cap the stepper at the variant's remaining stock (summed across cart lines).
+    final variantQty =
+        cart.lines.where((x) => x.variant.id == l.variant.id).fold<int>(0, (s, x) => s + x.qty);
+    final atCap = l.variant.trackInventory && (l.variant.stock ?? 0) <= variantQty;
+
+    // Swipe left to remove the whole line; the − stepper at qty 1 is the second
+    // path (changeQty removes at 0). Keyed by mergeKey so Dismissible stays
+    // stable as lines merge/reorder.
+    return Dismissible(
+      key: ValueKey(l.mergeKey),
+      direction: DismissDirection.endToStart,
+      onDismissed: (_) => ctrl.removeAt(index),
+      background: Container(
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        decoration: BoxDecoration(
+          color: cs.error,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(Icons.delete_outline, color: cs.onError, semanticLabel: t.removeItem),
+      ),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
+        decoration: BoxDecoration(
+          color: cs.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: cs.outline),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${l.product.name} · ${l.variant.name}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                  const SizedBox(height: 2),
+                  Text('${formatRupiah(l.unitPrice)} ${t.eachSuffix}',
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                  if (mods.isNotEmpty)
+                    Text(mods,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('${l.product.name} · ${l.variant.name}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                if (mods.isNotEmpty)
-                  Text(mods, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                _QtyStepper(
+                  qty: l.qty,
+                  onMinus: () => ctrl.changeQty(index, -1),
+                  onPlus: atCap ? null : () => ctrl.changeQty(index, 1),
+                ),
+                const SizedBox(height: 6),
+                Text(formatRupiah(l.lineTotal),
+                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               ],
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact grouped quantity control: a single [ − qty + ] capsule, in place of
+/// two loose outlined circles. The + disables at the stock cap.
+class _QtyStepper extends StatelessWidget {
+  const _QtyStepper({required this.qty, required this.onMinus, this.onPlus});
+  final int qty;
+  final VoidCallback onMinus;
+  final VoidCallback? onPlus;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      height: 36,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainer,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: cs.outline),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StepBtn(icon: Icons.remove, onTap: onMinus, color: cs.primary),
+          Container(
+            constraints: const BoxConstraints(minWidth: 28),
+            alignment: Alignment.center,
+            child: Text('$qty', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           ),
-          IconButton.outlined(
-            visualDensity: VisualDensity.compact,
-            iconSize: 16,
-            onPressed: () => ctrl.changeQty(index, -1),
-            icon: const Icon(Icons.remove),
+          _StepBtn(
+            icon: Icons.add,
+            onTap: onPlus,
+            color: onPlus == null ? cs.onSurfaceVariant : cs.primary,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Text('${l.qty}', style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
-          IconButton.outlined(
-            visualDensity: VisualDensity.compact,
-            iconSize: 16,
-            onPressed: () => ctrl.changeQty(index, 1),
-            icon: const Icon(Icons.add),
-          ),
-          SizedBox(width: 72, child: Text(formatRupiah(l.lineTotal), textAlign: TextAlign.right)),
         ],
       ),
     );
   }
 }
 
-class _TotalsBar extends StatelessWidget {
-  const _TotalsBar({required this.preview, required this.taxRule, required this.cartEmpty});
+class _StepBtn extends StatelessWidget {
+  const _StepBtn({required this.icon, required this.onTap, required this.color});
+  final IconData icon;
+  final VoidCallback? onTap;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      onTap: onTap,
+      radius: 20,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+}
+
+/// Open-bill confirm: save the order server-side (no payment) so stock is
+/// reserved now and the bill is settled later. Bypasses the offline queue.
+/// Returns true on a successful submit (the caller then closes the cart).
+Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
+  final t = AppLocalizations.of(context)!;
+  final messenger = ScaffoldMessenger.of(context);
+  final session = ref.read(sessionProvider)!;
+  final cart = ref.read(cartProvider.notifier);
+  final state = ref.read(cartProvider);
+
+  // Dine-in open bills are keyed by table.
+  if (state.type == 'DINE_IN' && (state.tableLabel ?? '').trim().isEmpty) {
+    await showAppDialog(context, kind: AppDialogKind.warning, message: t.tableRequired);
+    return false;
+  }
+  // Friendly pre-check; the server enforces uniqueness too (409). When editing,
+  // the bill's own table is excluded so it can keep it — only a clash with a
+  // *different* open bill is rejected.
+  final norm = state.tableLabel?.trim().toUpperCase();
+  if (norm != null && norm.isNotEmpty) {
+    final open = await ref.read(openBillsProvider(session.outletId).future);
+    if (!context.mounted) return false;
+    if (open.any((o) =>
+        o.id != state.revisingOrderId && (o.tableLabel ?? '').toUpperCase() == norm)) {
+      await showAppDialog(context, kind: AppDialogKind.error, message: t.tableExists);
+      return false;
+    }
+  }
+
+  try {
+    if (state.isRevising) {
+      // Edit an existing open bill in place (server adjusts reserved stock + totals).
+      await ref
+          .read(apiClientProvider)
+          .reviseOrder(state.revisingOrderId!, cart.buildRevisePayload());
+    } else {
+      final payload = cart.buildPayload(
+        clientOrderId: const Uuid().v4(),
+        outletId: session.outletId,
+        deviceId: session.deviceId,
+        method: null, // open bill — no payment yet
+      );
+      await ref.read(apiClientProvider).submitOrder(payload);
+    }
+    cart.clear();
+    ref.invalidate(catalogProvider(session.outletId)); // stock reserved
+    ref.invalidate(openBillsProvider(session.outletId));
+    // Success shows as a toast once the cart sheet closes and reveals it.
+    messenger.showSnackBar(SnackBar(content: Text(t.orderSaved)));
+    return true;
+  } on DioException catch (e) {
+    if (context.mounted) {
+      await showAppDialog(
+        context,
+        kind: AppDialogKind.error,
+        message: e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn,
+      );
+    }
+    return false;
+  }
+}
+
+class _TotalsBar extends ConsumerWidget {
+  const _TotalsBar(
+      {required this.preview,
+      required this.taxRule,
+      required this.cartEmpty,
+      this.floating = false});
   final CartPreview preview;
   final TaxRule? taxRule;
   final bool cartEmpty;
 
+  /// True on the tablet side panel (persistent); false on the mobile cart sheet,
+  /// which is closed after processing an open bill.
+  final bool floating;
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
+    final session = ref.watch(sessionProvider)!;
+    final openBill = ref.watch(catalogProvider(session.outletId)).valueOrNull?.isOpenBill ?? false;
+    final revising = ref.watch(cartProvider).isRevising;
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -499,10 +1047,22 @@ class _TotalsBar extends StatelessWidget {
             child: FilledButton(
               onPressed: cartEmpty
                   ? null
-                  : () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),
-                      )),
-              child: Text(t.payWithTotal(formatRupiah(preview.grandTotal))),
+                  : () async {
+                      if (openBill) {
+                        final nav = Navigator.of(context);
+                        final ok = await _confirmOpenBill(context, ref);
+                        // On mobile the cart is a bottom sheet — close it so the
+                        // cashier lands back on the menu for the next order.
+                        if (ok && !floating) nav.pop();
+                      } else {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),
+                        ));
+                      }
+                    },
+              child: Text(openBill
+                  ? (revising ? t.updateOrder : t.saveOrder)
+                  : t.payWithTotal(formatRupiah(preview.grandTotal))),
             ),
           ),
         ],
@@ -568,7 +1128,7 @@ class _MobileCartBar extends ConsumerWidget {
                             borderRadius: BorderRadius.vertical(top: Radius.circular(28))),
                         builder: (_) => SizedBox(
                           height: MediaQuery.of(context).size.height * 0.85,
-                          child: _CartPanel(taxRule: taxRule),
+                          child: CartPanel(taxRule: taxRule),
                         ),
                       ),
               child: Text(t.viewOrder),

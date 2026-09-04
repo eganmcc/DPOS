@@ -16,6 +16,8 @@ class Session {
   });
 
   bool get isOwner => role == 'OWNER';
+  bool get isManager => role == 'MANAGER';
+  bool get isOwnerOrManager => isOwner || isManager;
 }
 
 class SessionNotifier extends StateNotifier<Session?> {
@@ -73,3 +75,8 @@ class SessionNotifier extends StateNotifier<Session?> {
 }
 
 final sessionProvider = StateNotifierProvider<SessionNotifier, Session?>((ref) => SessionNotifier());
+
+/// Set to true when an authenticated request comes back 401 (token expired or
+/// revoked). The login screen reads it to explain why the user was signed out,
+/// and clears it on a successful sign-in. It is *not* set by a manual logout.
+final sessionExpiredProvider = StateProvider<bool>((ref) => false);

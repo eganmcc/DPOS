@@ -1,6 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Test } from '@nestjs/testing';
+import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
@@ -25,13 +26,19 @@ export async function createTestApp(): Promise<TestContext> {
   };
 }
 
+/** PIN the manager fixture answers to — cashier-initiated corrections present this. */
+export const MANAGER_PIN = '4321';
+
 export interface MerchantFixture {
   merchantId: string;
-  outletId: string;
+  outletId: string; // paymentMode IMMEDIATE — pay at checkout
+  openBillOutletId: string; // paymentMode OPEN_BILL — confirm now, settle later
   cashierId: string;
   ownerId: string;
+  managerId: string;
   cashierToken: string;
   ownerToken: string;
+  managerToken: string;
   variantRegularId: string; // tracked, price 18000
   variantLargeId: string; // tracked, price 23000
   modifierExtraShotId: string; // +5000
@@ -44,22 +51,37 @@ export async function makeMerchant(ctx: TestContext): Promise<MerchantFixture> {
   const outlet = await prisma.outlet.create({
     data: { merchantId: merchant.id, name: 'Test Outlet' },
   });
+  // A second outlet that takes open bills (confirm now, settle later).
+  const openBillOutlet = await prisma.outlet.create({
+    data: { merchantId: merchant.id, name: 'Test Outlet (open bill)', paymentMode: 'OPEN_BILL' },
+  });
   const cashier = await prisma.staff.create({
     data: { merchantId: merchant.id, name: 'Cashier', role: StaffRole.CASHIER, pinHash: 'x' },
   });
   const owner = await prisma.staff.create({
     data: { merchantId: merchant.id, name: 'Owner', role: StaffRole.OWNER, pinHash: 'x' },
   });
-  await prisma.taxRule.create({
+  // Real hash: resolveCorrectionApprover bcrypt-compares the PIN a cashier presents.
+  const manager = await prisma.staff.create({
     data: {
       merchantId: merchant.id,
-      outletId: outlet.id,
-      label: 'PBJT',
-      rateBps: 1000,
-      serviceChargeBps: 500,
-      serviceLabel: 'Service',
+      name: 'Manager',
+      role: StaffRole.MANAGER,
+      pinHash: await bcrypt.hash(MANAGER_PIN, 8),
     },
   });
+  for (const o of [outlet, openBillOutlet]) {
+    await prisma.taxRule.create({
+      data: {
+        merchantId: merchant.id,
+        outletId: o.id,
+        label: 'PBJT',
+        rateBps: 1000,
+        serviceChargeBps: 500,
+        serviceLabel: 'Service',
+      },
+    });
+  }
 
   const product = await prisma.product.create({
     data: {
@@ -86,10 +108,13 @@ export async function makeMerchant(ctx: TestContext): Promise<MerchantFixture> {
   const large = product.variants.find((v) => v.name === 'Large')!;
   const extraShot = product.modifierGroups[0].modifiers[0];
 
-  for (const v of product.variants) {
-    await prisma.inventoryStock.create({
-      data: { merchantId: merchant.id, outletId: outlet.id, variantId: v.id, quantityOnHand: 100 },
-    });
+  // Stock is per (outlet, variant) — both outlets start at 100.
+  for (const o of [outlet, openBillOutlet]) {
+    for (const v of product.variants) {
+      await prisma.inventoryStock.create({
+        data: { merchantId: merchant.id, outletId: o.id, variantId: v.id, quantityOnHand: 100 },
+      });
+    }
   }
 
   const sign = (staffId: string, role: StaffRole) =>
@@ -98,10 +123,13 @@ export async function makeMerchant(ctx: TestContext): Promise<MerchantFixture> {
   return {
     merchantId: merchant.id,
     outletId: outlet.id,
+    openBillOutletId: openBillOutlet.id,
     cashierId: cashier.id,
     ownerId: owner.id,
+    managerId: manager.id,
     cashierToken: sign(cashier.id, StaffRole.CASHIER),
     ownerToken: sign(owner.id, StaffRole.OWNER),
+    managerToken: sign(manager.id, StaffRole.MANAGER),
     variantRegularId: regular.id,
     variantLargeId: large.id,
     modifierExtraShotId: extraShot.id,
@@ -112,6 +140,9 @@ export async function makeMerchant(ctx: TestContext): Promise<MerchantFixture> {
 export async function cleanupMerchant(prisma: PrismaService, merchantId: string): Promise<void> {
   const orders = await prisma.order.findMany({ where: { merchantId }, select: { id: true } });
   const orderIds = orders.map((o) => o.id);
+  const refunds = await prisma.refund.findMany({ where: { merchantId }, select: { id: true } });
+  await prisma.refundLine.deleteMany({ where: { refundId: { in: refunds.map((r) => r.id) } } });
+  await prisma.refund.deleteMany({ where: { merchantId } });
   await prisma.payment.deleteMany({ where: { merchantId } });
   await prisma.orderDiscount.deleteMany({ where: { orderId: { in: orderIds } } });
   await prisma.orderLine.deleteMany({ where: { orderId: { in: orderIds } } });

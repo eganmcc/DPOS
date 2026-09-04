@@ -22,9 +22,9 @@ Authoritative schema lives in PostgreSQL (Prisma). This document is the conceptu
 - **[RULE]** Catalog availability, `tax_rules`, stock, shifts, orders, and reports are scoped by `outlet_id`.
 
 ### Staff
-- `id`, `merchant_id → Merchant`, `name`, `role` (`OWNER` | `CASHIER`), `pin_hash`, `email?`, `password_hash?` (owners), `is_active`
+- `id`, `merchant_id → Merchant`, `name`, `role` (`OWNER` | `MANAGER` | `CASHIER` | `SERVER`), `pin_hash`, `demo_pin?` (demo login prefill only), `email?`, `password_hash?` (owner/manager), `is_active`
 - **[RULE]** `pin_hash`/`password_hash` are hashed (bcrypt/argon2), never stored plain.
-- **[RULE]** `CASHIER` cannot void/refund or edit prices; `OWNER` can (enforced by API guard).
+- **[RULE]** Corrections (void / refund / open-bill cancel) and price/catalog edits are gated to `OWNER`/`MANAGER`. A `CASHIER` MAY **initiate** a correction only with a manager/owner **PIN override**, verified server-side and recorded as the approver (Constitution VI, v1.6.0). The owner/manager sales dashboard is likewise role-gated.
 
 ### Device
 - `id` (client-provided device UUID), `merchant_id`, `outlet_id?`, `label?`, `last_seen_at`
@@ -69,18 +69,20 @@ Authoritative schema lives in PostgreSQL (Prisma). This document is the conceptu
 - `created_at`, `closed_at?`
 - **[RULE]** `UNIQUE(merchant_id, client_order_id)` — the idempotency key (Constitution V).
 - **[RULE]** All money fields are recomputed server-side on submit; client-supplied totals are ignored (Constitution III).
-- **[RULE]** Once `status = COMPLETED`, the Order row and its lines are **immutable — never updated or deleted**. A void does **not** change `status`; it is recorded as a separate `OrderVoid` (below). The **effective transaction state** (`COMPLETED` / `VOIDED` / `REFUNDED`) is **derived**: `VOIDED` when an `OrderVoid` exists; `REFUNDED` when a successful `Payment` with `direction = REVERSAL` and `reversal_type = REFUND` exists. A `VOID`-type reversal does **not** make the order `REFUNDED` (Constitution IV).
+- **[RULE]** Once `status = COMPLETED`, the Order row and its lines are **immutable — never updated or deleted**. A void does **not** change `status`; it is recorded as a separate `OrderVoid` (below). The **effective transaction state** (`COMPLETED` / `VOIDED` / `REFUNDED`) is **derived**: `VOIDED` when an `OrderVoid` exists; `REFUNDED` when the total of `Refund.amount` (equivalently, PAID `REVERSAL`/`REFUND` payments) **≥ `grand_total`** — a *partial* refund keeps the stored/effective status `COMPLETED` with a tracked `refundedAmount`. A `VOID`-type reversal does **not** make the order `REFUNDED` (Constitution IV).
+- **[RULE]** A void is **same-business-day only** (Asia/Jakarta) and **requires a reason**; older sales are corrected by a refund. A refund **requires a reason** and MAY be **full or line-level partial** (Constitution IV, v1.6.0).
+- **[RULE]** An unpaid open bill (`AWAITING_PAYMENT`) MAY be **cancelled** → stored terminal `CANCELLED`, which **releases the reserved stock** via the ledger. This is the only exit from `AWAITING_PAYMENT` besides settlement to `COMPLETED`; no money moves.
 
-**Order status lifecycle (stored)**: `DRAFT → HELD → AWAITING_PAYMENT → COMPLETED`. The stored `status` never advances past `COMPLETED`; a draft/held order may be discarded before completion. `VOIDED`/`REFUNDED` are **derived effective states**, not stored mutations.
+**Order status lifecycle (stored)**: `DRAFT → HELD → AWAITING_PAYMENT → COMPLETED`, with an unpaid open bill able to terminate at `CANCELLED`. The stored `status` never advances past `COMPLETED`; a draft/held order may be discarded before completion. `VOIDED`/`REFUNDED` are **derived effective states**, not stored mutations; `CANCELLED` is a **stored** terminal for an open bill that was never paid.
 
 ```
 Stored status:   DRAFT ──► HELD ──► AWAITING_PAYMENT ──► COMPLETED   (terminal stored state)
-                   │         │              │
+                   │         │              │  └────────► CANCELLED   (unpaid bill abandoned; stock released)
                    └─────────┴──────────────┘  (discard before completion)
 
 Derived effective state of a COMPLETED order:
    COMPLETED  ──(an OrderVoid exists)──►   VOIDED
-   COMPLETED  ──(a successful REVERSAL Payment, reversal_type=REFUND)──►   REFUNDED
+   COMPLETED  ──(total refunded ≥ grand_total)──►   REFUNDED   (partial refund keeps COMPLETED)
    (a reversal_type=VOID payment does NOT imply REFUNDED — the OrderVoid already means VOIDED)
 ```
 
@@ -96,12 +98,19 @@ Derived effective state of a COMPLETED order:
 - **[RULE]** Discounts above a configurable threshold MAY require `approved_by` (owner); the API enforces the policy and records both `applied_by` and `approved_by`.
 
 ### OrderVoid  *(append-only, immutable — records a full void without mutating the order)*
-- `id`, `merchant_id`, `outlet_id`, `order_id → Order`, `client_void_id?` (client UUID), `reason?`, `voided_by → Staff`, `created_at`
+- `id`, `merchant_id`, `outlet_id`, `order_id → Order`, `client_void_id?` (client UUID), `reason` (**required**), `voided_by → Staff`, `approved_by? → Staff` (manager/owner who authorized a cashier-initiated void; null = self), `created_at`
 - **[RULE]** Fully **immutable and append-only** — no fields are ever updated. **No "unvoid" in the MVP.**
 - **[RULE]** `UNIQUE(order_id)` — **one full void per order** (a completed order can never receive two void records or two stock restorations). If the device may submit/retry the void, `client_void_id` carries a client-generated idempotency UUID with `UNIQUE(merchant_id, client_void_id)`, so a retried void is a no-op that returns the existing record.
-- **[RULE]** The **existence** of an `OrderVoid` for an order makes its effective state `VOIDED`. Full void only (no partial).
+- **[RULE]** The **existence** of an `OrderVoid` for an order makes its effective state `VOIDED`. Full void only (no partial). A void is **same-business-day only** (Asia/Jakarta) — a prior-day sale is refused (`VOID_WINDOW_EXPIRED`) and corrected by a refund instead.
 - **[RULE]** Creating an `OrderVoid` also appends compensating `InventoryMovement`(s) (`VOID_RESTORE`), a reversal `Payment` (`direction = REVERSAL`, `reversal_type = VOID`) where a charge was captured, and an `AuditLog` entry — all in one transaction (Constitution II/IV).
 - *Future note*: if "unvoid"/correction is ever needed, model it as a new append-only `OrderVoidReversal` record — never by editing `OrderVoid`.
+
+### Refund / RefundLine  *(append-only — full or line-level partial refunds; v1.6.0)*
+- **Refund**: `id`, `merchant_id`, `outlet_id`, `order_id → Order`, `client_refund_id?` (client UUID), `reason` (**required**), `amount` (rupiah), `is_full`, `refunded_by → Staff`, `approved_by? → Staff` (manager/owner authorizing a cashier-initiated refund), `created_at`; `UNIQUE(merchant_id, client_refund_id)`.
+- **RefundLine**: `id`, `refund_id → Refund` (inherits tenancy), `order_line_id`, `variant_id`, `qty` (**NUMERIC(12,3)**), `amount` (rupiah).
+- **[RULE]** Append-only; the `COMPLETED` order and original `CHARGE` are never rewritten. An order MAY carry **several partial refunds up to `grand_total`** (over-refund is refused).
+- **[RULE]** Money is **server-computed**: full = the remaining total; a line-level partial returns the picked lines' **proportional share** of `grand_total` (order discount + tax + service included). Each refund appends `InventoryMovement`(s) (`ADJUSTMENT`, `ref_type = ORDER_REFUND`) restoring the refunded quantity's stock, a reversal `Payment` (`reversal_type = REFUND`), and an `AuditLog` — one transaction (Constitution II/IV).
+- **[RULE]** Effective `REFUNDED` derives only when the summed refund amount **≥ `grand_total`**; a partial refund keeps `COMPLETED`.
 
 ### Payment
 - `id`, `merchant_id`, `order_id → Order`, `direction` (`CHARGE` | `REVERSAL`, default `CHARGE`), `reversal_type?` (`VOID` | `REFUND`; **null for `CHARGE`**, required for `REVERSAL`), `reverses_payment_id? → Payment` (set for `REVERSAL`), `method` (`CASH` | `QRIS_SIMULATED`), `amount` (rupiah), `status`, `provider_ref?`, `tendered?` (cash, rupiah), `change?` (cash, rupiah), `created_at`, `paid_at?`
@@ -122,8 +131,8 @@ REVERSAL: new Payment(direction=REVERSAL, reversal_type=VOID|REFUND, reverses_pa
 ## Inventory (ledger + projection)
 
 ### InventoryMovement  *(append-only — source of truth)*
-- `id`, `merchant_id`, `outlet_id`, `variant_id → ProductVariant`, `qty_delta` (**NUMERIC(12,3)**, signed), `reason` (`SALE` | `VOID_RESTORE` | `ADJUSTMENT` | `RECEIVE`), `ref_type` (e.g. `ORDER`, `ORDER_VOID`), `ref_id`, `created_by → Staff`, `created_at`
-- **[RULE]** Never updated or deleted. A `SALE` writes a negative delta; a stock-restoring void writes a positive delta with `reason = VOID_RESTORE` and `ref_type = ORDER_VOID` (Constitution IV; FR-019).
+- `id`, `merchant_id`, `outlet_id`, `variant_id → ProductVariant`, `qty_delta` (**NUMERIC(12,3)**, signed), `reason` (`SALE` | `VOID_RESTORE` | `ADJUSTMENT` | `RECEIVE`), `ref_type` (e.g. `ORDER`, `ORDER_VOID`, `ORDER_REFUND`, `ORDER_CANCEL`, `ORDER_REVISE`, `ADMIN`), `ref_id`, `created_by → Staff`, `created_at`
+- **[RULE]** Never updated or deleted. A `SALE` writes a negative delta; a stock-restoring void writes a positive delta (`reason = VOID_RESTORE`, `ref_type = ORDER_VOID`). A **refund** and an **open-bill cancel** likewise restore stock with positive `ADJUSTMENT` deltas (`ref_type = ORDER_REFUND` / `ORDER_CANCEL`) (Constitution IV; FR-019, v1.6.0).
 
 ### InventoryStock  *(projection — fast current balance)*
 - `id`, `merchant_id`, `outlet_id`, `variant_id → ProductVariant`, `quantity_on_hand` (**NUMERIC(12,3)**), `updated_at`
@@ -139,10 +148,17 @@ REVERSAL: new Payment(direction=REVERSAL, reversal_type=VOID|REFUND, reverses_pa
 ### CashMovement
 - `id`, `shift_id → Shift`, `type` (`CASH_IN` | `CASH_OUT` | `SALE` | `PAYOUT`), `amount` (rupiah), `note?`, `created_by`, `created_at`
 
+## Attendance  *(v1.6.0)*
+
+### Attendance  *(append-only clock-in/out spans)*
+- `id`, `merchant_id`, `staff_id → Staff`, `outlet_id?` (where they clocked in), `clock_in_at`, `clock_out_at?` (null = still on the clock), `created_at`; indexed `(merchant_id, clock_in_at)` and `(staff_id, clock_in_at)`
+- **[RULE]** Any authenticated staff records **their own** attendance (clock-in is idempotent while an open span exists; clock-out closes the latest open span). An owner/manager report aggregates spans over a date range (worked minutes per staff). Attendance is a convenience — it **never gates a sale** (Constitution: additive).
+
 ## Audit
 
 ### AuditLog  *(append-only)*
-- `id`, `merchant_id`, `outlet_id?`, `actor_id → Staff`, `action` (`VOID` | `REFUND` | `PRICE_EDIT` | ...), `entity_type`, `entity_id`, `before` (JSON), `after` (JSON), `created_at`
+- `id`, `merchant_id`, `outlet_id?`, `actor_id → Staff`, `action` (`VOID` | `REFUND` | `CANCEL_OPEN_BILL` | `PRICE_EDIT` | ...), `entity_type`, `entity_id`, `before` (JSON), `after` (JSON), `created_at`
+- **[RULE]** A cashier-initiated correction records the authorizing manager/owner (`approved_by`) on both the correction record and the audit `after` (Constitution VI, v1.6.0).
 - **[RULE]** Written for every sensitive action; part of the same transaction as the action (Constitution VI; FR-026).
 
 ## Transactional Invariants (Constitution II — atomic operations)

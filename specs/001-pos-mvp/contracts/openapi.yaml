@@ -89,10 +89,11 @@ paths:
       summary: List transactions for an outlet (history)
       parameters:
         - { in: query, name: outletId, required: true, schema: { type: string, format: uuid } }
-        - { in: query, name: from, schema: { type: string, format: date } }
-        - { in: query, name: to, schema: { type: string, format: date } }
+        - { in: query, name: from, schema: { type: string, format: date }, description: inclusive calendar day }
+        - { in: query, name: to, schema: { type: string, format: date }, description: inclusive calendar day }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 200, default: 100 } }
       responses:
-        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Order' } } } } }
+        '200': { description: OK (newest first), content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Order' } } } } }
 
   /orders/{id}:
     get:

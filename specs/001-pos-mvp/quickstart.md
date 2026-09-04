@@ -21,7 +21,7 @@ npm run seed          # seeds a merchant, 2 outlets, staff (owner+cashier), cata
 npm run start:dev     # API on http://localhost:3000
 
 # 3. Web admin
-cd ../web-admin
+cd ../customer-portal
 npm install
 npm run dev           # admin on http://localhost:5173
 

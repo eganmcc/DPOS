@@ -152,6 +152,12 @@ abstract class AppLocalizations {
   /// **'Sign-in failed (check connection)'**
   String get errorSignIn;
 
+  /// No description provided for @sessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your session expired. Please sign in again.'**
+  String get sessionExpired;
+
   /// No description provided for @posTitle.
   ///
   /// In en, this message translates to:
@@ -409,6 +415,768 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Table {n}'**
   String tableLabelShort(String n);
+
+  /// No description provided for @historyTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transactions'**
+  String get historyTitle;
+
+  /// No description provided for @historyNetSales.
+  ///
+  /// In en, this message translates to:
+  /// **'NET SALES'**
+  String get historyNetSales;
+
+  /// No description provided for @historyCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sale'**
+  String historyCount(int count);
+
+  /// No description provided for @historyVoidedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} voided'**
+  String historyVoidedCount(int count);
+
+  /// No description provided for @emptyHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get emptyHistory;
+
+  /// No description provided for @errorHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to load transactions'**
+  String get errorHistory;
+
+  /// No description provided for @actionRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get actionRetry;
+
+  /// No description provided for @transactionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction'**
+  String get transactionTitle;
+
+  /// No description provided for @statusCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid'**
+  String get statusCompleted;
+
+  /// No description provided for @statusVoided.
+  ///
+  /// In en, this message translates to:
+  /// **'Voided'**
+  String get statusVoided;
+
+  /// No description provided for @statusRefunded.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded'**
+  String get statusRefunded;
+
+  /// No description provided for @paymentReversal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reversal'**
+  String get paymentReversal;
+
+  /// No description provided for @voidedHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale voided'**
+  String get voidedHeader;
+
+  /// No description provided for @voidReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reason'**
+  String get voidReasonLabel;
+
+  /// No description provided for @voidImmutableNote.
+  ///
+  /// In en, this message translates to:
+  /// **'The sale is kept as a record — the void is a separate entry and stock has been restored.'**
+  String get voidImmutableNote;
+
+  /// No description provided for @actionVoidSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Void sale'**
+  String get actionVoidSale;
+
+  /// No description provided for @voidOwnerOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only an owner or manager can void a sale.'**
+  String get voidOwnerOnly;
+
+  /// No description provided for @voidConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Void this sale?'**
+  String get voidConfirmTitle;
+
+  /// No description provided for @voidConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The sale stays in the records as voided, stock is restored, and the action is logged.'**
+  String get voidConfirmBody;
+
+  /// No description provided for @actionCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get actionCancel;
+
+  /// No description provided for @actionVoidConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Void'**
+  String get actionVoidConfirm;
+
+  /// No description provided for @voidSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale voided and stock restored'**
+  String get voidSuccess;
+
+  /// No description provided for @voidFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Void failed — please try again'**
+  String get voidFailed;
+
+  /// No description provided for @voidForbidden.
+  ///
+  /// In en, this message translates to:
+  /// **'You are not allowed to void a sale'**
+  String get voidForbidden;
+
+  /// No description provided for @voidWindowExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Voids are only allowed on the same day — issue a refund instead.'**
+  String get voidWindowExpired;
+
+  /// No description provided for @voidHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancels the whole sale — today only'**
+  String get voidHint;
+
+  /// No description provided for @refundHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Return part or all — any day'**
+  String get refundHint;
+
+  /// No description provided for @voidReasonWrongItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong item'**
+  String get voidReasonWrongItem;
+
+  /// No description provided for @voidReasonWrongPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong price'**
+  String get voidReasonWrongPrice;
+
+  /// No description provided for @voidReasonCustomerCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer cancelled'**
+  String get voidReasonCustomerCancel;
+
+  /// No description provided for @voidReasonTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test transaction'**
+  String get voidReasonTest;
+
+  /// No description provided for @actionRefund.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund'**
+  String get actionRefund;
+
+  /// No description provided for @refundTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund sale'**
+  String get refundTitle;
+
+  /// No description provided for @refundFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Full'**
+  String get refundFull;
+
+  /// No description provided for @refundPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'By item'**
+  String get refundPartial;
+
+  /// No description provided for @refundReasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund reason'**
+  String get refundReasonLabel;
+
+  /// No description provided for @refundEstimate.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated refund'**
+  String get refundEstimate;
+
+  /// No description provided for @refundSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund processed'**
+  String get refundSuccess;
+
+  /// No description provided for @refundFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Refund failed — please try again'**
+  String get refundFailed;
+
+  /// No description provided for @refundedSoFar.
+  ///
+  /// In en, this message translates to:
+  /// **'Refunded so far'**
+  String get refundedSoFar;
+
+  /// No description provided for @refundNothingLeft.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing left to refund on this sale.'**
+  String get refundNothingLeft;
+
+  /// No description provided for @refundReasonDamaged.
+  ///
+  /// In en, this message translates to:
+  /// **'Damaged / defective'**
+  String get refundReasonDamaged;
+
+  /// No description provided for @refundReasonReturn.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer return'**
+  String get refundReasonReturn;
+
+  /// No description provided for @refundReasonQuality.
+  ///
+  /// In en, this message translates to:
+  /// **'Quality issue'**
+  String get refundReasonQuality;
+
+  /// No description provided for @managerApprovalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager approval'**
+  String get managerApprovalTitle;
+
+  /// No description provided for @managerPinLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager / owner PIN'**
+  String get managerPinLabel;
+
+  /// No description provided for @approvalInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid manager PIN'**
+  String get approvalInvalid;
+
+  /// No description provided for @approvalRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager approval is required'**
+  String get approvalRequired;
+
+  /// No description provided for @actionCancelBill.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel bill'**
+  String get actionCancelBill;
+
+  /// No description provided for @cancelBillTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this bill?'**
+  String get cancelBillTitle;
+
+  /// No description provided for @cancelBillBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Reserved stock is released and the bill is closed. No payment was taken.'**
+  String get cancelBillBody;
+
+  /// No description provided for @cancelSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Bill cancelled and stock released'**
+  String get cancelSuccess;
+
+  /// No description provided for @cancelFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel failed — please try again'**
+  String get cancelFailed;
+
+  /// No description provided for @clockInPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock in now?'**
+  String get clockInPromptTitle;
+
+  /// No description provided for @actionLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get actionLater;
+
+  /// No description provided for @clockOutPromptTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out?'**
+  String get clockOutPromptTitle;
+
+  /// No description provided for @clockOutPromptBody.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re still on the clock. Clock out before logging out?'**
+  String get clockOutPromptBody;
+
+  /// No description provided for @actionLogoutOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Just log out'**
+  String get actionLogoutOnly;
+
+  /// No description provided for @actionClockOutAndLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out & log out'**
+  String get actionClockOutAndLogout;
+
+  /// No description provided for @soldOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold out'**
+  String get soldOut;
+
+  /// No description provided for @eachSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'each'**
+  String get eachSuffix;
+
+  /// No description provided for @removeItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove item'**
+  String get removeItem;
+
+  /// No description provided for @labelQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get labelQty;
+
+  /// No description provided for @addQtyToOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Add {qty} · {amount}'**
+  String addQtyToOrder(int qty, String amount);
+
+  /// No description provided for @saveOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Process order'**
+  String get saveOrder;
+
+  /// No description provided for @updateOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Update order'**
+  String get updateOrder;
+
+  /// No description provided for @orderSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Order processed'**
+  String get orderSaved;
+
+  /// No description provided for @openBillsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get openBillsTitle;
+
+  /// No description provided for @emptyOpenBills.
+  ///
+  /// In en, this message translates to:
+  /// **'No open bills'**
+  String get emptyOpenBills;
+
+  /// No description provided for @onlineOrdersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Online orders'**
+  String get onlineOrdersTitle;
+
+  /// No description provided for @onlineOrderNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New'**
+  String get onlineOrderNew;
+
+  /// No description provided for @onlineOrderAccept.
+  ///
+  /// In en, this message translates to:
+  /// **'Accept'**
+  String get onlineOrderAccept;
+
+  /// No description provided for @onlineDemoLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Online orders (demo)'**
+  String get onlineDemoLabel;
+
+  /// No description provided for @searchTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Search table'**
+  String get searchTable;
+
+  /// No description provided for @tableRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a table number'**
+  String get tableRequired;
+
+  /// No description provided for @tableExists.
+  ///
+  /// In en, this message translates to:
+  /// **'That table already has an open bill'**
+  String get tableExists;
+
+  /// No description provided for @actionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'OK'**
+  String get actionOk;
+
+  /// No description provided for @dialogTitleInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Information'**
+  String get dialogTitleInfo;
+
+  /// No description provided for @dialogTitleSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get dialogTitleSuccess;
+
+  /// No description provided for @dialogTitleWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'Heads up'**
+  String get dialogTitleWarning;
+
+  /// No description provided for @dialogTitleError.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t do that'**
+  String get dialogTitleError;
+
+  /// No description provided for @settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// No description provided for @aboutSection.
+  ///
+  /// In en, this message translates to:
+  /// **'About'**
+  String get aboutSection;
+
+  /// No description provided for @appVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get appVersionLabel;
+
+  /// No description provided for @serverVersionLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Server version'**
+  String get serverVersionLabel;
+
+  /// No description provided for @preferencesSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Preferences'**
+  String get preferencesSection;
+
+  /// No description provided for @languageLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get languageLabel;
+
+  /// No description provided for @themeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Theme'**
+  String get themeLabel;
+
+  /// No description provided for @scannerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get scannerTitle;
+
+  /// No description provided for @scannerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Point the camera at a barcode'**
+  String get scannerHint;
+
+  /// No description provided for @scannerSkuLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU'**
+  String get scannerSkuLabel;
+
+  /// No description provided for @scannerAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add'**
+  String get scannerAdd;
+
+  /// No description provided for @scannerBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse products'**
+  String get scannerBrowse;
+
+  /// No description provided for @scannerAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added: {name}'**
+  String scannerAdded(String name);
+
+  /// No description provided for @scannerSkuNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU not found: {sku}'**
+  String scannerSkuNotFound(String sku);
+
+  /// No description provided for @scannerOutOfStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get scannerOutOfStock;
+
+  /// No description provided for @scannerModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanner mode'**
+  String get scannerModeLabel;
+
+  /// No description provided for @scannerModeAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto'**
+  String get scannerModeAuto;
+
+  /// No description provided for @scannerModeOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get scannerModeOn;
+
+  /// No description provided for @scannerModeOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get scannerModeOff;
+
+  /// No description provided for @printFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer not reachable'**
+  String get printFailed;
+
+  /// No description provided for @actionPrint.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get actionPrint;
+
+  /// No description provided for @printerSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Printer'**
+  String get printerSection;
+
+  /// No description provided for @printerPaired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired'**
+  String get printerPaired;
+
+  /// No description provided for @printerNone.
+  ///
+  /// In en, this message translates to:
+  /// **'None found'**
+  String get printerNone;
+
+  /// No description provided for @printerTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test print'**
+  String get printerTest;
+
+  /// No description provided for @printerOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Printed'**
+  String get printerOk;
+
+  /// No description provided for @reportsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get reportsTitle;
+
+  /// No description provided for @reportsOrders.
+  ///
+  /// In en, this message translates to:
+  /// **'Orders'**
+  String get reportsOrders;
+
+  /// No description provided for @reportsAvgTicket.
+  ///
+  /// In en, this message translates to:
+  /// **'Avg ticket'**
+  String get reportsAvgTicket;
+
+  /// No description provided for @reportsPayments.
+  ///
+  /// In en, this message translates to:
+  /// **'PAYMENT METHODS'**
+  String get reportsPayments;
+
+  /// No description provided for @reportsTopItems.
+  ///
+  /// In en, this message translates to:
+  /// **'TOP ITEMS'**
+  String get reportsTopItems;
+
+  /// No description provided for @reportsByOutlet.
+  ///
+  /// In en, this message translates to:
+  /// **'BY OUTLET'**
+  String get reportsByOutlet;
+
+  /// No description provided for @reportsByDay.
+  ///
+  /// In en, this message translates to:
+  /// **'SALES BY DAY'**
+  String get reportsByDay;
+
+  /// No description provided for @reportsQtySold.
+  ///
+  /// In en, this message translates to:
+  /// **'{qty} sold'**
+  String reportsQtySold(int qty);
+
+  /// No description provided for @reportsOpenCashier.
+  ///
+  /// In en, this message translates to:
+  /// **'Open cashier'**
+  String get reportsOpenCashier;
+
+  /// No description provided for @reportsAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'ATTENDANCE'**
+  String get reportsAttendance;
+
+  /// No description provided for @reportsNoAttendance.
+  ///
+  /// In en, this message translates to:
+  /// **'No attendance in this period'**
+  String get reportsNoAttendance;
+
+  /// No description provided for @attendanceOnClock.
+  ///
+  /// In en, this message translates to:
+  /// **'On the clock'**
+  String get attendanceOnClock;
+
+  /// No description provided for @periodDaily.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily'**
+  String get periodDaily;
+
+  /// No description provided for @periodWeekly.
+  ///
+  /// In en, this message translates to:
+  /// **'Weekly'**
+  String get periodWeekly;
+
+  /// No description provided for @periodMonthly.
+  ///
+  /// In en, this message translates to:
+  /// **'Monthly'**
+  String get periodMonthly;
+
+  /// No description provided for @attendanceSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Attendance'**
+  String get attendanceSection;
+
+  /// No description provided for @attendanceClockIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock in'**
+  String get attendanceClockIn;
+
+  /// No description provided for @attendanceClockOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Clock out'**
+  String get attendanceClockOut;
+
+  /// No description provided for @attendanceClockedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Not clocked in'**
+  String get attendanceClockedOut;
+
+  /// No description provided for @attendanceSince.
+  ///
+  /// In en, this message translates to:
+  /// **'On the clock since {time}'**
+  String attendanceSince(String time);
 }
 
 class _AppLocalizationsDelegate

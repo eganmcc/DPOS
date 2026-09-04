@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { PrismaClient, StaffRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { applyMenu } from './menu-data';
 
 const prisma = new PrismaClient();
 
@@ -54,79 +55,9 @@ async function main(): Promise<void> {
     });
   }
 
-  const minuman = await prisma.category.create({
-    data: { merchantId: merchant.id, name: 'Minuman', sortOrder: 1 },
-  });
-  const makanan = await prisma.category.create({
-    data: { merchantId: merchant.id, name: 'Makanan', sortOrder: 2 },
-  });
-
-  // Kopi Susu — two variants + a "Sugar level" modifier group. Regular variant tracks stock.
-  const kopiSusu = await prisma.product.create({
-    data: {
-      merchantId: merchant.id,
-      categoryId: minuman.id,
-      name: 'Kopi Susu',
-      variants: {
-        create: [
-          { name: 'Regular', price: 18000, costPrice: 7000, isDefault: true, trackInventory: true },
-          { name: 'Large', price: 23000, costPrice: 9000, trackInventory: true },
-        ],
-      },
-      modifierGroups: {
-        create: [
-          {
-            name: 'Sugar level',
-            minSelect: 0,
-            maxSelect: 1,
-            modifiers: {
-              create: [
-                { name: 'Less sugar', priceDelta: 0 },
-                { name: 'Normal', priceDelta: 0 },
-                { name: 'Extra shot', priceDelta: 5000 },
-              ],
-            },
-          },
-        ],
-      },
-    },
-    include: { variants: true },
-  });
-
-  // Nasi Goreng — single variant, tracks stock.
-  const nasiGoreng = await prisma.product.create({
-    data: {
-      merchantId: merchant.id,
-      categoryId: makanan.id,
-      name: 'Nasi Goreng',
-      variants: { create: [{ name: 'Regular', price: 27000, costPrice: 12000, isDefault: true, trackInventory: true }] },
-    },
-    include: { variants: true },
-  });
-
-  // Seed opening stock (100 each) at Outlet Pusat for tracked variants.
-  const trackedVariants = [...kopiSusu.variants, ...nasiGoreng.variants];
-  for (const v of trackedVariants) {
-    await prisma.inventoryStock.create({
-      data: {
-        merchantId: merchant.id,
-        outletId: outletA.id,
-        variantId: v.id,
-        quantityOnHand: 100,
-      },
-    });
-    await prisma.inventoryMovement.create({
-      data: {
-        merchantId: merchant.id,
-        outletId: outletA.id,
-        variantId: v.id,
-        qtyDelta: 100,
-        reason: 'RECEIVE',
-        refType: 'SEED',
-        createdById: 'seed',
-      },
-    });
-  }
+  // Full demo menu (20 items across Minuman / Makanan / Snack) + opening stock
+  // at Outlet Pusat for every tracked variant. Shared with prisma/seed-menu.ts.
+  const menu = await applyMenu(prisma, { merchantId: merchant.id, stockOutletId: outletA.id });
 
   console.log('Seed complete.');
   console.log('  merchantId :', merchant.id);
@@ -134,6 +65,7 @@ async function main(): Promise<void> {
   console.log('  outletB    :', outletB.id, '(Outlet Cabang)');
   console.log('  owner login: owner@warungdemo.id / owner123');
   console.log('  cashier PIN: 1234   (owner PIN: 9999)');
+  console.log('  menu       :', menu.productsCreated, 'products,', menu.stockRowsCreated, 'stock rows');
 }
 
 main()

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fully transparent drawable used as the Android 12+ splash "animated icon" so
+     the system splash shows ONLY the gold background (no mark). The Flutter splash
+     draws the actual circle + wordmark on first frame. -->
+<color xmlns:android="http://schemas.android.com/apk/res/android"
+    android:color="@android:color/transparent" />

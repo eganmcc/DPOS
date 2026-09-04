@@ -30,6 +30,21 @@ dependencies:
   connectivity_plus: ^6.1.0
   shared_preferences: ^2.3.2
 
+  # Spoken payment confirmation (Indonesian TTS)
+  flutter_tts: ^4.2.0
+
+  # Grocery barcode-scanner POS mode + Bluetooth thermal printing (DPOSP)
+  mobile_scanner: ^5.2.3
+  print_bluetooth_thermal: ^1.1.1
+  esc_pos_utils_plus: ^2.0.4
+  permission_handler: ^11.3.1
+
+  # App version for the Settings screen
+  package_info_plus: ^8.1.0
+
+  # Brand wordmark font (Quicksand)
+  google_fonts: ^6.2.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -42,3 +57,6 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    # Bundled Quicksand Bold so the DIKASIR wordmark renders offline (google_fonts
+    # uses this local file instead of fetching at runtime).
+    - google_fonts/

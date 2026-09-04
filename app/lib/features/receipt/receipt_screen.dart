@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/brand.dart';
 import '../../core/money.dart';
-import '../../core/theme.dart';
 import '../../data/models.dart';
+import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../scanner/rongta_printer.dart';
+import '../transactions/transaction_status.dart';
 
 class ReceiptScreen extends ConsumerWidget {
   const ReceiptScreen({super.key, required this.order});
@@ -15,10 +18,13 @@ class ReceiptScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
-    final ext = brandColors(context);
     final ts = DateFormat('dd/MM/yyyy HH:mm').format(order.createdAt);
     final payment = order.payments.isNotEmpty ? order.payments.first : null;
-    final voided = order.effectiveStatus != 'COMPLETED';
+    // Company + outlet names from the current outlet's catalog (never hardcoded).
+    final session = ref.watch(sessionProvider);
+    final catalog =
+        session != null ? ref.watch(catalogProvider(session.outletId)).valueOrNull : null;
+    final businessName = catalog?.merchantName ?? t.appTitle;
 
     return Scaffold(
       appBar: BrandAppBar(title: Text(t.receiptTitle)),
@@ -40,16 +46,22 @@ class ReceiptScreen extends ConsumerWidget {
                         Center(child: Image.asset('assets/images/dika_logo.png', height: 44)),
                         const SizedBox(height: 8),
                         Center(
-                          child: Text('Warung Kopi Demo',
+                          child: Text(businessName,
+                              textAlign: TextAlign.center,
                               style: Theme.of(context).textTheme.titleMedium),
                         ),
+                        if (catalog?.outletName != null)
+                          Center(
+                            child: Text(catalog!.outletName!,
+                                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                          ),
                         const SizedBox(height: 8),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('#${order.id.substring(0, 8)}',
                                 style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13)),
-                            _StatusChip(label: order.effectiveStatus, voided: voided, ext: ext, cs: cs),
+                            StatusChip(status: order.effectiveStatus),
                           ],
                         ),
                         Text(ts, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
@@ -82,10 +94,30 @@ class ReceiptScreen extends ConsumerWidget {
                         ),
                         if (payment != null) ...[
                           const SizedBox(height: 6),
-                          _row(context, payment.method, payment.amount, muted: true),
-                          if (payment.change != null) _row(context, t.labelChange, payment.change!, muted: true),
+                          // For cash, show the amount handed over (tendered), then the
+                          // change — not the bill total again.
+                          _row(context, payment.method, payment.tendered ?? payment.amount,
+                              muted: true),
+                          if (payment.change != null)
+                            _row(context, t.labelChange, payment.change!, muted: true),
                         ],
                         const SizedBox(height: 20),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            icon: const Icon(Icons.print_outlined, size: 18),
+                            label: Text(t.actionPrint),
+                            onPressed: () async {
+                              final messenger = ScaffoldMessenger.of(context);
+                              final ok = await printReceiptSmart(order,
+                                  businessName: businessName, outletName: catalog?.outletName);
+                              if (!ok) {
+                                messenger.showSnackBar(SnackBar(content: Text(t.printFailed)));
+                              }
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         Row(
                           children: [
                             Expanded(
@@ -126,25 +158,6 @@ class ReceiptScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [Text(label, style: style), Text(formatRupiah(amount), style: style)],
       ),
-    );
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({required this.label, required this.voided, required this.ext, required this.cs});
-  final String label;
-  final bool voided;
-  final DposColors ext;
-  final ColorScheme cs;
-
-  @override
-  Widget build(BuildContext context) {
-    final bg = voided ? cs.errorContainer : ext.successContainer;
-    final fg = voided ? cs.onErrorContainer : ext.onSuccessContainer;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(100)),
-      child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 12)),
     );
   }
 }

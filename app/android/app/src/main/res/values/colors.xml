@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Native launch splash: flat brand gold. Intentionally icon-free — the Flutter
+         splash (gold + circle mark + wordmark) paints the branded screen on first frame. -->
+    <color name="splash_background">#FFD6AD07</color>
+    <!-- Adaptive launcher-icon background (solid navy behind the 5k foreground). -->
+    <color name="ic_launcher_background">#FF0B2036</color>
+</resources>

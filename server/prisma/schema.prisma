@@ -12,8 +12,17 @@ datasource db {
 
 // ---------- Enums ----------
 enum StaffRole {
-  OWNER
+  OWNER // account admin (portal login)
+  MANAGER
+  SERVER
   CASHIER
+}
+
+// Merchant business type — drives business-specific portal behaviour (e.g. the
+// bill-settlement setting is only relevant to F&B).
+enum BusinessType {
+  FNB
+  GROCERY
 }
 
 enum ProductType {
@@ -27,17 +36,49 @@ enum OrderType {
   RETAIL
 }
 
+// Sales channel. POS = rung in-store on the app. The rest are online-delivery
+// platforms whose orders are ingested server-side (demo simulator now, real
+// provider webhooks later) — the DB stays the source of truth either way.
+enum OrderChannel {
+  POS
+  GOFOOD
+  GRABFOOD
+  SHOPEEFOOD
+}
+
+// Fulfillment lifecycle for an online-delivery order (distinct from payment
+// OrderStatus, which is COMPLETED the moment the platform has paid). NEW = just
+// arrived, not yet acknowledged by the cashier (drives the unprocessed badge).
+enum OnlineOrderStatus {
+  NEW
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
 // Stored lifecycle only — never past COMPLETED. VOIDED/REFUNDED are DERIVED.
 enum OrderStatus {
   DRAFT
   HELD
   AWAITING_PAYMENT
   COMPLETED
+  CANCELLED // an unpaid open bill that was abandoned; reserved stock released
+}
+
+// How an outlet takes payment. IMMEDIATE = pay at checkout (retail/takeaway);
+// OPEN_BILL = confirm the order now (reserves stock) and settle later (restaurant
+// table service). A per-outlet setting; the web admin will edit it later.
+enum OutletPaymentMode {
+  IMMEDIATE
+  OPEN_BILL
 }
 
 enum PaymentMethod {
   CASH
   QRIS_SIMULATED
+  ONLINE // paid by an online-delivery platform (GoFood/GrabFood/ShopeeFood)
 }
 
 enum PaymentDirection {
@@ -91,9 +132,11 @@ enum CashMovementType {
 
 // ---------- Tenancy & identity ----------
 model Merchant {
-  id        String   @id @default(uuid())
-  name      String
-  createdAt DateTime @default(now())
+  id           String       @id @default(uuid())
+  name         String // company / legal name
+  businessType BusinessType @default(FNB)
+  logoUrl      String?
+  createdAt    DateTime     @default(now())
 
   outlets    Outlet[]
   staff      Staff[]
@@ -109,6 +152,8 @@ model Merchant {
   taxRules   TaxRule[]
   productOutlets ProductOutlet[]
   devices    Device[]
+  attendance Attendance[]
+  refunds    Refund[]
 
   @@map("merchants")
 }
@@ -116,9 +161,12 @@ model Merchant {
 model Outlet {
   id         String   @id @default(uuid())
   merchantId String
-  name       String
-  address    String?
-  isActive   Boolean  @default(true)
+  code        String? // branch code, unique per merchant
+  name        String
+  address     String?
+  managerId   String? // Staff.id of the branch manager
+  isActive    Boolean           @default(true)
+  paymentMode OutletPaymentMode @default(IMMEDIATE)
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
 
@@ -130,6 +178,7 @@ model Outlet {
   movements      InventoryMovement[]
   orderVoids     OrderVoid[]
 
+  @@unique([merchantId, code])
   @@index([merchantId])
   @@map("outlets")
 }
@@ -137,17 +186,42 @@ model Outlet {
 model Staff {
   id           String    @id @default(uuid())
   merchantId   String
+  employeeId   String? // human-facing id, e.g. "EMP0001", generated on create
   name         String
+  phone        String?
   role         StaffRole
+  outletId     String? // assignment: null = HQ / all branches
   pinHash      String
+  demoPin      String? // DEMO ONLY: plaintext PIN for the login-screen prefill; null in production
   email        String?
   passwordHash String?
   isActive     Boolean   @default(true)
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
+  attendance Attendance[]
 
+  @@unique([merchantId, employeeId])
   @@index([merchantId])
   @@map("staff")
+}
+
+/// One clock-in → clock-out span for a staff member. clockOutAt null = still on
+/// the clock. Attendance reporting aggregates these per staff over a date range.
+model Attendance {
+  id         String    @id @default(uuid())
+  merchantId String
+  staffId    String
+  outletId   String? // where they clocked in (the session outlet)
+  clockInAt  DateTime  @default(now())
+  clockOutAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+  staff    Staff    @relation(fields: [staffId], references: [id])
+
+  @@index([merchantId, clockInAt])
+  @@index([staffId, clockInAt])
+  @@map("attendance")
 }
 
 model Device {
@@ -294,6 +368,12 @@ model Order {
   tableLabel    String?
   status        OrderStatus @default(COMPLETED)
 
+  // Sales channel + online-delivery metadata (null/POS for in-store sales).
+  channel          OrderChannel       @default(POS)
+  onlineStatus     OnlineOrderStatus?
+  externalOrderRef String? // platform order code (demo: short number)
+  customerName     String?
+
   // Server-authoritative money (integer rupiah)
   subtotal           Int
   discountTotal      Int @default(0)
@@ -316,9 +396,11 @@ model Order {
   discounts OrderDiscount[]
   payments  Payment[]
   voids     OrderVoid[]
+  refunds   Refund[]
 
   @@unique([merchantId, clientOrderId])
   @@index([outletId])
+  @@index([outletId, onlineStatus])
   @@map("orders")
 }
 
@@ -373,6 +455,7 @@ model OrderVoid {
   clientVoidId String?
   reason       String?
   voidedById   String
+  approvedById String? // manager/owner who authorized a cashier-initiated void (null = self)
   createdAt    DateTime @default(now())
 
   merchant Merchant @relation(fields: [merchantId], references: [id])
@@ -382,6 +465,49 @@ model OrderVoid {
   @@unique([orderId]) // one full void per order
   @@unique([merchantId, clientVoidId]) // device idempotency
   @@map("order_voids")
+}
+
+/// A refund against a completed sale. Unlike a void (one full reversal per order),
+/// an order can have several partial refunds; `amount` is the money returned and
+/// `isFull` marks a whole-order refund. Money moves via a REVERSAL/REFUND Payment;
+/// stock returns via ADJUSTMENT movements (refType ORDER_REFUND).
+model Refund {
+  id             String   @id @default(uuid())
+  merchantId     String
+  outletId       String
+  orderId        String
+  clientRefundId String?
+  reason         String
+  amount         Int
+  isFull         Boolean  @default(false)
+  refundedById   String
+  approvedById   String? // manager/owner who authorized a cashier-initiated refund (null = self)
+  createdAt      DateTime @default(now())
+
+  merchant Merchant     @relation(fields: [merchantId], references: [id])
+  order    Order        @relation(fields: [orderId], references: [id])
+  lines    RefundLine[]
+
+  @@unique([merchantId, clientRefundId]) // device idempotency
+  @@index([orderId])
+  @@map("refunds")
+}
+
+/// One refunded order line (or part of it) — supports partial-quantity refunds and
+/// tracks how much of each line has already been refunded across multiple refunds.
+model RefundLine {
+  id          String  @id @default(uuid())
+  refundId    String
+  orderLineId String
+  variantId   String
+  qty         Decimal @db.Decimal(12, 3)
+  amount      Int
+
+  refund Refund @relation(fields: [refundId], references: [id])
+
+  @@index([refundId])
+  @@index([orderLineId])
+  @@map("refund_lines")
 }
 
 model Payment {

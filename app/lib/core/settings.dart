@@ -58,3 +58,52 @@ class ThemeModeNotifier extends StateNotifier<ThemeMode> {
 
 final themeModeProvider =
     StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) => ThemeModeNotifier());
+
+/// Barcode-scanner POS mode (grocery). 'auto' = on only when a DPOSP printer is
+/// paired; 'on'/'off' force it. Persisted so it survives restarts.
+class ScannerModeNotifier extends StateNotifier<String> {
+  ScannerModeNotifier() : super('auto') {
+    _load();
+  }
+  static const _key = 'scannerMode';
+
+  Future<void> _load() async {
+    final p = await SharedPreferences.getInstance();
+    final v = p.getString(_key);
+    if (v == 'auto' || v == 'on' || v == 'off') state = v!;
+  }
+
+  Future<void> set(String mode) async {
+    state = mode;
+    final p = await SharedPreferences.getInstance();
+    await p.setString(_key, mode);
+  }
+}
+
+final scannerModeSettingProvider =
+    StateNotifierProvider<ScannerModeNotifier, String>((ref) => ScannerModeNotifier());
+
+/// Demo generator for F&B online-delivery orders. When on (default), a logged-in
+/// F&B cashier session fabricates a random GoFood/GrabFood/ShopeeFood order every
+/// 1–3 minutes. Off disables the simulation (real orders would still arrive).
+class OnlineDemoNotifier extends StateNotifier<bool> {
+  OnlineDemoNotifier() : super(true) {
+    _load();
+  }
+  static const _key = 'onlineDemo';
+
+  Future<void> _load() async {
+    final p = await SharedPreferences.getInstance();
+    final v = p.getBool(_key);
+    if (v != null) state = v;
+  }
+
+  Future<void> set(bool on) async {
+    state = on;
+    final p = await SharedPreferences.getInstance();
+    await p.setBool(_key, on);
+  }
+}
+
+final onlineDemoSettingProvider =
+    StateNotifierProvider<OnlineDemoNotifier, bool>((ref) => OnlineDemoNotifier());
