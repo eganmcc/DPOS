@@ -35,6 +35,16 @@ assuming the app is wrong: `git fetch --all` and check every branch, not just th
 - Deleting a **fully-merged** branch loses nothing (its commits live on in `main`); record the tip
   SHA in the DEVLOG deletion ledger so it can be recreated with `git branch <name> <sha>`.
 
+### Syncing — `pull --ff-only` vs `reset --hard`
+
+- **In a working checkout, sync with `git pull --ff-only`.** It fast-forwards when you're behind and
+  **stops without clobbering** if you've diverged (any unpushed commit) — then *you* choose to merge,
+  rebase, or push. It never silently destroys local work. This is the default; never tell another
+  session to `reset --hard` its working copy.
+- **`git reset --hard origin/main` is destructive** — it discards unpushed commits *and* uncommitted
+  edits. Use it **only** on the deploy checkout (`/opt/dpos`, which must mirror the remote exactly) or
+  when you have *deliberately* decided to throw local state away. Never as a routine "get latest".
+
 ## Money and stock
 
 The constitution (`.specify/memory/constitution.md`) governs; it is the top gate. In practice:
