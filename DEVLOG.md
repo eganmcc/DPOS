@@ -42,7 +42,7 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 | Domain | `dikapos.ptdika.com` → A record to the EIP |
 | TLS | Let's Encrypt via certbot + nginx; renew timer enabled, nginx reload hook installed |
 | API | `dpos.service` (systemd, `enabled`), node on `127.0.0.1:3000`, nginx proxies 443 → 3000 |
-| Code | `/opt/dpos` (git clone of this repo) — currently tracks branch **`beta-1`** |
+| Code | `/opt/dpos` (git clone of this repo) — tracks branch **`main`** (trunk-based since 2026-09-05; was `beta-1`) |
 | Security group | `sg-02adab4f9e3431899` — 22, 80, 443 open; **3000 deliberately closed** |
 | RDS access | RDS security group allows **the EC2 security group** (not an IP) on 5432; resolves privately to `172.31.29.105` |
 | S3 | `amzn-s3-dkpos-bucket`, `menu/` prefix public-read, `ap-southeast-3` |
@@ -145,12 +145,18 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 
 | Branch | What it is | Status |
 |---|---|---|
-| `main` | trunk | **current — `beta-1` merged in on 2026-09-04 (`f48ce2b`); everything below is folded in** |
-| `beta-1` | live working line | in sync with `main` (merged up); keep for ongoing work |
-| `claude/correction-path-tests` | integrity tests for settle/cancel/refund/revise (cloud session) | **merged → `beta-1` → `main`** — safe to retire |
+| `main` | **trunk — the one working line** (trunk-based dev; commit here, deploy here) | current |
+| `claude/correction-path-tests` | integrity tests for settle/cancel/refund/revise (cloud session) | merged → `main`; safe to retire |
 | `claude/us3-void-implementation-3zl5oh` | US3 void (early cut) | superseded — fully contained in `main` |
 
-_Deleted 2026-09-04 (fully merged into `main`): `beta-with-SDP-printer` (was `7517303`) and `customer-portal` (was `8514286`). Their commits live on in `main`'s history + reflog; recreate with `git branch <name> <sha>` if ever needed._
+**Workflow:** trunk-based on `main` — `main` is always deployable and is what EC2 ships. Cut a
+**short-lived** feature branch only for risky/parallel work, then merge back and delete it. Keep
+`main` green (the integrity suite, `cd server && npm test`, is the gate). Tag releases (`vX.Y.Z`)
+rather than keeping long-lived release branches.
+
+_Deleted (fully merged into `main`; commits live on in `main` history + reflog — recreate with `git branch <name> <sha>`):_
+- _2026-09-05: `beta-1` (was `0d0f2e9`)_
+- _2026-09-04: `beta-with-SDP-printer` (was `7517303`), `customer-portal` (was `8514286`)_
 
 **Why this table matters:** a cloud session reported "open bills can't be cancelled" after reading
 the US3 branch (28 Aug) while the feature had shipped on `beta-1` (3 Sep). Any finding about the
