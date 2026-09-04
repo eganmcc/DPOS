@@ -25,6 +25,20 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
+    // A 401 mid-session means the JWT expired or was revoked. Recover cleanly —
+    // drop the dead token and return to login — instead of letting the error
+    // bubble into a render and white-screen the app. The login call is exempt so
+    // a wrong password shows its own error rather than reloading.
+    if (res.status === 401 && path !== '/auth/login') {
+      try {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem('dcp_role');
+      } catch (e) {
+        /* ignore storage errors */
+      }
+      const base = import.meta.env.BASE_URL || '/customer-portal/';
+      if (!location.pathname.endsWith('/login')) location.assign(base + 'login');
+    }
     const msg =
       (data && (Array.isArray(data.message) ? data.message.join(', ') : data.message)) ||
       `Request failed (${res.status})`;
