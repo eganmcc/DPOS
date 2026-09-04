@@ -148,9 +148,9 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 | `main` | trunk | **current — `beta-1` merged in on 2026-09-04 (`f48ce2b`); everything below is folded in** |
 | `beta-1` | live working line | in sync with `main` (merged up); keep for ongoing work |
 | `claude/correction-path-tests` | integrity tests for settle/cancel/refund/revise (cloud session) | **merged → `beta-1` → `main`** — safe to retire |
-| `beta-with-SDP-printer` | thermal-printer spike | **fully in `main` (0 commits ahead)** — safe to retire (awaiting your call) |
-| `customer-portal` | Vue customer portal | **fully in `main` (0 commits ahead)** — safe to retire (awaiting your call) |
 | `claude/us3-void-implementation-3zl5oh` | US3 void (early cut) | superseded — fully contained in `main` |
+
+_Deleted 2026-09-04 (fully merged into `main`): `beta-with-SDP-printer` (was `7517303`) and `customer-portal` (was `8514286`). Their commits live on in `main`'s history + reflog; recreate with `git branch <name> <sha>` if ever needed._
 
 **Why this table matters:** a cloud session reported "open bills can't be cancelled" after reading
 the US3 branch (28 Aug) while the feature had shipped on `beta-1` (3 Sep). Any finding about the
