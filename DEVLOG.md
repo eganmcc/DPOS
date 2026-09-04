@@ -135,6 +135,24 @@ Release APKs are **debug-signed** (fine for sideloading, not for Play Store).
 - **Emulator "not enough space":** `adb shell pm uninstall-system-updates` reclaimed ~4 GB.
 - **Screenshots:** PowerShell `>` corrupts binary; use `adb shell screencap -p /sdcard/x.png` then `adb pull`.
 
+## Branch map (keep this current)
+
+`main` is the trunk. Everything else is a work stream — check the date before believing any claim
+about "the code"; the SessionStart hook prints this table live at the start of every session.
+
+| Branch | What it is | Status |
+|---|---|---|
+| `main` | trunk | **stale — merge `beta-1` into it** |
+| `beta-1` | live line: open bills, cancel, refund, revise, stock, TTS, settings | current |
+| `beta-with-SDP-printer` | thermal-printer spike | fold in or retire |
+| `customer-portal` | Vue customer portal | fold in or retire |
+| `claude/us3-void-implementation-3zl5oh` | US3 void (+23 unrelated commits pushed onto it later) | superseded by `beta-1` |
+
+**Why this table matters:** a cloud session reported "open bills can't be cancelled" after reading
+the US3 branch (28 Aug) while the feature had shipped on `beta-1` (3 Sep). Any finding about the
+code must name the branch and date it came from — that rule now lives in `CLAUDE.md`, which every
+session loads automatically.
+
 ## Working across surfaces (cloud ⇄ local, PC ⇄ Mac)
 
 **Key idea:** running the app needs the **code**, not the **conversation**. Keep them separate.
