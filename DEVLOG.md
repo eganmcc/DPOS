@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-04._
+_Last updated: 2026-09-05._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -160,6 +160,27 @@ _Deleted (fully merged into `main`; commits live on in `main` history + reflog �
 the US3 branch (28 Aug) while the feature had shipped on `beta-1` (3 Sep). Any finding about the
 code must name the branch and date it came from — that rule now lives in `CLAUDE.md`, which every
 session loads automatically.
+
+## Session sync protocol (all surfaces)
+
+Git is the only channel between sessions — no session can see another's conversation, cloud or
+local. These five rules are what keep desktop, Mac, VS Code and cloud from contradicting each other.
+
+1. **One trunk.** `main` is the truth. Commit there for ordinary work; short-lived branches only for
+   risky or parallel work, merged back and deleted the same day or two (see Branch map above).
+2. **Start of session:** read the branch map the SessionStart hook prints. If it shows a branch
+   ahead of `main`, that branch is the current truth — not `main`.
+3. **End of session, every time:** update *Current status* + *Next steps* above, commit, push. An
+   unpushed commit does not exist to any other machine.
+4. **Switching machines:** push before you leave, `git pull` when you arrive. Never leave work
+   uncommitted overnight.
+5. **Two sessions at once:** give each its own branch, tell each what the other is doing, and merge
+   both to `main` the same day. Never push onto a branch another session is using.
+
+**When an agent tells you something about the code, it must name the branch and commit date it
+read** (the rule lives in `CLAUDE.md`, which every session loads automatically). If that contradicts
+what you see in the running app, the app is right and the agent's ref is stale — tell it to
+`git fetch --all` and re-check.
 
 ## Working across surfaces (cloud ⇄ local, PC ⇄ Mac)
 

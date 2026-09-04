@@ -20,13 +20,17 @@ project has several long-lived branches at different dates — a claim true on o
 If a finding contradicts what the user sees in the running app, assume your ref is stale before
 assuming the app is wrong: `git fetch --all` and check every branch, not just the checked-out one.
 
-## Branches
+## Branches — trunk-based on `main`
 
-- One branch per work stream, cut from the trunk. Name it for the work, not the tool.
+- **`main` is the only long-lived branch. Commit there.** It is always deployable and is what EC2
+  ships; the integrity suite (`cd server && npm test`) is the gate that keeps it green.
+- Cut a **short-lived** branch only for risky or parallel work, then merge it back and delete it.
+  Long-lived branches are what made "the code" ambiguous before — a cloud session once reported a
+  feature missing because it read a branch six days stale.
 - **Never push onto a branch another session is working on.** Merge the trunk in instead.
   (`claude/us3-void-implementation-3zl5oh` accumulated 23 unrelated commits this way and stopped
   being reviewable as a single change.)
-- Never push directly to `main`. Never commit `server/.env` or anything under `.env*`.
+- Never commit `server/.env` or anything under `.env*`.
 - Push before switching machines. An unpushed commit is invisible to every other surface.
 
 ## Money and stock
