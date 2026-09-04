@@ -218,7 +218,7 @@ describe('Order void integrity (T035)', () => {
         request(ctx.app.getHttpServer())
           .post(`/api/v1/orders/${order.id}/void`)
           .set('Authorization', `Bearer ${fx.ownerToken}`)
-          .send({ clientVoidId }),
+          .send({ clientVoidId, reason: 'concurrent void' }),
       ),
     );
     expect(results.every((r) => r.status === 200)).toBe(true);
@@ -244,13 +244,13 @@ describe('Order void integrity (T035)', () => {
     await request(ctx.app.getHttpServer())
       .post(`/api/v1/orders/${first.id}/void`)
       .set('Authorization', `Bearer ${fx.ownerToken}`)
-      .send({ clientVoidId })
+      .send({ clientVoidId, reason: 'first sale' })
       .expect(200);
 
     await request(ctx.app.getHttpServer())
       .post(`/api/v1/orders/${second.id}/void`)
       .set('Authorization', `Bearer ${fx.ownerToken}`)
-      .send({ clientVoidId })
+      .send({ clientVoidId, reason: 'second sale' })
       .expect(409);
 
     expect(await ctx.prisma.orderVoid.count({ where: { orderId: second.id } })).toBe(0);
@@ -263,7 +263,7 @@ describe('Order void integrity (T035)', () => {
       await request(ctx.app.getHttpServer())
         .post(`/api/v1/orders/${order.id}/void`)
         .set('Authorization', `Bearer ${other.ownerToken}`)
-        .send({ clientVoidId: uuidv4() })
+        .send({ clientVoidId: uuidv4(), reason: 'cross-merchant attempt' })
         .expect(404);
       expect(await ctx.prisma.orderVoid.count({ where: { orderId: order.id } })).toBe(0);
     } finally {
