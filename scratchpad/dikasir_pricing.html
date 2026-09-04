@@ -1,0 +1,523 @@
+<title>DIKASIR Pricing & ROI</title>
+<meta name="description" content="Commercial pricing model (SaaS + licensing) and build-cost ROI for the DIKASIR POS platform, in English and Bahasa Indonesia." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" />
+<style>
+  :root {
+    --bg: #f7f6f1;
+    --surface: #ffffff;
+    --surface-2: #f1efe7;
+    --ink: #172231;
+    --muted: #5c6775;
+    --line: #e4e1d7;
+    --navy: #133a68;
+    --navy-2: #0f2d51;
+    --gold: #d6ad07;
+    --gold-ink: #806000;
+    --blue: #2f6fb5;
+    --good: #1c7d5b;
+    --on-navy: #f3f1e7;
+    --shadow: 0 1px 2px rgba(17,32,54,.06), 0 8px 24px rgba(17,32,54,.07);
+    --radius: 16px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171c;
+      --surface: #1b1f26;
+      --surface-2: #232932;
+      --ink: #eef2f7;
+      --muted: #9aa6b4;
+      --line: #2c333d;
+      --navy: #1c4a83;
+      --navy-2: #12325c;
+      --gold: #e8c23e;
+      --gold-ink: #e8c23e;
+      --blue: #4c8dd6;
+      --good: #43b58c;
+      --on-navy: #f3f1e7;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171c;
+    --surface: #1b1f26;
+    --surface-2: #232932;
+    --ink: #eef2f7;
+    --muted: #9aa6b4;
+    --line: #2c333d;
+    --navy: #1c4a83;
+    --navy-2: #12325c;
+    --gold: #e8c23e;
+    --gold-ink: #e8c23e;
+    --blue: #4c8dd6;
+    --good: #43b58c;
+    --on-navy: #f3f1e7;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, .brand, .display {
+    font-family: Quicksand, Inter, system-ui, sans-serif;
+    text-wrap: balance;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* ---- top bar ---- */
+  header.bar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; padding: 12px clamp(16px, 4vw, 40px);
+    background: color-mix(in srgb, var(--bg) 86%, transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .brand { font-weight: 700; font-size: 20px; letter-spacing: .5px; color: var(--navy); }
+  :root[data-theme="dark"] .brand, :root:not([data-theme="light"]) .brand { }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand { color: var(--gold); } }
+  :root[data-theme="dark"] .brand { color: var(--gold); }
+  .brand small { display:block; font-family: Inter, sans-serif; font-weight: 500; font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); }
+  .langtog { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--surface); }
+  .langtog button {
+    appearance: none; border: 0; background: transparent; cursor: pointer;
+    font: 600 13px Inter, sans-serif; color: var(--muted);
+    padding: 9px 16px; touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+  }
+  .langtog button[aria-pressed="true"] { background: var(--navy); color: var(--on-navy); }
+  .langtog button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+  main { max-width: 1080px; margin: 0 auto; padding: clamp(20px, 4vw, 44px) clamp(16px, 4vw, 40px) 72px; }
+
+  section.slide { margin-top: 40px; }
+  section.slide:first-of-type { margin-top: 8px; }
+  .eyebrow { font: 600 12px Inter, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: var(--gold-ink); margin: 0 0 8px; }
+  h2 { font-size: clamp(24px, 3.4vw, 34px); font-weight: 700; margin: 0 0 6px; line-height: 1.15; }
+  .lead { color: var(--muted); font-size: 16px; max-width: 68ch; margin: 0 0 22px; }
+
+  /* ---- hero ---- */
+  .hero {
+    background: linear-gradient(150deg, var(--navy), var(--navy-2));
+    color: var(--on-navy);
+    border-radius: 24px;
+    padding: clamp(28px, 5vw, 56px);
+    box-shadow: var(--shadow);
+    position: relative; overflow: hidden;
+  }
+  .hero::after {
+    content: ""; position: absolute; right: -80px; top: -80px; width: 320px; height: 320px;
+    background: radial-gradient(circle, rgba(214,173,7,.28), transparent 62%);
+  }
+  .hero .kicker { font: 600 12px Inter, sans-serif; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin: 0 0 14px; }
+  .hero h1 { font-size: clamp(30px, 6vw, 56px); line-height: 1.04; margin: 0 0 14px; max-width: 16ch; }
+  .hero p { color: rgba(243,241,231,.82); font-size: clamp(15px, 2vw, 19px); max-width: 60ch; margin: 0; }
+  .hero .stripe { display: flex; flex-wrap: wrap; gap: 26px 40px; margin-top: 30px; position: relative; z-index: 1; }
+  .hero .stat .v { font-family: Quicksand, sans-serif; font-weight: 700; font-size: clamp(24px, 4vw, 36px); color: #fff; }
+  .hero .stat .l { font-size: 13px; color: rgba(243,241,231,.72); }
+
+  .grid { display: grid; gap: 16px; }
+  .cards5 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .cards3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 20px; box-shadow: var(--shadow);
+  }
+  .tier { display: flex; flex-direction: column; gap: 10px; position: relative; }
+  .tier.feat { outline: 2px solid var(--gold); }
+  .tier .badge { position: absolute; top: -11px; left: 18px; background: var(--gold); color: #3a2c00; font: 700 10px Inter, sans-serif; letter-spacing: 1px; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
+  .tier h3 { margin: 0; font-size: 18px; }
+  .tier .price { font-family: Quicksand, sans-serif; font-weight: 700; font-size: 26px; color: var(--ink); line-height: 1; }
+  .tier .price small { display:block; font: 500 12px Inter, sans-serif; color: var(--muted); margin-top: 4px; }
+  .tier .who { font-size: 13px; color: var(--gold-ink); font-weight: 600; }
+  .tier ul { margin: 6px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .tier li { font-size: 13.5px; color: var(--muted); padding-left: 20px; position: relative; }
+  .tier li::before { content: "✓"; position: absolute; left: 0; color: var(--good); font-weight: 700; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+  th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th { background: var(--surface-2); font: 600 12px Inter, sans-serif; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.r, th.r { text-align: right; }
+  td strong { color: var(--ink); }
+
+  .addons { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap: 12px; }
+  .addon { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .addon .h { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+  .addon .p { font-size: 13px; color: var(--muted); }
+  .addon .amt { color: var(--gold-ink); font-weight: 700; }
+
+  /* ---- charts ---- */
+  .chart { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px clamp(16px,3vw,26px); box-shadow: var(--shadow); }
+  .chart h3 { margin: 0 0 2px; font-size: 17px; }
+  .chart .sub { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .brow { display: grid; grid-template-columns: 116px 1fr max-content; align-items: center; gap: 12px; margin: 9px 0; }
+  .brow .lab { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+  .brow .lab small { display:block; font-weight: 500; color: var(--muted); font-size: 11px; }
+  .track { background: var(--surface-2); border-radius: 7px; height: 26px; overflow: hidden; }
+  .fill { height: 100%; border-radius: 7px; min-width: 6px; }
+  .fill.team { background: var(--blue); }
+  .fill.build { background: var(--gold); }
+  .fill.comp { background: var(--blue); opacity: .5; }
+  .fill.us { background: var(--gold); }
+  .bval { font: 700 12.5px Inter, sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+  .bval small { display: block; font-weight: 500; font-size: 10.5px; color: var(--muted); }
+
+  .saveband {
+    margin-top: 20px; border-radius: 14px; padding: 18px 22px;
+    background: linear-gradient(120deg, color-mix(in srgb, var(--gold) 20%, var(--surface)), var(--surface));
+    border: 1px solid color-mix(in srgb, var(--gold) 45%, var(--line));
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 16px;
+  }
+  .saveband .big { font-family: Quicksand, sans-serif; font-weight: 700; font-size: clamp(24px, 4vw, 34px); color: var(--gold-ink); line-height: 1; }
+  .saveband .txt { color: var(--ink); font-weight: 600; font-size: 15px; }
+  .saveband .txt span { color: var(--muted); font-weight: 500; }
+
+  .kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 14px; margin-top: 18px; }
+  .kpi { background: var(--surface-2); border-radius: 12px; padding: 16px; }
+  .kpi .v { font-family: Quicksand, sans-serif; font-weight: 700; font-size: clamp(22px, 3vw, 30px); color: var(--gold-ink); line-height: 1; }
+  .kpi .l { font-size: 12.5px; color: var(--muted); margin-top: 6px; }
+
+  .note { font-size: 12.5px; color: var(--muted); margin-top: 14px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .chip { font-size: 12.5px; font-weight: 600; color: var(--navy); background: color-mix(in srgb, var(--navy) 10%, var(--surface)); border: 1px solid var(--line); padding: 6px 11px; border-radius: 999px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .chip { color: var(--on-navy); } }
+  :root[data-theme="dark"] .chip { color: var(--on-navy); }
+
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) {
+    .two { grid-template-columns: 1fr; }
+    .brow { grid-template-columns: 82px 1fr max-content; gap: 9px; }
+    .brow .lab { font-size: 11.5px; }
+    .bval { font-size: 11.5px; }
+  }
+
+  footer { max-width: 1080px; margin: 0 auto; padding: 0 clamp(16px,4vw,40px) 60px; color: var(--muted); font-size: 12px; }
+  footer a { color: var(--blue); }
+  .disclaimer { border-top: 1px solid var(--line); padding-top: 16px; }
+  [hidden] { display: none !important; }
+
+  @media print {
+    :root, :root[data-theme="dark"] {
+      --bg: #ffffff; --surface: #ffffff; --surface-2: #f1efe7;
+      --ink: #172231; --muted: #5c6775; --line: #d9d6cc;
+      --navy: #133a68; --navy-2: #0f2d51; --gold: #d6ad07; --gold-ink: #806000;
+      --blue: #2f6fb5; --good: #1c7d5b; --on-navy: #f3f1e7;
+    }
+    body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    header.bar { position: static; border: 0; }
+    .langtog { display: none; }
+    main { padding: 6px 24px 24px; max-width: none; }
+    section.slide { margin-top: 20px; break-inside: avoid; page-break-inside: avoid; }
+    .hero, .card, .chart, .tablewrap, .saveband, .addon, .kpi { break-inside: avoid; page-break-inside: avoid; }
+    .hero { border-radius: 18px; }
+    a { color: var(--blue); }
+  }
+</style>
+
+<header class="bar">
+  <div class="brand">DIKASIR<small data-en="Pricing &amp; ROI" data-id="Harga &amp; ROI">Harga &amp; ROI</small></div>
+  <div class="langtog" role="group" aria-label="Language">
+    <button type="button" id="btn-id" aria-pressed="true">ID</button>
+    <button type="button" id="btn-en" aria-pressed="false">EN</button>
+  </div>
+</header>
+
+<main>
+  <!-- HERO -->
+  <section class="slide">
+    <div class="hero">
+      <p class="kicker" data-en="Commercial proposal" data-id="Proposal komersial">Proposal komersial</p>
+      <h1 data-en="A POS platform built for a fraction of the cost." data-id="Platform POS yang dibangun dengan biaya jauh lebih murah.">Platform POS yang dibangun dengan biaya jauh lebih murah.</h1>
+      <p data-en="A commercial pricing model for DIKASIR — SaaS subscriptions and traditional licensing — set against what the build actually cost versus a full engineering team." data-id="Model harga komersial untuk DIKASIR — langganan SaaS dan lisensi tradisional — dibandingkan dengan biaya pembuatan sebenarnya versus satu tim engineering penuh.">Model harga komersial untuk DIKASIR — langganan SaaS dan lisensi tradisional — dibandingkan dengan biaya pembuatan sebenarnya versus satu tim engineering penuh.</p>
+      <div class="stripe">
+        <div class="stat"><div class="v num">~Rp 15 jt</div><div class="l" data-en="build cost (loaded)" data-id="biaya pembuatan (termuat)">biaya pembuatan (termuat)</div></div>
+        <div class="stat"><div class="v num">~Rp 705 jt</div><div class="l" data-en="cost of a 6-person team (3 mo)" data-id="biaya tim 6 orang (3 bln)">biaya tim 6 orang (3 bln)</div></div>
+        <div class="stat"><div class="v num">~98%</div><div class="l" data-en="cost avoided" data-id="biaya dihemat">biaya dihemat</div></div>
+        <div class="stat"><div class="v" data-en="2 wks vs 3 mo" data-id="2 mgg vs 3 bln">2 mgg vs 3 bln</div><div class="l" data-en="time to working MVP" data-id="waktu ke MVP jalan">waktu ke MVP jalan</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ROI -->
+  <section class="slide">
+    <p class="eyebrow" data-en="The ROI" data-id="ROI">ROI</p>
+    <h2 data-en="What it cost to build" data-id="Berapa biaya membangunnya">Berapa biaya membangunnya</h2>
+    <p class="lead" data-en="The same working platform — Flutter POS app, NestJS + PostgreSQL backend, Vue admin portal, AWS deployment — measured against a conventional team: 1 senior dev, 3 coders, 1 DBA, 1 DevOps." data-id="Platform jalan yang sama — aplikasi POS Flutter, backend NestJS + PostgreSQL, portal admin Vue, deployment AWS — dibandingkan dengan tim konvensional: 1 senior dev, 3 coder, 1 DBA, 1 DevOps.">Platform jalan yang sama — aplikasi POS Flutter, backend NestJS + PostgreSQL, portal admin Vue, deployment AWS — dibandingkan dengan tim konvensional: 1 senior dev, 3 coder, 1 DBA, 1 DevOps.</p>
+
+    <div class="chart">
+      <h3 data-en="Development cost — team vs this build" data-id="Biaya pengembangan — tim vs pembuatan ini">Biaya pengembangan — tim vs pembuatan ini</h3>
+      <p class="sub" data-en="Loaded cost for the equivalent output. Bars to scale." data-id="Biaya termuat untuk hasil setara. Batang sesuai skala.">Biaya termuat untuk hasil setara. Batang sesuai skala.</p>
+
+      <div class="brow">
+        <div class="lab" data-en="Team of 6<br><small>3 months, loaded</small>" data-id="Tim 6 orang<br><small>3 bulan, termuat</small>">Tim 6 orang<br><small>3 bulan, termuat</small></div>
+        <div class="track"><div class="fill team" style="width:100%"></div></div>
+        <div class="bval num">Rp 705 jt<small>~$45k</small></div>
+      </div>
+      <div class="brow">
+        <div class="lab" data-en="This build<br><small>your time + tool</small>" data-id="Pembuatan ini<br><small>waktu Anda + alat</small>">Pembuatan ini<br><small>waktu Anda + alat</small></div>
+        <div class="track"><div class="fill build" style="width:2.1%"></div></div>
+        <div class="bval num">Rp 15 jt<small>~$1k</small></div>
+      </div>
+
+      <div class="saveband">
+        <span class="big num">~Rp 690 jt</span>
+        <span class="txt" data-en="saved — about <strong>98% less</strong>, and ~450× cheaper on cash ($100 vs $45k). <span>The gold sliver above is the build cost.</span>" data-id="dihemat — sekitar <strong>98% lebih murah</strong>, dan ~450× lebih murah secara tunai ($100 vs $45rb). <span>Sliver emas di atas adalah biaya pembuatan.</span>">dihemat — sekitar <strong>98% lebih murah</strong>, dan ~450× lebih murah secara tunai ($100 vs $45rb). <span>Sliver emas di atas adalah biaya pembuatan.</span></span>
+      </div>
+
+      <div class="kpis">
+        <div class="kpi"><div class="v num">~98%</div><div class="l" data-en="lower cost for the same output" data-id="biaya lebih rendah untuk hasil sama">biaya lebih rendah untuk hasil sama</div></div>
+        <div class="kpi"><div class="v" data-en="2 wks vs 3 mo" data-id="2 mgg vs 3 bln">2 mgg vs 3 bln</div><div class="l" data-en="time to working MVP" data-id="waktu ke MVP jalan">waktu ke MVP jalan</div></div>
+        <div class="kpi"><div class="v num">~40–90×</div><div class="l" data-en="leverage in human-hours" data-id="leverage dalam jam-kerja">leverage dalam jam-kerja</div></div>
+        <div class="kpi"><div class="v num">~21,800</div><div class="l" data-en="lines of source shipped" data-id="baris kode dikirim">baris kode dikirim</div></div>
+      </div>
+      <p class="note" data-en="Out-of-pocket tool cost was a Claude Max subscription at $100/month; the build spanned ~2 weeks inside a single month. “Loaded” adds ~40–60 hrs of your directing time valued at a senior rate. Team figure uses Jakarta 2026 salaries × 1.4 for benefits, tools, PM and overhead." data-id="Biaya alat tunai adalah langganan Claude Max $100/bulan; pembuatan memakan ~2 minggu dalam satu bulan. “Termuat” menambah ~40–60 jam waktu pengarahan Anda dinilai pada tarif senior. Angka tim memakai gaji Jakarta 2026 × 1,4 untuk tunjangan, alat, PM, dan overhead.">Biaya alat tunai adalah langganan Claude Max $100/bulan; pembuatan memakan ~2 minggu dalam satu bulan. “Termuat” menambah ~40–60 jam waktu pengarahan Anda dinilai pada tarif senior. Angka tim memakai gaji Jakarta 2026 × 1,4 untuk tunjangan, alat, PM, dan overhead.</p>
+    </div>
+  </section>
+
+  <!-- MARKET -->
+  <section class="slide">
+    <p class="eyebrow" data-en="Market context" data-id="Konteks pasar">Konteks pasar</p>
+    <h2 data-en="Priced with the market, broader in capability" data-id="Sejajar harga pasar, lebih luas kemampuan">Sejajar harga pasar, lebih luas kemampuan</h2>
+    <p class="lead" data-en="Indonesian SMB POS subscriptions cluster at ~Rp 100–350k per outlet per month. DIKASIR sits on that line, then out-features it: F&B and grocery in one app, delivery-order intake, open bills, corrections with approval, attendance, reporting, and a web admin portal." data-id="Langganan POS UKM Indonesia berkisar ~Rp 100–350rb per gerai per bulan. DIKASIR berada di garis itu, lalu unggul fitur: F&B dan grosir dalam satu aplikasi, order pesan-antar, bon terbuka, koreksi dengan persetujuan, absensi, laporan, dan portal admin web.">Langganan POS UKM Indonesia berkisar ~Rp 100–350rb per gerai per bulan. DIKASIR berada di garis itu, lalu unggul fitur: F&B dan grosir dalam satu aplikasi, order pesan-antar, bon terbuka, koreksi dengan persetujuan, absensi, laporan, dan portal admin web.</p>
+
+    <div class="chart">
+      <h3 data-en="Monthly price per outlet (Pro tier)" data-id="Harga bulanan per gerai (paket Pro)">Harga bulanan per gerai (paket Pro)</h3>
+      <p class="sub" data-en="Published 2026 rates; DIKASIR positioned at the Moka line." data-id="Tarif publik 2026; DIKASIR diposisikan di garis Moka.">Tarif publik 2026; DIKASIR diposisikan di garis Moka.</p>
+      <div class="brow"><div class="lab">DIKASIR Pro</div><div class="track"><div class="fill us" style="width:100%"></div></div><div class="bval num">Rp 299rb</div></div>
+      <div class="brow"><div class="lab">Moka</div><div class="track"><div class="fill comp" style="width:100%"></div></div><div class="bval num">Rp 299rb</div></div>
+      <div class="brow"><div class="lab">Majoo</div><div class="track"><div class="fill comp" style="width:100%"></div></div><div class="bval num">Rp 299rb</div></div>
+      <div class="brow"><div class="lab">Olsera</div><div class="track"><div class="fill comp" style="width:99.7%"></div></div><div class="bval num">Rp 298rb</div></div>
+      <div class="brow"><div class="lab">Qasir</div><div class="track"><div class="fill comp" style="width:83%"></div></div><div class="bval num">Rp 249rb</div></div>
+      <div class="chips">
+        <span class="chip" data-en="F&amp;B + Grocery" data-id="F&amp;B + Grosir">F&amp;B + Grosir</span>
+        <span class="chip" data-en="Offline-first" data-id="Offline-first">Offline-first</span>
+        <span class="chip" data-en="GoFood / Grab / Shopee intake" data-id="Order GoFood / Grab / Shopee">Order GoFood / Grab / Shopee</span>
+        <span class="chip" data-en="Open bills" data-id="Bon terbuka">Bon terbuka</span>
+        <span class="chip" data-en="Void / refund + approval" data-id="Batal / refund + persetujuan">Batal / refund + persetujuan</span>
+        <span class="chip" data-en="Attendance" data-id="Absensi">Absensi</span>
+        <span class="chip" data-en="Owner reporting" data-id="Laporan pemilik">Laporan pemilik</span>
+        <span class="chip" data-en="Web admin portal" data-id="Portal admin web">Portal admin web</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SAAS -->
+  <section class="slide">
+    <p class="eyebrow" data-en="Model A — recommended" data-id="Model A — direkomendasikan">Model A — direkomendasikan</p>
+    <h2 data-en="SaaS subscription" data-id="Langganan SaaS">Langganan SaaS</h2>
+    <p class="lead" data-en="Per outlet, per month. Annual billing = ~2 months free (~17% off). Free tier is the funnel; Pro is the anchor." data-id="Per gerai, per bulan. Tagihan tahunan = gratis ~2 bulan (~17% off). Paket gratis adalah funnel; Pro adalah jangkar.">Per gerai, per bulan. Tagihan tahunan = gratis ~2 bulan (~17% off). Paket gratis adalah funnel; Pro adalah jangkar.</p>
+
+    <div class="grid cards5">
+      <div class="card tier">
+        <h3>Gratis</h3>
+        <div class="price num">Rp 0</div>
+        <div class="who" data-en="Solo / warung" data-id="Solo / warung">Solo / warung</div>
+        <ul>
+          <li data-en="1 outlet, 1 device" data-id="1 gerai, 1 perangkat">1 gerai, 1 perangkat</li>
+          <li data-en="Cash + QRIS" data-id="Tunai + QRIS">Tunai + QRIS</li>
+          <li data-en="Up to 50 products" data-id="Hingga 50 produk">Hingga 50 produk</li>
+          <li data-en="Daily sales total" data-id="Total penjualan harian">Total penjualan harian</li>
+        </ul>
+      </div>
+      <div class="card tier">
+        <h3>Starter</h3>
+        <div class="price num">Rp 149rb<small data-en="/outlet / month" data-id="/gerai / bulan">/gerai / bulan</small></div>
+        <div class="who" data-en="Single shop" data-id="Toko tunggal">Toko tunggal</div>
+        <ul>
+          <li data-en="Unlimited products &amp; sales" data-id="Produk &amp; transaksi tanpa batas">Produk &amp; transaksi tanpa batas</li>
+          <li data-en="Inventory ledger" data-id="Buku stok">Buku stok</li>
+          <li data-en="Thermal receipts" data-id="Struk termal">Struk termal</li>
+          <li data-en="2 devices · email support" data-id="2 perangkat · dukungan email">2 perangkat · dukungan email</li>
+        </ul>
+      </div>
+      <div class="card tier feat">
+        <span class="badge" data-en="Most popular" data-id="Terpopuler">Terpopuler</span>
+        <h3>Pro</h3>
+        <div class="price num">Rp 299rb<small data-en="/outlet / month" data-id="/gerai / bulan">/gerai / bulan</small></div>
+        <div class="who" data-en="F&amp;B / growing" data-id="F&amp;B / berkembang">F&amp;B / berkembang</div>
+        <ul>
+          <li data-en="Everything in Starter" data-id="Semua di Starter">Semua di Starter</li>
+          <li data-en="Open bills + delivery orders" data-id="Bon terbuka + order antar">Bon terbuka + order antar</li>
+          <li data-en="Void/refund + approval" data-id="Batal/refund + persetujuan">Batal/refund + persetujuan</li>
+          <li data-en="Attendance + reporting" data-id="Absensi + laporan">Absensi + laporan</li>
+          <li data-en="Web admin portal · 5 devices" data-id="Portal admin web · 5 perangkat">Portal admin web · 5 perangkat</li>
+        </ul>
+      </div>
+      <div class="card tier">
+        <h3>Business</h3>
+        <div class="price num">Rp 549rb<small data-en="/outlet / month" data-id="/gerai / bulan">/gerai / bulan</small></div>
+        <div class="who" data-en="Multi-outlet" data-id="Multi-gerai">Multi-gerai</div>
+        <ul>
+          <li data-en="Consolidated dashboard" data-id="Dasbor konsolidasi">Dasbor konsolidasi</li>
+          <li data-en="Advanced roles" data-id="Peran lanjutan">Peran lanjutan</li>
+          <li data-en="API access" data-id="Akses API">Akses API</li>
+          <li data-en="Unlimited devices · phone support" data-id="Perangkat tanpa batas · dukungan telepon">Perangkat tanpa batas · dukungan telepon</li>
+        </ul>
+      </div>
+      <div class="card tier">
+        <h3>Enterprise</h3>
+        <div class="price" data-en="Custom" data-id="Kustom">Kustom</div>
+        <div class="who" data-en="Chains / government" data-id="Jaringan / pemerintah">Jaringan / pemerintah</div>
+        <ul>
+          <li data-en="SLA + dedicated CSM" data-id="SLA + CSM khusus">SLA + CSM khusus</li>
+          <li data-en="Real provider webhooks" data-id="Webhook provider asli">Webhook provider asli</li>
+          <li data-en="On-prem option" data-id="Opsi on-prem">Opsi on-prem</li>
+          <li data-en="White-label" data-id="White-label">White-label</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 style="margin:26px 0 12px;font-size:16px;" data-en="Add-ons" data-id="Tambahan">Tambahan</h3>
+    <div class="addons">
+      <div class="addon"><div class="h" data-en="Extra device" data-id="Perangkat tambahan">Perangkat tambahan</div><div class="p"><span class="amt num">Rp 49rb</span> <span data-en="/ month" data-id="/ bulan">/ bulan</span></div></div>
+      <div class="addon"><div class="h" data-en="Hardware bundle" data-id="Paket perangkat keras">Paket perangkat keras</div><div class="p" data-en="Printer + scanner + drawer — one-time <span class='amt num'>Rp 2.5–5 jt</span>, or rent-to-own Rp 150–250rb/mo" data-id="Printer + scanner + laci — sekali <span class='amt num'>Rp 2,5–5 jt</span>, atau sewa-beli Rp 150–250rb/bln">Printer + scanner + laci — sekali <span class="amt num">Rp 2,5–5 jt</span>, atau sewa-beli Rp 150–250rb/bln</div></div>
+      <div class="addon"><div class="h" data-en="QRIS payments" data-id="Pembayaran QRIS">Pembayaran QRIS</div><div class="p" data-en="Pass regulated MDR + optional <span class='amt'>0.2–0.4%</span> platform fee" data-id="Teruskan MDR regulasi + opsional biaya platform <span class='amt'>0,2–0,4%</span>">Teruskan MDR regulasi + opsional biaya platform <span class="amt">0,2–0,4%</span></div></div>
+      <div class="addon"><div class="h" data-en="e-Receipt / WhatsApp, loyalty, QR menu" data-id="e-Struk / WhatsApp, loyalti, menu QR">e-Struk / WhatsApp, loyalti, menu QR</div><div class="p"><span class="amt num">Rp 50–150rb</span> <span data-en="/ month each" data-id="/ bulan per fitur">/ bulan per fitur</span></div></div>
+      <div class="addon"><div class="h" data-en="Onboarding + training" data-id="Onboarding + pelatihan">Onboarding + pelatihan</div><div class="p" data-en="One-time <span class='amt num'>Rp 500rb–2 jt</span>" data-id="Sekali <span class='amt num'>Rp 500rb–2 jt</span>">Sekali <span class="amt num">Rp 500rb–2 jt</span></div></div>
+      <div class="addon"><div class="h" data-en="Extra outlet" data-id="Gerai tambahan">Gerai tambahan</div><div class="p" data-en="At tier price; volume discount 10–25% at 5+ / 20+" data-id="Harga paket; diskon volume 10–25% di 5+ / 20+">Harga paket; diskon volume 10–25% di 5+ / 20+</div></div>
+    </div>
+  </section>
+
+  <!-- LICENSING -->
+  <section class="slide">
+    <p class="eyebrow" data-en="Model B" data-id="Model B">Model B</p>
+    <h2 data-en="Traditional / perpetual licensing" data-id="Lisensi tradisional / perpetual">Lisensi tradisional / perpetual</h2>
+    <p class="lead" data-en="For buyers who reject recurring cost or need on-premise data control — chains, franchises, government, large F&B groups." data-id="Untuk pembeli yang menolak biaya berulang atau butuh kontrol data on-premise — jaringan, waralaba, pemerintah, grup F&B besar.">Untuk pembeli yang menolak biaya berulang atau butuh kontrol data on-premise — jaringan, waralaba, pemerintah, grup F&B besar.</p>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr>
+            <th data-en="Item" data-id="Item">Item</th>
+            <th data-en="Price" data-id="Harga">Harga</th>
+            <th data-en="Notes" data-id="Catatan">Catatan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong data-en="Perpetual license" data-id="Lisensi perpetual">Lisensi perpetual</strong></td>
+            <td class="num"><strong>Rp 8–15 jt</strong> <span data-en="/ outlet" data-id="/ gerai">/ gerai</span></td>
+            <td data-en="One-time; tiered Standard vs Pro feature set. Or Rp 3–5 jt / terminal." data-id="Sekali bayar; bertingkat Standard vs Pro. Atau Rp 3–5 jt / terminal.">Sekali bayar; bertingkat Standard vs Pro. Atau Rp 3–5 jt / terminal.</td>
+          </tr>
+          <tr>
+            <td><strong data-en="Annual maintenance (AMC)" data-id="Pemeliharaan tahunan (AMC)">Pemeliharaan tahunan (AMC)</strong></td>
+            <td class="num"><strong>18–20%</strong> <span data-en="of license / yr" data-id="dari lisensi / thn">dari lisensi / thn</span></td>
+            <td data-en="Updates + support (~Rp 1.5–3 jt / outlet). Recurring." data-id="Update + dukungan (~Rp 1,5–3 jt / gerai). Berulang.">Update + dukungan (~Rp 1,5–3 jt / gerai). Berulang.</td>
+          </tr>
+          <tr>
+            <td><strong data-en="Implementation / setup" data-id="Implementasi / setup">Implementasi / setup</strong></td>
+            <td class="num"><strong>Rp 5–25 jt</strong></td>
+            <td data-en="Install, data migration, training, hardware config." data-id="Instalasi, migrasi data, pelatihan, konfigurasi perangkat.">Instalasi, migrasi data, pelatihan, konfigurasi perangkat.</td>
+          </tr>
+          <tr>
+            <td><strong data-en="On-premise / self-hosted" data-id="On-premise / self-hosted">On-premise / self-hosted</strong></td>
+            <td class="num"><strong>+Rp 15–50 jt</strong></td>
+            <td data-en="Their own server/AWS; for data-control buyers. Plus AMC." data-id="Server/AWS milik sendiri; untuk pembeli yang butuh kontrol data. Plus AMC.">Server/AWS milik sendiri; untuk pembeli yang butuh kontrol data. Plus AMC.</td>
+          </tr>
+          <tr>
+            <td><strong data-en="White-label / source license" data-id="White-label / lisensi sumber">White-label / lisensi sumber</strong></td>
+            <td class="num"><strong>Rp 250 jt–1 M+</strong></td>
+            <td data-en="Resellers or a single large enterprise; one-time or revenue-share." data-id="Reseller atau satu perusahaan besar; sekali bayar atau bagi hasil.">Reseller atau satu perusahaan besar; sekali bayar atau bagi hasil.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note" data-en="Payback: a ~Rp 10 jt perpetual license vs Pro SaaS at Rp 3.6 jt/yr ≈ 2.8-year break-even — licensing wins only for long-horizon or OpEx-averse buyers." data-id="Balik modal: lisensi perpetual ~Rp 10 jt vs SaaS Pro Rp 3,6 jt/thn ≈ impas 2,8 tahun — lisensi hanya unggul untuk pembeli jangka panjang atau yang menghindari OpEx.">Balik modal: lisensi perpetual ~Rp 10 jt vs SaaS Pro Rp 3,6 jt/thn ≈ impas 2,8 tahun — lisensi hanya unggul untuk pembeli jangka panjang atau yang menghindari OpEx.</p>
+  </section>
+
+  <!-- RECOMMENDATION -->
+  <section class="slide">
+    <p class="eyebrow" data-en="Recommendation" data-id="Rekomendasi">Rekomendasi</p>
+    <h2 data-en="Lead with SaaS, sell licensing to enterprise" data-id="Andalkan SaaS, jual lisensi ke enterprise">Andalkan SaaS, jual lisensi ke enterprise</h2>
+    <div class="two">
+      <div class="card">
+        <h3 style="margin:0 0 8px;font-size:16px;" data-en="Why SaaS first" data-id="Kenapa SaaS dulu">Kenapa SaaS dulu</h3>
+        <ul class="tier" style="gap:8px;">
+          <li data-en="What Indonesian SMBs already expect (Moka/Majoo set the frame)." data-id="Sesuai ekspektasi UKM Indonesia (Moka/Majoo membentuk pasar).">Sesuai ekspektasi UKM Indonesia (Moka/Majoo membentuk pasar).</li>
+          <li data-en="Recurring revenue; low churn; predictable growth." data-id="Pendapatan berulang; churn rendah; pertumbuhan terprediksi.">Pendapatan berulang; churn rendah; pertumbuhan terprediksi.</li>
+          <li data-en="Cost-to-serve is tiny — the stack runs on modest EC2 + RDS → ~85–90%+ gross margin." data-id="Biaya layan sangat kecil — berjalan di EC2 + RDS sederhana → margin kotor ~85–90%+.">Biaya layan sangat kecil — berjalan di EC2 + RDS sederhana → margin kotor ~85–90%+.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin:0 0 8px;font-size:16px;" data-en="Where licensing wins" data-id="Kapan lisensi menang">Kapan lisensi menang</h3>
+        <ul class="tier" style="gap:8px;">
+          <li data-en="Enterprise, chains, government demanding ownership or data residency." data-id="Enterprise, jaringan, pemerintah yang butuh kepemilikan atau residensi data.">Enterprise, jaringan, pemerintah yang butuh kepemilikan atau residensi data.</li>
+          <li data-en="Closes deals SaaS can’t — at a premium." data-id="Menutup deal yang tak bisa lewat SaaS — dengan premium.">Menutup deal yang tak bisa lewat SaaS — dengan premium.</li>
+          <li data-en="Bridge: annual prepay + hardware bundle behaves like a light license." data-id="Jembatan: prabayar tahunan + paket perangkat mirip lisensi ringan.">Jembatan: prabayar tahunan + paket perangkat mirip lisensi ringan.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="chart" style="margin-top:16px;">
+      <h3 data-en="Go-to-market anchor" data-id="Jangkar go-to-market">Jangkar go-to-market</h3>
+      <p class="sub" data-en="Free → Pro is the funnel. Price Pro on the Moka line and out-feature it; convert with annual prepay + free onboarding." data-id="Gratis → Pro adalah funnel. Hargai Pro di garis Moka dan unggul fitur; konversi dengan prabayar tahunan + onboarding gratis.">Gratis → Pro adalah funnel. Hargai Pro di garis Moka dan unggul fitur; konversi dengan prabayar tahunan + onboarding gratis.</p>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="disclaimer">
+    <p data-en="Estimates, not accounting. Competitor prices are published 2026 rates and may change; Indonesian salary and cost figures are mid-market Jakarta ranges (±30%). USD ≈ Rp 15,800. “jt” = juta (million), “M” = miliar (billion), “rb” = ribu (thousand). Team-effort was estimated by feature scope, not line count. A production launch still warrants dedicated QA, load, and security testing." data-id="Estimasi, bukan akuntansi. Harga kompetitor adalah tarif publik 2026 dan dapat berubah; angka gaji dan biaya adalah kisaran mid-market Jakarta (±30%). USD ≈ Rp 15.800. Perkiraan usaha tim dihitung berdasarkan cakupan fitur, bukan jumlah baris. Peluncuran produksi tetap memerlukan QA, uji beban, dan uji keamanan khusus.">Estimasi, bukan akuntansi. Harga kompetitor adalah tarif publik 2026 dan dapat berubah; angka gaji dan biaya adalah kisaran mid-market Jakarta (±30%). USD ≈ Rp 15.800. Perkiraan usaha tim dihitung berdasarkan cakupan fitur, bukan jumlah baris. Peluncuran produksi tetap memerlukan QA, uji beban, dan uji keamanan khusus.</p>
+    <p data-en="Sources (competitor pricing): Olsera, Moka, Qasir, Majoo — equiperp.com, hitpayapp.com, klikit.io, mas-software.com (2026)." data-id="Sumber (harga kompetitor): Olsera, Moka, Qasir, Majoo — equiperp.com, hitpayapp.com, klikit.io, mas-software.com (2026).">Sumber (harga kompetitor): Olsera, Moka, Qasir, Majoo — equiperp.com, hitpayapp.com, klikit.io, mas-software.com (2026).</p>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    function setLang(l) {
+      l = (l === 'en') ? 'en' : 'id';
+      try { document.documentElement.setAttribute('lang', l); } catch (e) {}
+      var nodes = document.querySelectorAll('[data-en]');
+      for (var i = 0; i < nodes.length; i++) {
+        var v = nodes[i].getAttribute('data-' + l);
+        if (v != null) nodes[i].innerHTML = v;
+      }
+      var en = document.getElementById('btn-en'), id = document.getElementById('btn-id');
+      if (en) en.setAttribute('aria-pressed', l === 'en' ? 'true' : 'false');
+      if (id) id.setAttribute('aria-pressed', l === 'id' ? 'true' : 'false');
+      try { localStorage.setItem('dikasir_lang', l); } catch (e) {}
+    }
+
+    function init() {
+      // Event delegation on the toggle + direct handlers — robust across browsers,
+      // including iOS Safari inside a sandboxed frame.
+      var tog = document.querySelector('.langtog');
+      function handle(ev) {
+        var t = ev.target;
+        var b = t && t.closest ? t.closest('button') : t;
+        if (!b || !b.id) return;
+        ev.preventDefault();
+        setLang(b.id === 'btn-en' ? 'en' : 'id');
+      }
+      if (tog) {
+        tog.addEventListener('click', handle);
+        tog.addEventListener('touchend', handle);
+      }
+      var en = document.getElementById('btn-en'), id = document.getElementById('btn-id');
+      if (en) en.addEventListener('click', function () { setLang('en'); });
+      if (id) id.addEventListener('click', function () { setLang('id'); });
+
+      var saved = 'id';
+      try {
+        var p = new URLSearchParams(location.search).get('lang');
+        saved = p || localStorage.getItem('dikasir_lang') || 'id';
+      } catch (e) {}
+      setLang(saved);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+</script>
