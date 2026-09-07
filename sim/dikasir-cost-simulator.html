@@ -1,0 +1,894 @@
+<title>DIKASIR Cost Simulator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --ground:#f7f6f1; --surface:#ffffff; --surface-2:#f1efe7; --sunken:#eceade;
+  --ink:#172231; --muted:#5c6775; --faint:#8a93a0; --line:#e4e1d7; --line-strong:#d3cfc0;
+  --navy:#133a68; --navy-2:#0f2d51; --gold:#d6ad07; --gold-ink:#7d5e00;
+  --good:#1c7d5b; --good-soft:#e2f1eb; --bad:#a8332a; --bad-soft:#f7e6e4;
+  --s1:#2f6fb5; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#4a3aa7;
+  --grid:#e8e5da; --track:#ece9de;
+  --shadow:0 1px 2px rgba(17,32,54,.05), 0 6px 18px rgba(17,32,54,.06);
+  --mono:"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --body:Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --display:Quicksand, Inter, system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --ground:#14171c; --surface:#1b1f26; --surface-2:#232932; --sunken:#11141a;
+    --ink:#eef2f7; --muted:#9aa6b4; --faint:#6f7a88; --line:#2c333d; --line-strong:#3a434f;
+    --navy:#5b93d6; --navy-2:#12325c; --gold:#e8c23e; --gold-ink:#e8c23e;
+    --good:#43b58c; --good-soft:#16302a; --bad:#e0705f; --bad-soft:#33201e;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#9085e9;
+    --grid:#272e38; --track:#272e38;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --ground:#14171c; --surface:#1b1f26; --surface-2:#232932; --sunken:#11141a;
+  --ink:#eef2f7; --muted:#9aa6b4; --faint:#6f7a88; --line:#2c333d; --line-strong:#3a434f;
+  --navy:#5b93d6; --navy-2:#12325c; --gold:#e8c23e; --gold-ink:#e8c23e;
+  --good:#43b58c; --good-soft:#16302a; --bad:#e0705f; --bad-soft:#33201e;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#9085e9;
+  --grid:#272e38; --track:#272e38;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--body);line-height:1.5;
+  -webkit-font-smoothing:antialiased;font-size:14px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+/* ─── shell ─────────────────────────────────────────────────────────────── */
+.masthead{border-bottom:1px solid var(--line);background:var(--surface);
+  padding:20px clamp(16px,3vw,32px) 18px}
+.masthead .row{max-width:1500px;margin:0 auto;display:flex;flex-wrap:wrap;
+  align-items:flex-end;justify-content:space-between;gap:16px 28px}
+.wordmark{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:2.4px;
+  text-transform:uppercase;color:var(--gold-ink)}
+.masthead h1{font-size:clamp(21px,2.6vw,29px);font-weight:700;color:var(--ink);margin-top:3px}
+.masthead p{margin:6px 0 0;color:var(--muted);max-width:62ch;font-size:13.5px}
+.provenance{font-family:var(--mono);font-size:11px;color:var(--faint);line-height:1.75;
+  text-align:right;white-space:nowrap}
+.provenance b{color:var(--muted);font-weight:500}
+
+.shell{max-width:1500px;margin:0 auto;padding:22px clamp(16px,3vw,32px) 60px;
+  display:grid;grid-template-columns:308px minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:1080px){ .shell{grid-template-columns:1fr} }
+
+/* ─── control rail ──────────────────────────────────────────────────────── */
+.rail{position:sticky;top:14px;background:var(--surface);border:1px solid var(--line);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden;max-height:calc(100vh - 28px);
+  display:flex;flex-direction:column}
+@media (max-width:1080px){ .rail{position:static;max-height:none} }
+.rail-head{padding:14px 16px 12px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.rail-head h2{font-size:14px;font-weight:600;letter-spacing:.2px}
+.rail-head p{margin:3px 0 0;font-size:11.5px;color:var(--muted)}
+.rail-body{overflow-y:auto;padding:4px 16px 16px}
+
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.preset{font:600 11.5px var(--body);padding:5px 10px;border-radius:999px;cursor:pointer;
+  background:var(--surface);color:var(--muted);border:1px solid var(--line-strong);
+  transition:background .12s,color .12s,border-color .12s}
+.preset:hover{border-color:var(--navy);color:var(--ink)}
+.preset[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+:root[data-theme="dark"] .preset[aria-pressed="true"],
+:root:not([data-theme="light"]) .preset[aria-pressed="true"]{color:#0d1219}
+@media (prefers-color-scheme: light){ :root:not([data-theme="dark"]) .preset[aria-pressed="true"]{color:#fff} }
+.preset:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+.group{margin-top:18px}
+.group > h3{font:600 10.5px var(--body);letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--gold-ink);padding-bottom:7px;border-bottom:1px solid var(--line)}
+.knob{padding:11px 0 3px}
+.knob-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.knob label{font-size:12.5px;font-weight:500;color:var(--ink)}
+.knob .val{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--navy);
+  background:var(--surface-2);padding:1px 6px;border-radius:5px;white-space:nowrap}
+.knob .hint{font-size:11px;color:var(--faint);margin-top:2px}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:20px;
+  background:transparent;cursor:pointer;margin-top:5px;display:block}
+input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:3px;background:var(--track)}
+input[type=range]::-moz-range-track{height:4px;border-radius:3px;background:var(--track)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;
+  border-radius:50%;background:var(--navy);border:2px solid var(--surface);margin-top:-5.5px;
+  box-shadow:0 1px 3px rgba(17,32,54,.3)}
+input[type=range]::-moz-range-thumb{width:15px;height:15px;border-radius:50%;background:var(--navy);
+  border:2px solid var(--surface);box-shadow:0 1px 3px rgba(17,32,54,.3)}
+input[type=range]:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:4px}
+
+.toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0 4px}
+.toggle label{font-size:12.5px;font-weight:500}
+.switch{position:relative;width:40px;height:22px;flex:none}
+.switch input{position:absolute;inset:0;opacity:0;width:100%;height:100%;margin:0;cursor:pointer}
+.switch span{position:absolute;inset:0;border-radius:999px;background:var(--track);
+  border:1px solid var(--line-strong);transition:background .15s;pointer-events:none}
+.switch span::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;
+  border-radius:50%;background:var(--surface);box-shadow:0 1px 2px rgba(17,32,54,.35);transition:transform .15s}
+.switch input:checked + span{background:var(--navy);border-color:var(--navy)}
+.switch input:checked + span::after{transform:translateX(18px)}
+.switch input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
+
+/* ─── results canvas ────────────────────────────────────────────────────── */
+.canvas{display:flex;flex-direction:column;gap:20px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);padding:20px clamp(16px,2vw,24px)}
+.panel > header{margin-bottom:16px}
+.panel h2{font-size:17px;font-weight:700}
+.panel .sub{margin:4px 0 0;color:var(--muted);font-size:12.5px;max-width:74ch}
+
+/* headline tiles */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(184px,1fr));gap:1px;
+  background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden;
+  box-shadow:var(--shadow)}
+.tile{background:var(--surface);padding:16px 18px 15px}
+.tile .k{font:600 10.5px var(--body);letter-spacing:1.3px;text-transform:uppercase;color:var(--muted)}
+.tile .v{font-family:var(--display);font-weight:700;font-size:clamp(23px,2.8vw,31px);
+  line-height:1.08;margin-top:8px;letter-spacing:-.3px;font-variant-numeric:tabular-nums}
+.tile .s{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:5px}
+.tile.accent .v{color:var(--navy)}
+.tile .v.pos{color:var(--good)} .tile .v.neg{color:var(--bad)}
+
+/* bar rows — the DIKASIR deck idiom */
+.brow{display:grid;grid-template-columns:minmax(104px,214px) minmax(0,1fr) max-content;
+  align-items:center;gap:12px;padding:3px 0}
+.brow .lab{font-size:12.5px;line-height:1.25;display:flex;align-items:center;gap:7px;min-width:0}
+.brow .lab span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip{width:9px;height:9px;border-radius:2.5px;flex:none}
+.track{background:var(--track);border-radius:5px;height:19px;overflow:hidden;position:relative}
+.fill{height:100%;border-radius:0 5px 5px 0;min-width:2px;transition:width .18s ease-out}
+.brow .bval{font-family:var(--mono);font-size:12px;font-weight:500;text-align:right;white-space:nowrap}
+.brow .bval small{display:block;font-weight:400;font-size:10.5px;color:var(--faint)}
+.brow:hover .track{outline:1px solid var(--line-strong)}
+
+/* stacked family bar */
+.stackwrap{margin-bottom:18px}
+.stack{display:flex;height:34px;border-radius:7px;overflow:hidden;background:var(--track);gap:2px}
+.stack div{transition:flex-basis .18s ease-out;position:relative}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:11px}
+.legend .item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+.legend .item b{color:var(--ink);font-family:var(--mono);font-weight:500;font-size:11.5px}
+
+/* tables */
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 14px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+thead th{background:var(--surface-2);font:600 10.5px var(--body);letter-spacing:.7px;
+  text-transform:uppercase;color:var(--muted)}
+tbody tr:last-child td{border-bottom:0}
+td.r,th.r{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+tr.total td{font-weight:600;background:var(--surface-2)}
+tr.rule td{padding:0;height:1px;background:var(--line-strong);border:0}
+td.ind{padding-left:30px;color:var(--muted)}
+.pos{color:var(--good)} .neg{color:var(--bad)}
+
+/* small multiples */
+.smalls{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.small h3{font:600 12.5px var(--body);color:var(--ink)}
+.small .cap{font-family:var(--mono);font-size:11px;color:var(--faint);margin:2px 0 8px}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.gridline{stroke:var(--grid);stroke-width:1}
+.axis{fill:var(--faint);font-family:var(--mono);font-size:9.5px}
+.endlab{fill:var(--ink);font-family:var(--mono);font-size:10.5px;font-weight:500}
+
+/* tornado */
+.tor{display:grid;grid-template-columns:minmax(120px,190px) minmax(0,1fr) max-content;
+  align-items:center;gap:12px;padding:4px 0}
+.tor .lab{font-size:12.5px}
+.tor .lab small{display:block;color:var(--faint);font-size:11px}
+.torbar{position:relative;height:22px;background:var(--track);border-radius:5px}
+.torbar i{position:absolute;top:0;bottom:0;display:block;border-radius:3px}
+.torbar .zero{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--line-strong)}
+.tor .bval{font-family:var(--mono);font-size:11.5px;text-align:right;white-space:nowrap;color:var(--muted)}
+
+.callout{background:var(--surface-2);border-left:3px solid var(--gold);border-radius:0 9px 9px 0;
+  padding:13px 16px;font-size:12.5px;color:var(--muted)}
+.callout b{color:var(--ink);font-weight:600}
+.notes{color:var(--muted);font-size:12.5px;line-height:1.65}
+.notes li{margin-bottom:7px}
+.notes code{font-family:var(--mono);font-size:11.5px;background:var(--surface-2);
+  padding:1px 5px;border-radius:4px;color:var(--ink)}
+footer{max-width:1500px;margin:0 auto;padding:0 clamp(16px,3vw,32px) 56px;
+  color:var(--faint);font-size:11.5px;line-height:1.7}
+footer b{color:var(--muted);font-weight:500}
+
+/* tooltip */
+#tip{position:fixed;z-index:60;pointer-events:none;opacity:0;transition:opacity .1s;
+  background:var(--ink);color:var(--ground);padding:7px 10px;border-radius:7px;
+  font-family:var(--mono);font-size:11px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.25);
+  max-width:260px}
+#tip b{color:var(--gold);font-weight:600}
+@media (prefers-reduced-motion: reduce){ *{transition:none !important} }
+</style>
+
+<div id="tip" role="status" aria-live="polite"></div>
+
+<header class="masthead">
+  <div class="row">
+    <div>
+      <div class="wordmark">DIKASIR · DPOS</div>
+      <h1>What 19,000 merchants cost to run</h1>
+      <p>An operating model of the AWS bill and the P/L behind a mobile POS at Indonesian scale.
+         Move any assumption; every figure below recomputes.</p>
+    </div>
+    <div class="provenance">
+      <b>region</b> ap-southeast-3 · Jakarta<br>
+      <b>prices</b> AWS Price List API, 2026-09-07<br>
+      <b>tariffs</b> DIKASIR public price list<br>
+      <b>fx</b> Rp 15,800 / USD
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <!-- ── control rail ── -->
+  <aside class="rail">
+    <div class="rail-head">
+      <h2>Assumptions</h2>
+      <p>Start from a preset, then pull anything apart.</p>
+      <div class="presets" role="group" aria-label="Scenario presets">
+        <button class="preset" data-preset="base" aria-pressed="true">Base</button>
+        <button class="preset" data-preset="steady" aria-pressed="false">Flat 19k</button>
+        <button class="preset" data-preset="lean" aria-pressed="false">Lean</button>
+        <button class="preset" data-preset="conservative" aria-pressed="false">Conservative</button>
+      </div>
+    </div>
+    <div class="rail-body" id="rail"></div>
+  </aside>
+
+  <!-- ── results ── -->
+  <main class="canvas">
+    <section class="tiles" id="tiles" aria-label="Headline figures"></section>
+
+    <section class="panel">
+      <header>
+        <h2>Where the AWS money goes</h2>
+        <p class="sub" id="billSub"></p>
+      </header>
+      <div class="stackwrap">
+        <div class="stack" id="stack" role="img" aria-label="AWS spend split by service family"></div>
+        <div class="legend" id="stackLegend"></div>
+      </div>
+      <div id="bars"></div>
+      <div class="callout" style="margin-top:16px" id="billNote"></div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>The shape of it over 36 months</h2>
+        <p class="sub">Three separate scales, three separate charts — the cost per merchant is the one
+          that decides whether this business works, and it is the flattest line on the page.</p>
+      </header>
+      <div class="smalls" id="smalls"></div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Profit &amp; loss</h2>
+        <p class="sub" id="plSub"></p>
+      </header>
+      <div class="tablewrap"><table id="plTable"><tbody></tbody></table></div>
+      <div style="margin-top:18px" id="ebitdaBars"></div>
+    </section>
+
+    <section class="panel">
+      <header>
+        <h2>Which assumption actually moves the answer</h2>
+        <p class="sub">Each knob taken to its low and high plausible value, everything else held.
+          Bars show the swing in final-year EBITDA against the current setting.</p>
+      </header>
+      <div id="tornado"></div>
+      <div class="callout" style="margin-top:16px">
+        <b>Read it this way.</b> Retention and churn are ordinary product decisions that move the
+        result by miliar. Peak traffic — the thing infrastructure work usually optimises — barely
+        registers. Spend the engineering week on keeping merchants, not on right-sizing instances.
+      </div>
+    </section>
+
+    <section class="panel">
+      <header><h2>What this model is honest about</h2></header>
+      <ul class="notes">
+        <li><b>Prices are real.</b> Every rate comes from the AWS Price List Bulk API for
+          <code>ap-southeast-3</code> on 2026-09-07 — Multi-AZ PostgreSQL at
+          <code>$1.079/hr</code> for <code>db.r6g.xlarge</code>, gp3 at <code>$0.276/GB-mo</code>,
+          egress at <code>$0.132/GB</code>, CloudWatch ingest at <code>$0.70/GB</code>.</li>
+        <li><b>The capacity constants are not measured.</b> Requests absorbed per vCPU, write rows
+          per second and bytes per order are engineering estimates. Load testing is still open work
+          on this project, so read the infrastructure figure as right to within about 2×, not 10%.</li>
+        <li><b>Write amplification is taken from the code.</b> One checkout writes about eleven rows —
+          <code>Order</code>, three <code>OrderLine</code>, a <code>Payment</code>, three
+          <code>InventoryMovement</code> and three <code>InventoryStock</code> updates, plus an
+          <code>AuditLog</code> on corrections — in a single transaction.</li>
+        <li><b>No private pricing is assumed.</b> List rates throughout, with reserved-instance
+          coverage the business has not yet committed to. An enterprise discount at year-3 spend
+          would take real money off the top.</li>
+      </ul>
+    </section>
+  </main>
+</div>
+
+<footer>
+  <b>DPOS cost &amp; P/L simulation.</b> The same model runs headless in the repository at
+  <code style="font-family:var(--mono)">sim/run.mjs</code>, which emits the monthly ledger as CSV.
+  Estimates, not accounting — competitor and salary figures are 2026 Jakarta mid-market ranges (±30%).
+</footer>
+
+<script>
+"use strict";
+/* ═══════════════════════════════════════════════════════════════════════════
+   The model. A faithful port of sim/model.mjs — same sizing rules, same
+   ap-southeast-3 price sheet, so the page and the CLI agree.
+   ═══════════════════════════════════════════════════════════════════════════ */
+const HOURS = 730, DAYS = 30.4, FX = 15800;
+
+const P = {
+  ec2:{ od:{ "m7g.xlarge":0.204 }, specs:{ "m7g.xlarge":{vcpu:4,ram:16} } },
+  ebs:{ gp3:0.096 },
+  rds:{
+    maz:{ "db.r6g.large":0.54,"db.r6g.xlarge":1.079,"db.r6g.2xlarge":2.158,"db.r6g.4xlarge":4.316,"db.r6g.8xlarge":8.632 },
+    saz:{ "db.r6g.large":0.27,"db.r6g.xlarge":0.54,"db.r6g.2xlarge":1.079,"db.r6g.4xlarge":2.158,"db.r6g.8xlarge":4.316 },
+    specs:{ "db.r6g.large":{vcpu:2,ram:16},"db.r6g.xlarge":{vcpu:4,ram:32},"db.r6g.2xlarge":{vcpu:8,ram:64},
+            "db.r6g.4xlarge":{vcpu:16,ram:128},"db.r6g.8xlarge":{vcpu:32,ram:256} },
+    stMaz:0.276, stSaz:0.138, iopsMaz:0.048, iopsSaz:0.024, freeIops:3000, backup:0.095
+  },
+  alb:{ hr:0.0252, lcu:0.008 },
+  nat:{ hr:0.059, gb:0.059 },
+  s3:{ tiers:[[51200,0.025],[512000,0.024],[Infinity,0.023]], put:5e-6 },
+  cf:{ tiers:[[10240,0.12],[51200,0.10],[Infinity,0.095]], req:1.2e-6, origin:0.06 },
+  dto:{ tiers:[[10240,0.132],[51200,0.10],[153600,0.095],[Infinity,0.09]], intra:0.01, free:100 },
+  cw:{ ingest:0.70, store:0.03, scan:0.007, metric:[[10000,0.30],[250000,0.10],[1000000,0.05],[Infinity,0.02]] },
+  support:[[10000,0.10],[80000,0.07],[250000,0.05],[Infinity,0.03]], supportMin:100
+};
+
+const tiered=(q,t)=>{let r=q,prev=0,s=0;for(const[cap,pr]of t){const inT=Math.max(0,Math.min(r,cap-prev));
+  s+=inT*pr;r-=inT;prev=cap;if(r<=0)break;}return s;};
+function pick(specs,prices,minV,minR){
+  const ks=Object.keys(specs).filter(k=>prices[k]!==undefined).sort((a,b)=>prices[a]-prices[b]);
+  for(const k of ks) if(specs[k].vcpu>=minV&&specs[k].ram>=minR) return k;
+  return null;
+}
+
+/* ── the editable assumption set ───────────────────────────────────────── */
+function defaults(){ return {
+  mode:"growth", grossAdds:19000, seed:19000, horizon:36,
+  tierShift:1.0,            // multiplier on the paying share of the base
+  ordersScale:1.0, peak:6, dbBytes:3600, retention:24, multiAz:true, riCoverage:0.70,
+  logSampling:0.25, churnPaid:0.025, churnFree:0.05, upgrade:0.012,
+  qrisAttach:0.35, avgTicket:28000, cac:250000, headScale:1.0, support:true,
+};}
+
+const TIERS=[
+  {k:"free",    share:0.52, price:0,      outlets:1.0, devices:1, opd:35 },
+  {k:"starter", share:0.22, price:149000, outlets:1.0, devices:2, opd:90 },
+  {k:"pro",     share:0.22, price:299000, outlets:1.2, devices:3, opd:160},
+  {k:"business",share:0.04, price:549000, outlets:3.0, devices:6, opd:320},
+];
+const HEADS=[[8,12,16],[2,3,4],[6,14,22],[10,18,24],[4,6,8]];  // eng, product, support, S&M, G&A
+const RAMP=[.02,.03,.04,.05,.07,.08,.09,.10,.11,.12,.14,.15];
+
+function mixOf(a){
+  const paid0=1-TIERS[0].share, paid1=Math.min(0.95,paid0*a.tierShift);
+  const ts=TIERS.map(t=>({...t, share: t.k==="free" ? 1-paid1 : t.share*(paid1/paid0),
+                          opd: t.opd*a.ordersScale }));
+  let outlets=0,devices=0,orders=0,mrr=0,paidShare=0;
+  for(const t of ts){ outlets+=t.share*t.outlets; devices+=t.share*t.devices;
+    orders+=t.share*t.outlets*t.opd; mrr+=t.share*t.outlets*t.price;
+    if(t.price>0) paidShare+=t.share; }
+  return {ts,outlets,devices,orders,mrr,paidShare};
+}
+
+function demand(merchants,a,mix){
+  const outlets=merchants*mix.outlets, devices=merchants*mix.devices;
+  const opd=merchants*mix.orders;
+  const c={ write:opd*1.6, read:opd*6, report:merchants*12, portal:merchants*20,
+            sync:devices*160 + outlets*0.35*600 };
+  const calls=c.write+c.read+c.report+c.portal+c.sync;
+  const units=c.write*3 + c.read*1 + c.report*4 + c.portal*1 + c.sync*0.3;
+  const eg=c.write*4000 + c.read*9000 + c.report*15000 + c.portal*6000 + c.sync*700;
+  const ing=c.write*2500 + (calls-c.write)*400;
+  const avg=calls/86400;
+  return { merchants,outlets,devices,opd,calls, callsPerDay:calls,
+    avgRps:avg, peakRps:avg*a.peak,
+    peakUnits:(units/86400)*a.peak, peakOrders:(opd/86400)*a.peak,
+    peakReadUnits:((c.read+c.report*4+c.portal)/86400)*a.peak,
+    ordersMo:opd*DAYS, egGb:eg*DAYS/1e9, ingGb:ing*DAYS/1e9, reqMo:calls*DAYS };
+}
+
+function sizeInfra(d,retained,a){
+  const vcpu=d.peakUnits/(250*0.60);
+  const apiNodes=Math.max(2,Math.ceil(vcpu/P.ec2.specs["m7g.xlarge"].vcpu)+(d.merchants>0?1:0));
+
+  const wRows=d.peakOrders*11;
+  const vW=wRows/(350*0.60);
+  const vR=d.peakReadUnits/(600*0.60);
+  const vWriter=vW+vR*0.25;
+  const hotGb=((d.ordersMo*a.dbBytes*0.35)+d.merchants*5e6*0.5)/1e9;
+  const ram=hotGb*1.35;
+  const specs=P.rds.specs, prices=a.multiAz?P.rds.maz:P.rds.saz, big="db.r6g.8xlarge";
+  let shards=1;
+  while(vWriter/shards>specs[big].vcpu || ram/shards>specs[big].ram) shards++;
+  const writer=pick(specs,prices,Math.max(2,vWriter/shards),Math.max(8,ram/shards))||big;
+  const vRep=vR*0.75/shards;
+  const replica=pick(specs,P.rds.saz,Math.max(2,vRep),Math.max(8,ram/shards*0.6))||big;
+  const reps=Math.max(a.multiAz?1:0,Math.ceil(vRep/specs[replica].vcpu));
+
+  const dataGb=(retained*a.dbBytes+d.merchants*5e6)/1e9;
+  const stGb=Math.max(100,dataGb*1.25*1.30);
+  const iops=wRows*4+d.peakReadUnits*2;
+  const extraIops=Math.max(0,Math.ceil(iops/shards)-P.rds.freeIops);
+  return {apiNodes,shards,writer,replica,reps,stGb,extraIops,hotGb,vcpu,iops};
+}
+
+function bill(d,i,a){
+  const L={};
+  L.ec2 = i.apiNodes*P.ec2.od["m7g.xlarge"]*(1-a.riCoverage*0.34)*HOURS;
+  L.ec2Ebs = i.apiNodes*50*P.ebs.gp3;
+  const lcuB=(d.egGb+d.ingGb)*1e9/HOURS/3600/1e6;
+  L.alb = P.alb.hr*HOURS + Math.max(lcuB,d.peakRps/25,d.peakRps/1000,1)*P.alb.lcu*HOURS;
+
+  const wp=(a.multiAz?P.rds.maz:P.rds.saz)[i.writer];
+  L.rdsWriters = i.shards*wp*(1-a.riCoverage*0.317)*HOURS;
+  L.rdsReplicas = i.shards*i.reps*P.rds.saz[i.replica]*(1-a.riCoverage*0.317)*HOURS;
+  L.rdsStorage = i.shards*(i.stGb/i.shards)*(a.multiAz?P.rds.stMaz:P.rds.stSaz)
+               + i.shards*i.reps*(i.stGb/i.shards)*P.rds.stSaz;
+  L.rdsIops = i.shards*i.extraIops*(a.multiAz?P.rds.iopsMaz:P.rds.iopsSaz);
+  L.rdsBackup = i.stGb*0.4*P.rds.backup;
+
+  const s3Gb=d.merchants*0.04 + d.ordersMo*0.5/1e6;
+  L.s3 = tiered(s3Gb,P.s3.tiers) + d.ordersMo*0.05*P.s3.put;
+  const cdnGb=d.devices*12/1000;
+  L.cloudFront = tiered(cdnGb,P.cf.tiers) + (cdnGb*1e9/250000)*P.cf.req + cdnGb*0.10*P.cf.origin;
+  L.dataTransferOut = tiered(Math.max(0,d.egGb-P.dto.free),P.dto.tiers);
+  L.crossAz = d.reqMo*3000/1e9*(a.multiAz?1:0.5)*P.dto.intra*2;
+  L.nat = 2*P.nat.hr*HOURS + d.ordersMo*400/1e9*P.nat.gb;
+
+  const logGb=d.reqMo*350*a.logSampling/1e9;
+  const metrics=2000+i.apiNodes*60+i.shards*(1+i.reps)*80;
+  L.cloudWatch = logGb*P.cw.ingest + logGb*3*P.cw.store + logGb*0.4*P.cw.scan
+               + tiered(metrics,P.cw.metric);
+  L.misc = 33 + d.reqMo/1e6*0.60;
+
+  let sub=Object.values(L).reduce((s,v)=>s+v,0);
+  if(a.support){ L.awsSupport=Math.max(P.supportMin,tiered(sub,P.support)); }
+  const total=sub+(L.awsSupport||0);
+  return {L,total};
+}
+
+function simulate(a){
+  const mix=mixOf(a);
+  let free=0,paid=0;
+  if(a.mode==="steady"){ free=a.seed*mix.ts[0].share; paid=a.seed*(1-mix.ts[0].share); }
+  let retained=0,cum=0,lcf=0;
+  const months=[];
+  const horizon=a.mode==="steady"?12:a.horizon;
+
+  for(let m=0;m<horizon;m++){
+    const yr=Math.floor(m/12);
+    const gross=a.mode==="steady"?0:a.grossAdds*(yr===0?(RAMP[m]??1/12):1/12);
+    const addFree=gross*mix.ts[0].share, addPaid=gross*(1-mix.ts[0].share);
+    const chF=a.mode==="steady"?0:a.churnFree, chP=a.mode==="steady"?0:a.churnPaid;
+    const up=free*(a.mode==="steady"?0:a.upgrade);
+    free=Math.max(0,free+addFree-up-free*chF);
+    paid=Math.max(0,paid+addPaid+up-paid*chP);
+    const merchants=free+paid;
+
+    const d=demand(merchants,a,mix);
+    retained+=d.ordersMo;
+    if(m>=a.retention) retained-=months[m-a.retention].d.ordersMo;
+    const i=sizeInfra(d,retained,a);
+    const b=bill(d,i,a);
+    const awsIdr=b.total*FX;
+
+    const paidNow=merchants>0?paid/merchants:0;
+    const scale=mix.paidShare>0?paidNow/mix.paidShare:0;
+    const subsGross=merchants*mix.mrr*scale;
+    const subscription=subsGross-subsGross*0.35*0.17;
+    const devicesRev=paid*0.25*49000, addonRev=paid*0.10*90000;
+    const onboardRev=addPaid*0.30*600000;
+    const gmv=d.ordersMo*a.avgTicket;
+    const qris=gmv*a.qrisAttach*0.45*0.002;
+    const revenue=subscription+devicesRev+addonRev+onboardRev+qris;
+
+    const collect=(subscription+devicesRev+addonRev)*0.022;
+    const supp=merchants*0.35*11000, msg=merchants*1500;
+    const cogs=awsIdr+collect+supp+msg;
+    const gp=revenue-cogs;
+
+    const hy=Math.min(yr,2);
+    const heads=Math.round(HEADS.reduce((s,r)=>s+r[hy],0)*a.headScale);
+    const payroll=heads*35e6, office=heads*3.5e6;
+    const cac=gross*a.cac, onboardCost=addPaid*400000, marketing=revenue*0.10;
+    const opex=payroll+office+cac+onboardCost+marketing;
+    const ebitda=gp-opex;
+
+    let tax=0;
+    if(ebitda>0){ tax=Math.max(0,ebitda-lcf)*0.22; lcf=Math.max(0,lcf-ebitda); } else lcf+=-ebitda;
+    const net=ebitda-tax; cum+=net;
+
+    months.push({m:m+1,yr:yr+1,free,paid,merchants,d,i,b,awsUsd:b.total,awsIdr,
+      rev:{subscription,qris,devicesRev,addonRev,onboardRev,total:revenue},
+      cogs:{aws:awsIdr,collect,supp,msg,total:cogs},
+      op:{payroll,office,cac,onboardCost,marketing,heads},
+      gp,gm:revenue>0?gp/revenue:0,opex,ebitda,tax,net,cum,
+      u:{awsPerM:merchants>0?b.total/merchants:0, arpu:merchants>0?revenue/merchants:0,
+         awsPer1k:d.ordersMo>0?b.total/(d.ordersMo/1000):0,
+         gpPerM:merchants>0?gp/merchants:0}});
+  }
+
+  const years=[];
+  for(let y=0;y*12<months.length;y++){
+    const sl=months.slice(y*12,y*12+12); if(!sl.length)break;
+    const S=f=>sl.reduce((s,x)=>s+f(x),0), end=sl[sl.length-1];
+    years.push({year:y+1,end,
+      revenue:S(x=>x.rev.total), subscription:S(x=>x.rev.subscription), qris:S(x=>x.rev.qris),
+      devicesRev:S(x=>x.rev.devicesRev), addonRev:S(x=>x.rev.addonRev), onboardRev:S(x=>x.rev.onboardRev),
+      aws:S(x=>x.cogs.aws), collect:S(x=>x.cogs.collect), supp:S(x=>x.cogs.supp), msg:S(x=>x.cogs.msg),
+      cogs:S(x=>x.cogs.total), gp:S(x=>x.gp),
+      payroll:S(x=>x.op.payroll), office:S(x=>x.op.office), cac:S(x=>x.op.cac),
+      onboardCost:S(x=>x.op.onboardCost), marketing:S(x=>x.op.marketing),
+      opex:S(x=>x.opex), ebitda:S(x=>x.ebitda), tax:S(x=>x.tax), net:S(x=>x.net),
+      gm:S(x=>x.rev.total)>0?S(x=>x.gp)/S(x=>x.rev.total):0, awsUsd:S(x=>x.awsUsd)});
+  }
+  const last=months[months.length-1];
+  const blendChurn=a.mode==="steady"?0:
+    (last.merchants>0?(last.free*a.churnFree+last.paid*a.churnPaid)/last.merchants:0);
+  const cacFull=a.cac+400000*(1-mixOf(a).ts[0].share);
+  const ltv=blendChurn>0?last.u.gpPerM/blendChurn:Infinity;
+  return {a,mix,months,years,last,
+    unit:{cac:cacFull,ltv,ratio:cacFull>0?ltv/cacFull:Infinity,
+          payback:last.u.gpPerM>0?cacFull/last.u.gpPerM:Infinity,churn:blendChurn},
+    peakNeed:Math.max(0,-Math.min(...months.map(x=>x.cum))),
+    beMonth:(months.find(x=>x.ebitda>0)||{}).m||null};
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Formatting
+   ═══════════════════════════════════════════════════════════════════════════ */
+const nf=(n,d=0)=>n.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d});
+const usd=(n,d=0)=>"$"+nf(n,d);
+const pct=(n,d=1)=>(n*100).toFixed(d)+"%";
+function idr(n){const s=n<0?"−":"",a=Math.abs(n);
+  if(a>=1e12)return s+"Rp "+(a/1e12).toFixed(2)+" tri";
+  if(a>=1e9) return s+"Rp "+(a/1e9).toFixed(2)+" mlr";
+  if(a>=1e6) return s+"Rp "+(a/1e6).toFixed(1)+" jt";
+  if(a>=1e3) return s+"Rp "+Math.round(a/1e3)+" rb";
+  return s+"Rp "+Math.round(a);}
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ── tooltip ── */
+const tip=document.getElementById("tip");
+function bindTip(el,html){
+  el.addEventListener("pointerenter",e=>{tip.innerHTML=html;tip.style.opacity="1";move(e);});
+  el.addEventListener("pointermove",move);
+  el.addEventListener("pointerleave",()=>{tip.style.opacity="0";});
+  function move(e){const pad=14;let x=e.clientX+pad,y=e.clientY+pad;
+    const r=tip.getBoundingClientRect();
+    if(x+r.width>innerWidth-8)x=e.clientX-r.width-pad;
+    if(y+r.height>innerHeight-8)y=e.clientY-r.height-pad;
+    tip.style.left=x+"px";tip.style.top=y+"px";}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Controls
+   ═══════════════════════════════════════════════════════════════════════════ */
+let A=defaults();
+
+const KNOBS=[
+ {g:"Scale"},
+ {k:"grossAdds",label:"Merchant adds per year",min:5000,max:40000,step:1000,
+  fmt:v=>nf(v),hint:"Gross signups; churn is applied on top.",hideIf:a=>a.mode==="steady"},
+ {k:"seed",label:"Merchant book",min:5000,max:60000,step:1000,
+  fmt:v=>nf(v),hint:"Fixed base, no growth or churn.",hideIf:a=>a.mode!=="steady"},
+ {k:"tierShift",label:"Paying share of base",min:0.5,max:1.6,step:0.05,
+  fmt:(v,a)=>pct(mixOf(a).paidShare,0),hint:"Free-to-paid mix at signup."},
+ {k:"churnPaid",label:"Paid churn / month",min:0.005,max:0.06,step:0.0025,
+  fmt:v=>pct(v,2),hint:a=>"≈ "+Math.round(1/a.churnPaid)+" month lifetime.",hideIf:a=>a.mode==="steady"},
+
+ {g:"Workload"},
+ {k:"ordersScale",label:"Orders per outlet",min:0.4,max:2.2,step:0.05,
+  fmt:(v,a)=>Math.round(mixOf(a).orders)+" /merchant/day",hint:"Blended across the tier mix."},
+ {k:"peak",label:"Peak vs average traffic",min:3,max:12,step:0.5,
+  fmt:v=>v.toFixed(1)+"×",hint:"F&B lunch and dinner spikes size the fleet."},
+ {k:"dbBytes",label:"Database bytes per order",min:1500,max:8000,step:100,
+  fmt:v=>nf(v)+" B",hint:"Eleven rows plus indexes and bloat."},
+
+ {g:"Infrastructure"},
+ {k:"retention",label:"Orders kept in Postgres",min:6,max:36,step:1,
+  fmt:v=>v+" months",hint:"Older orders archive to S3. The strongest cost lever."},
+ {k:"riCoverage",label:"Reserved-instance coverage",min:0,max:1,step:0.05,
+  fmt:v=>pct(v,0),hint:"1-year, no upfront: −34% EC2, −32% RDS."},
+ {k:"logSampling",label:"Request-log sampling",min:0.02,max:1,step:0.02,
+  fmt:v=>pct(v,0),hint:"CloudWatch ingest is $0.70/GB."},
+ {t:"toggle",k:"multiAz",label:"Multi-AZ database"},
+ {t:"toggle",k:"support",label:"AWS Business Support"},
+
+ {g:"Commercials"},
+ {k:"qrisAttach",label:"QRIS attach rate",min:0,max:1,step:0.05,
+  fmt:v=>pct(v,0),hint:"Merchants routing payments through DIKASIR."},
+ {k:"avgTicket",label:"Average ticket",min:10000,max:75000,step:1000,
+  fmt:v=>"Rp "+nf(v),hint:"Drives the platform fee on GMV."},
+ {k:"cac",label:"Cost per merchant acquired",min:50000,max:900000,step:25000,
+  fmt:v=>idr(v),hint:"Agent commission and digital spend.",hideIf:a=>a.mode==="steady"},
+ {k:"headScale",label:"Headcount vs plan",min:0.4,max:2,step:0.05,
+  fmt:(v,a)=>Math.round(HEADS.reduce((s,r)=>s+r[2],0)*v)+" heads by Y3",hint:"Scales every function together."},
+];
+
+const PRESETS={
+  base:{},
+  steady:{mode:"steady",seed:19000},
+  lean:{multiAz:false,retention:12,logSampling:0.05,peak:5,riCoverage:0.90},
+  conservative:{tierShift:0.73,ordersScale:1.0,peak:8,dbBytes:5200,logSampling:0.5,
+                retention:36,riCoverage:0.50,churnPaid:0.04,qrisAttach:0.15},
+};
+
+function buildRail(){
+  const rail=document.getElementById("rail");
+  rail.innerHTML=KNOBS.map(k=>{
+    if(k.g) return `<div class="group"><h3>${esc(k.g)}</h3></div>`;
+    if(k.t==="toggle") return `<div class="toggle" data-row="${k.k}">
+        <label for="i_${k.k}">${esc(k.label)}</label>
+        <span class="switch"><input type="checkbox" id="i_${k.k}" data-k="${k.k}"><span></span></span></div>`;
+    return `<div class="knob" data-row="${k.k}">
+        <div class="knob-top"><label for="i_${k.k}">${esc(k.label)}</label>
+          <span class="val" id="v_${k.k}"></span></div>
+        <input type="range" id="i_${k.k}" data-k="${k.k}" min="${k.min}" max="${k.max}" step="${k.step}">
+        <div class="hint" id="h_${k.k}"></div></div>`;
+  }).join("");
+  rail.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("input",()=>{
+      const k=inp.dataset.k;
+      A[k]= inp.type==="checkbox" ? inp.checked : Number(inp.value);
+      document.querySelectorAll(".preset").forEach(b=>b.setAttribute("aria-pressed","false"));
+      render();
+    });
+  });
+  document.querySelectorAll(".preset").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      A=Object.assign(defaults(),PRESETS[btn.dataset.preset]);
+      document.querySelectorAll(".preset").forEach(b=>
+        b.setAttribute("aria-pressed",String(b===btn)));
+      syncRail(); render();
+    });
+  });
+}
+function syncRail(){
+  for(const k of KNOBS){
+    if(k.g) continue;
+    const row=document.querySelector(`[data-row="${k.k}"]`), inp=document.getElementById("i_"+k.k);
+    if(!row) continue;
+    row.hidden = !!(k.hideIf && k.hideIf(A));
+    if(k.t==="toggle"){ inp.checked=!!A[k.k]; continue; }
+    inp.value=A[k.k];
+    document.getElementById("v_"+k.k).textContent=k.fmt(A[k.k],A);
+    document.getElementById("h_"+k.k).textContent=typeof k.hint==="function"?k.hint(A):(k.hint||"");
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Rendering
+   ═══════════════════════════════════════════════════════════════════════════ */
+const FAMILIES=[
+  {n:"Database",     v:"--s1", keys:["rdsWriters","rdsReplicas","rdsStorage","rdsIops","rdsBackup"]},
+  {n:"Compute",      v:"--s2", keys:["ec2","ec2Ebs","alb"]},
+  {n:"Network & CDN",v:"--s3", keys:["dataTransferOut","cloudFront","crossAz","nat"]},
+  {n:"Observability",v:"--s4", keys:["cloudWatch"]},
+  {n:"Other & support",v:"--s5",keys:["s3","misc","awsSupport"]},
+];
+const LINE_LABEL={ec2:"EC2 — API tier",ec2Ebs:"EBS — API tier",alb:"Application Load Balancer",
+  rdsWriters:"RDS writer (PostgreSQL)",rdsReplicas:"RDS read replicas",rdsStorage:"RDS storage (gp3)",
+  rdsIops:"RDS provisioned IOPS",rdsBackup:"RDS backup & PITR",s3:"S3",cloudFront:"CloudFront",
+  dataTransferOut:"Data transfer out",crossAz:"Cross-AZ transfer",nat:"NAT Gateway",
+  cloudWatch:"CloudWatch logs & metrics",misc:"Route 53 · WAF · Secrets",awsSupport:"AWS Business Support"};
+const famOf=k=>FAMILIES.find(f=>f.keys.includes(k))||FAMILIES[4];
+
+function render(){
+  syncRail();
+  const R=simulate(A), last=R.last, L=last.b.L, Y=R.years;
+
+  /* ── tiles ── */
+  const awsMo=last.awsUsd, perM=last.u.awsPerM, arpu=last.u.arpu;
+  const lastY=Y[Y.length-1];
+  document.getElementById("tiles").innerHTML=[
+    {k:"AWS, per month",v:usd(Math.round(awsMo)),s:idr(awsMo*FX)+" · "+nf(Math.round(last.merchants))+" merchants",c:"accent"},
+    {k:"Cost to serve one merchant",v:usd(perM,2),s:idr(perM*FX)+" / month · "+pct(perM*FX/arpu,1)+" of revenue",c:"accent"},
+    {k:"Gross margin",v:pct(last.gm,1),s:"after AWS, support and payment fees"},
+    {k:lastY.year===1?"Year-1 EBITDA":"Year-"+lastY.year+" EBITDA",v:idr(lastY.ebitda),
+     s:pct(lastY.revenue>0?lastY.ebitda/lastY.revenue:0,1)+" margin on "+idr(lastY.revenue),
+     cls:lastY.ebitda>=0?"pos":"neg"},
+  ].map(t=>`<div class="tile ${t.c||""}"><div class="k">${esc(t.k)}</div>
+      <div class="v ${t.cls||""}">${esc(t.v)}</div><div class="s">${esc(t.s)}</div></div>`).join("");
+
+  /* ── family stack ── */
+  const fam=FAMILIES.map(f=>({...f,val:f.keys.reduce((s,k)=>s+(L[k]||0),0)}));
+  const tot=fam.reduce((s,f)=>s+f.val,0);
+  document.getElementById("stack").innerHTML=fam.map(f=>
+    `<div style="flex:0 0 calc(${(f.val/tot*100).toFixed(2)}% - 2px);background:var(${f.v})"
+       data-tt="${esc(f.n)}"></div>`).join("");
+  [...document.querySelectorAll("#stack div")].forEach((el,i)=>
+    bindTip(el,`<b>${esc(fam[i].n)}</b><br>${usd(Math.round(fam[i].val))}/mo · ${pct(fam[i].val/tot,1)}`));
+  document.getElementById("stackLegend").innerHTML=fam.map(f=>
+    `<span class="item"><i class="chip" style="background:var(${f.v})"></i>
+      ${esc(f.n)} <b>${pct(f.val/tot,0)}</b></span>`).join("");
+
+  const rdsShare=fam[0].val/tot;
+  document.getElementById("billSub").textContent=
+    `${nf(Math.round(last.merchants))} merchants · ${(last.d.ordersMo/1e6).toFixed(1)}M orders a month · `
+    +`peak ${nf(Math.round(last.d.peakRps))} req/s · ${last.i.apiNodes} × m7g.xlarge API nodes · `
+    +`${last.i.shards} × ${last.i.writer}${last.i.reps?` with ${last.i.reps} read replica${last.i.reps>1?"s":""}`:""} · `
+    +`${nf(Math.round(last.i.stGb))} GB of Postgres.`;
+  document.getElementById("billNote").innerHTML=
+    `<b>This is a database bill, not a server bill.</b> RDS is ${pct(rdsShare,0)} of it; `
+    +`the entire NestJS API tier is ${pct((L.ec2+L.ec2Ebs)/tot,0)}. `
+    +`Storage alone runs ${usd(Math.round(L.rdsStorage))}/month at ${A.retention} months of retention — `
+    +`the retention slider moves more money than anything on the compute side.`;
+
+  /* ── ranked line items ── */
+  const items=Object.keys(L).filter(k=>L[k]>0).map(k=>({k,v:L[k],f:famOf(k)}))
+    .sort((a,b)=>b.v-a.v);
+  const max=items[0].v;
+  document.getElementById("bars").innerHTML=items.map(it=>
+    `<div class="brow" data-k="${it.k}">
+       <div class="lab"><i class="chip" style="background:var(${it.f.v})"></i>
+         <span>${esc(LINE_LABEL[it.k]||it.k)}</span></div>
+       <div class="track"><div class="fill" style="width:${(it.v/max*100).toFixed(2)}%;
+         background:var(${it.f.v})"></div></div>
+       <div class="bval">${usd(Math.round(it.v))}<small>${pct(it.v/tot,1)}</small></div>
+     </div>`).join("");
+  [...document.querySelectorAll("#bars .brow")].forEach((el,i)=>{
+    const it=items[i];
+    bindTip(el,`<b>${esc(LINE_LABEL[it.k]||it.k)}</b><br>${usd(it.v,2)} / month<br>`
+      +`${idr(it.v*FX)} · ${pct(it.v/tot,1)} of the bill<br>`
+      +`${usd(it.v/Math.max(1,last.merchants),4)} per merchant`);
+  });
+
+  /* ── small multiples ── */
+  const ms=R.months;
+  // The per-merchant line is meaningless while the base is still a rounding error,
+  // so it starts once the ramp has something to divide by.
+  const skip=ms.length>6?3:0;
+  const series=[
+    {t:"Merchants",       get:x=>x.merchants,  fmt:v=>nf(Math.round(v)),  cap:"count",      from:0},
+    {t:"AWS per month",   get:x=>x.awsUsd,     fmt:v=>usd(Math.round(v)), cap:"USD",        from:0},
+    {t:"AWS per merchant",get:x=>x.u.awsPerM,  fmt:v=>usd(v,2),           cap:"USD / month",from:skip},
+  ];
+  document.getElementById("smalls").innerHTML=series.map((s,idx)=>{
+    const vals=ms.slice(s.from).map(s.get);
+    return `<div class="small"><h3>${esc(s.t)}</h3>
+      <div class="cap">${esc(s.cap)} · months ${s.from+1}–${ms.length}</div>
+      ${spark(vals,s.fmt,idx,s.from)}</div>`;
+  }).join("");
+  document.querySelectorAll(".small svg").forEach((svg,idx)=>{
+    const s=series[idx], vals=ms.slice(s.from).map(s.get);
+    svg.querySelectorAll("rect.hit").forEach(r=>{
+      const i=+r.dataset.i;
+      bindTip(r,`<b>Month ${i+1+s.from}</b><br>${s.t}: ${s.fmt(vals[i])}`);
+    });
+  });
+
+  /* ── P&L ── */
+  document.getElementById("plSub").textContent=
+    A.mode==="steady"
+      ? `A flat ${nf(A.seed)}-merchant book held for twelve months — no acquisition spend, no churn.`
+      : `${nf(A.grossAdds)} gross adds a year against ${pct(A.churnPaid,1)} monthly paid churn. `
+        +`Indonesian corporate tax at 22% with losses carried forward.`;
+  const rows=[
+    ["ind","Subscription",y=>y.subscription],["ind","QRIS platform fee",y=>y.qris],
+    ["ind","Extra devices",y=>y.devicesRev],["ind","Add-on modules",y=>y.addonRev],
+    ["ind","Onboarding (one-off)",y=>y.onboardRev],
+    ["total","Revenue",y=>y.revenue],["rule"],
+    ["ind","AWS infrastructure",y=>-y.aws],["ind","Payment collection",y=>-y.collect],
+    ["ind","Support",y=>-y.supp],["ind","Messaging & OTP",y=>-y.msg],
+    ["total","Cost of revenue",y=>-y.cogs],
+    ["total","Gross profit",y=>y.gp],["pctrow","Gross margin",y=>y.gm],["rule"],
+    ["ind","Payroll",y=>-y.payroll],["ind","Office & tools",y=>-y.office],
+    ["ind","Acquisition",y=>-y.cac],["ind","Onboarding delivery",y=>-y.onboardCost],
+    ["ind","Marketing",y=>-y.marketing],
+    ["total","Operating expense",y=>-y.opex],
+    ["total","EBITDA",y=>y.ebitda],
+    ["pctrow","EBITDA margin",y=>y.revenue>0?y.ebitda/y.revenue:0],
+    ["ind","Tax",y=>-y.tax],["total","Net income",y=>y.net],
+  ];
+  const head=`<thead><tr><th></th>${Y.map(y=>`<th class="r">Year ${y.year}</th>`).join("")}</tr></thead>`;
+  const body=rows.map(r=>{
+    if(r[0]==="rule") return `<tr class="rule"><td colspan="${Y.length+1}"></td></tr>`;
+    const cls=r[0]==="total"?"total":"";
+    const cells=Y.map(y=>{
+      const v=r[2](y);
+      if(r[0]==="pctrow") return `<td class="r" style="color:var(--muted)">${pct(v)}</td>`;
+      return `<td class="r ${v<0&&r[1]!=="Cost of revenue"&&r[1]!=="Operating expense"&&!r[1].startsWith("EBITDA")?"":""}
+        ${(r[1]==="EBITDA"||r[1]==="Net income")?(v>=0?"pos":"neg"):""}">${idr(v)}</td>`;
+    }).join("");
+    const label=r[0]==="ind"?`<td class="ind">${esc(r[1])}</td>`
+      :r[0]==="pctrow"?`<td class="ind" style="font-size:12px">${esc(r[1])}</td>`
+      :`<td>${esc(r[1])}</td>`;
+    return `<tr class="${cls}">${label}${cells}</tr>`;
+  }).join("");
+  document.getElementById("plTable").innerHTML=head+"<tbody>"+body+"</tbody>";
+
+  const eMax=Math.max(...Y.map(y=>Math.abs(y.ebitda)),1);
+  document.getElementById("ebitdaBars").innerHTML=Y.map(y=>{
+    const w=Math.abs(y.ebitda)/eMax*50, pos=y.ebitda>=0;
+    return `<div class="tor"><div class="lab">Year ${y.year} EBITDA
+        <small>${nf(Math.round(y.end.merchants))} merchants · ${pct(y.gm)} gross margin</small></div>
+      <div class="torbar"><span class="zero" style="left:50%"></span>
+        <i style="background:${pos?"var(--good)":"var(--bad)"};
+           left:${pos?50:50-w}%;width:${w}%"></i></div>
+      <div class="bval ${pos?"pos":"neg"}">${idr(y.ebitda)}</div></div>`;
+  }).join("");
+
+  renderTornado(R);
+}
+
+/* sparkline / area chart with hover targets */
+function spark(vals,fmt,idx,off=0){
+  const W=300,H=96,pl=6,pr=42,pt=10,pb=18;
+  const lo=Math.min(...vals,0), hi=Math.max(...vals);
+  const span=hi-lo||1;
+  const x=i=>pl+i/(vals.length-1||1)*(W-pl-pr);
+  const y=v=>pt+(1-(v-lo)/span)*(H-pt-pb);
+  const line=vals.map((v,i)=>`${i?"L":"M"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const area=`${line} L${x(vals.length-1).toFixed(1)},${y(lo).toFixed(1)} L${x(0).toFixed(1)},${y(lo).toFixed(1)} Z`;
+  const hue=["--s1","--s3","--gold"][idx%3];
+  const hits=vals.map((v,i)=>{
+    const w=(W-pl-pr)/vals.length;
+    return `<rect class="hit" data-i="${i}" x="${(x(i)-w/2).toFixed(1)}" y="${pt}" width="${w.toFixed(1)}"
+      height="${H-pt-pb}" fill="transparent"></rect>`;
+  }).join("");
+  const ticks=[0,Math.floor(vals.length/2),vals.length-1];
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${vals.length} month series">
+    <line class="gridline" x1="${pl}" y1="${y(hi).toFixed(1)}" x2="${W-pr}" y2="${y(hi).toFixed(1)}"></line>
+    <line class="gridline" x1="${pl}" y1="${y(lo).toFixed(1)}" x2="${W-pr}" y2="${y(lo).toFixed(1)}"></line>
+    <path d="${area}" fill="var(${hue})" opacity="0.13"></path>
+    <path d="${line}" fill="none" stroke="var(${hue})" stroke-width="2"
+      stroke-linejoin="round" stroke-linecap="round"></path>
+    <circle cx="${x(vals.length-1).toFixed(1)}" cy="${y(vals[vals.length-1]).toFixed(1)}" r="3.5"
+      fill="var(${hue})" stroke="var(--surface)" stroke-width="2"></circle>
+    <text class="endlab" x="${W-pr+7}" y="${(y(vals[vals.length-1])+3.5).toFixed(1)}">${esc(fmt(vals[vals.length-1]))}</text>
+    <text class="axis" x="${W-pr+7}" y="${(y(hi)+3).toFixed(1)}" opacity="${hi===vals[vals.length-1]?0:1}">${esc(fmt(hi))}</text>
+    ${ticks.map(t=>`<text class="axis" x="${x(t).toFixed(1)}" y="${H-5}"
+      text-anchor="${t===0?"start":t===vals.length-1?"end":"middle"}">m${t+1+off}</text>`).join("")}
+    ${hits}
+  </svg>`;
+}
+
+/* tornado over the levers */
+function renderTornado(R){
+  const base=R.years[R.years.length-1].ebitda;
+  const levers=[
+    {n:"Paid churn",           s:"monthly",       k:"churnPaid",  lo:A.churnPaid*0.5, hi:A.churnPaid*2},
+    {n:"Paying share",         s:"of the base",   k:"tierShift",  lo:A.tierShift*0.7, hi:Math.min(1.6,A.tierShift*1.3)},
+    {n:"QRIS attach",          s:"payment revenue",k:"qrisAttach", lo:0,               hi:Math.min(1,A.qrisAttach*2||0.7)},
+    {n:"Orders per outlet",    s:"throughput",    k:"ordersScale",lo:A.ordersScale*0.6,hi:A.ordersScale*1.6},
+    {n:"Retention in Postgres",s:"months",        k:"retention",  lo:6,               hi:36},
+    {n:"Peak traffic factor",  s:"fleet sizing",  k:"peak",       lo:3,               hi:12},
+  ].map(l=>{
+    const run=v=>simulate(Object.assign({},A,{[l.k]:v})).years.slice(-1)[0].ebitda;
+    const a=run(l.lo), b=run(l.hi);
+    return {...l, lo:Math.min(a,b), hi:Math.max(a,b), swing:Math.abs(b-a)};
+  }).sort((x,y)=>y.swing-x.swing);
+
+  const all=levers.flatMap(l=>[l.lo,l.hi,base]);
+  const min=Math.min(...all), max=Math.max(...all), span=(max-min)||1;
+  const px=v=>(v-min)/span*100;
+  document.getElementById("tornado").innerHTML=levers.map(l=>{
+    const a=px(l.lo), b=px(l.hi);
+    return `<div class="tor"><div class="lab">${esc(l.n)}<small>${esc(l.s)}</small></div>
+      <div class="torbar"><span class="zero" style="left:${px(base).toFixed(2)}%"></span>
+        <i style="left:${a.toFixed(2)}%;width:${Math.max(0.8,b-a).toFixed(2)}%;
+           background:${l.swing>Math.abs(base)*0.15?"var(--navy)":"var(--line-strong)"}"></i></div>
+      <div class="bval">${idr(l.swing)}</div></div>`;
+  }).join("")
+  +`<div class="tor" style="margin-top:6px"><div class="lab" style="color:var(--faint)">
+      current setting<small>vertical rule</small></div>
+     <div class="torbar" style="background:transparent">
+       <span class="zero" style="left:${px(base).toFixed(2)}%"></span></div>
+     <div class="bval">${idr(base)}</div></div>`;
+}
+
+buildRail();
+render();
+</script>

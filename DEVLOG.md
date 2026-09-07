@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-05._
+_Last updated: 2026-09-07._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,23 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-07 — cost & P/L model added (`sim/`, branch `claude/mobile-pos-cost-simulation-crrm90`).**
+> A zero-dependency simulation of what DPOS costs to run on AWS at ~19,000 merchants and the P/L that
+> follows. `sim/aws-price-sheet.aps3.json` holds **real** `ap-southeast-3` list prices pulled from the
+> public AWS Price List Bulk API on 2026-09-07 (offer versions recorded in the file); revenue uses the
+> DIKASIR tariffs in `scratchpad/dikasir_pricing.html`. The model sizes infrastructure *from demand*
+> rather than assuming a fleet, and takes its write amplification (11 rows per checkout) from
+> `server/src/orders/orders.service.ts`. Run it with `node sim/run.mjs --all --sensitivity`;
+> `--csv=sim/out` emits the monthly ledger.
+> **Headline:** a flat 19,000-merchant book is **~$13.2k/month (Rp 208 jt), $0.69 per merchant per
+> month, ~5% of revenue**, at a 90–92% gross margin. **RDS is 65–75% of the bill; the whole NestJS API
+> tier is 3–4%.** Retention months and paid churn move the answer by miliar; peak-traffic factor moves
+> it by hundreds of juta. **Caveat carried in the README:** the capacity constants
+> (`apiUnitsPerSecPerVcpu`, `dbWriteRowsPerSecPerVcpu`, `dbBytesPerOrder`) are engineering estimates,
+> not load-test results — load testing is still open work, so the infra figure is good to ~2×, not ~10%.
+> An interactive version of the same model is published as an artifact and its source kept at
+> `sim/dikasir-cost-simulator.html`.
 
 > **2026-09-05 — consolidated to a single trunk.** `main` is now the **only** branch; `beta-1` and the
 > `beta-with-SDP-printer` / `customer-portal` / `claude/*` branches were merged/superseded and retired
