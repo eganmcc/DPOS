@@ -52,3 +52,6 @@ app/flutter-run.log
 
 # Office lock/owner temp files
 ~$*
+
+# simulation outputs
+sim/out/

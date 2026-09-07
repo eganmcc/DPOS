@@ -1,0 +1,138 @@
+{
+  "$comment": "AWS list prices for ap-southeast-3 (Jakarta), USD, on-demand unless noted.",
+  "region": "ap-southeast-3",
+  "regionName": "Asia Pacific (Jakarta)",
+  "currency": "USD",
+  "retrievedAt": "2026-09-07",
+  "source": {
+    "api": "AWS Price List Bulk API (public, unauthenticated)",
+    "base": "https://pricing.us-east-1.amazonaws.com/offers/v1.0/aws",
+    "offerVersions": {
+      "AmazonEC2": "20260904231117",
+      "AmazonRDS": "20260904172716",
+      "AmazonS3": "20260831092225",
+      "AWSDataTransfer": "20260831121448",
+      "AWSELB": "20260831092255",
+      "AmazonCloudWatch": "current @ 2026-09-07",
+      "AmazonCloudFront": "current @ 2026-09-07 (global offer; AP price class)"
+    }
+  },
+
+  "ec2": {
+    "onDemandPerHour": {
+      "t3.small": 0.0264, "t3.medium": 0.0528, "t3.large": 0.1056,
+      "c6g.large": 0.0784, "c6g.xlarge": 0.1568, "c6g.2xlarge": 0.3136,
+      "c7g.xlarge": 0.1666, "c7g.2xlarge": 0.3332,
+      "m6g.large": 0.096, "m6g.xlarge": 0.192, "m6g.2xlarge": 0.384, "m6g.4xlarge": 0.768,
+      "m7g.large": 0.102, "m7g.xlarge": 0.204, "m7g.2xlarge": 0.408,
+      "r6g.large": 0.1216
+    },
+    "reserved1yrNoUpfrontPerHour": {
+      "m6g.large": 0.0605,
+      "c6g.xlarge": 0.0988,
+      "m7g.xlarge": 0.1349
+    },
+    "specs": {
+      "m7g.large":   { "vcpu": 2,  "ramGb": 8 },
+      "m7g.xlarge":  { "vcpu": 4,  "ramGb": 16 },
+      "m7g.2xlarge": { "vcpu": 8,  "ramGb": 32 },
+      "c7g.xlarge":  { "vcpu": 4,  "ramGb": 8 },
+      "c7g.2xlarge": { "vcpu": 8,  "ramGb": 16 }
+    }
+  },
+
+  "ebs": { "gp3GbMonth": 0.096, "gp3ProvisionedIopsMonth": 0.006, "gp2GbMonth": 0.12 },
+
+  "rds": {
+    "$comment": "PostgreSQL engine. Multi-AZ = one standby (not readable-standby cluster).",
+    "postgres": {
+      "multiAzPerHour": {
+        "db.t4g.medium": 0.203, "db.t4g.large": 0.406,
+        "db.m6g.large": 0.441, "db.m6g.xlarge": 0.883, "db.m6g.2xlarge": 1.765, "db.m6g.4xlarge": 3.53,
+        "db.r6g.large": 0.54, "db.r6g.xlarge": 1.079, "db.r6g.2xlarge": 2.158,
+        "db.r6g.4xlarge": 4.316, "db.r6g.8xlarge": 8.632
+      },
+      "singleAzPerHour": {
+        "db.t4g.medium": 0.102, "db.t4g.large": 0.203,
+        "db.m6g.large": 0.221, "db.m6g.xlarge": 0.441, "db.m6g.2xlarge": 0.883, "db.m6g.4xlarge": 1.765,
+        "db.r6g.large": 0.27, "db.r6g.xlarge": 0.54, "db.r6g.2xlarge": 1.079,
+        "db.r6g.4xlarge": 2.158, "db.r6g.8xlarge": 4.316
+      },
+      "reserved1yrNoUpfrontMultiAzPerHour": {
+        "db.r6g.xlarge": 0.7366, "db.r6g.2xlarge": 1.4732, "db.r6g.4xlarge": 2.9465
+      }
+    },
+    "specs": {
+      "db.r6g.large":   { "vcpu": 2,  "ramGb": 16 },
+      "db.r6g.xlarge":  { "vcpu": 4,  "ramGb": 32 },
+      "db.r6g.2xlarge": { "vcpu": 8,  "ramGb": 64 },
+      "db.r6g.4xlarge": { "vcpu": 16, "ramGb": 128 },
+      "db.r6g.8xlarge": { "vcpu": 32, "ramGb": 256 }
+    },
+    "storage": {
+      "gp3SingleAzGbMonth": 0.138,
+      "gp3MultiAzGbMonth": 0.276,
+      "gp3ProvisionedIopsSingleAzMonth": 0.024,
+      "gp3ProvisionedIopsMultiAzMonth": 0.048,
+      "gp3IncludedIops": 3000
+    },
+    "backupGbMonth": 0.095,
+    "snapshotExportToS3PerGb": 0.011
+  },
+
+  "alb": { "perHour": 0.0252, "lcuHour": 0.008 },
+  "natGateway": { "perHour": 0.059, "perGb": 0.059 },
+
+  "s3": {
+    "standardGbMonthTiers": [
+      { "uptoGb": 51200, "price": 0.025 },
+      { "uptoGb": 512000, "price": 0.024 },
+      { "uptoGb": null, "price": 0.023 }
+    ],
+    "standardIaGbMonth": 0.0138,
+    "putRequest": 0.000005,
+    "getRequest": 0.0000004
+  },
+
+  "cloudFront": {
+    "$comment": "AP price class (covers Indonesia).",
+    "dataOutGbTiers": [
+      { "uptoGb": 10240, "price": 0.12 },
+      { "uptoGb": 51200, "price": 0.10 },
+      { "uptoGb": null, "price": 0.095 }
+    ],
+    "httpsRequest": 0.0000012,
+    "originFetchGb": 0.06
+  },
+
+  "dataTransfer": {
+    "outToInternetGbTiers": [
+      { "uptoGb": 10240, "price": 0.132 },
+      { "uptoGb": 51200, "price": 0.10 },
+      { "uptoGb": 153600, "price": 0.095 },
+      { "uptoGb": null, "price": 0.09 }
+    ],
+    "intraRegionPerGb": 0.01,
+    "freeTierOutGbMonth": 100
+  },
+
+  "cloudWatch": {
+    "logsIngestGb": 0.70,
+    "logsStorageGbMonth": 0.03,
+    "logsInsightsScanGb": 0.007,
+    "metricMonthTiers": [
+      { "uptoMetrics": 10000, "price": 0.30 },
+      { "uptoMetrics": 250000, "price": 0.10 },
+      { "uptoMetrics": 1000000, "price": 0.05 },
+      { "uptoMetrics": null, "price": 0.02 }
+    ]
+  },
+
+  "awsSupportBusinessTiers": [
+    { "uptoUsd": 10000, "price": 0.10 },
+    { "uptoUsd": 80000, "price": 0.07 },
+    { "uptoUsd": 250000, "price": 0.05 },
+    { "uptoUsd": null, "price": 0.03 }
+  ],
+  "awsSupportBusinessMinimumMonthly": 100
+}
