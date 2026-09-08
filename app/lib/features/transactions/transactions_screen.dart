@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../core/brand.dart';
 import '../../core/money.dart';
+import '../../core/void_actions.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -106,13 +107,20 @@ class _DayTotals extends StatelessWidget {
   }
 }
 
-class _TransactionTile extends StatelessWidget {
+class _TransactionTile extends ConsumerWidget {
   const _TransactionTile({required this.order});
   final OrderResult order;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final cs = Theme.of(context).colorScheme;
+    // A UMI operator is alone behind the counter: voiding shouldn't cost a trip into
+    // the detail screen. Straight from the list, reason dialog intact. Same-day-ness
+    // stays the server's call — it answers VOID_WINDOW_EXPIRED, which is surfaced.
+    final session = ref.watch(sessionProvider);
+    final isUmi = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
+    final quickVoid = isUmi && order.canBeVoided && !order.isOnline;
     final time = DateFormat('dd/MM/yyyy · HH:mm').format(order.createdAt);
     final items = order.lines.length;
     final charges = order.payments.where((p) => !p.isReversal).toList();
@@ -156,6 +164,14 @@ class _TransactionTile extends StatelessWidget {
             ],
           ),
         ),
+        trailing: quickVoid
+            ? IconButton(
+                icon: const Icon(Icons.remove_circle_outline),
+                color: cs.error,
+                tooltip: AppLocalizations.of(context)!.actionVoidSale,
+                onPressed: () => voidOrderFlow(context, ref, order),
+              )
+            : null,
       ),
     );
   }

@@ -6,6 +6,7 @@ import '../../core/money.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../core/attendance_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/home_gate.dart'; // PosHome
@@ -45,7 +46,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final t = AppLocalizations.of(context)!;
     final range = _rangeFor(_period);
     final dash = ref.watch(dashboardProvider(range));
-    final attendance = ref.watch(adminAttendanceProvider(range));
+    // A UMI merchant is one person: no attendance to report, and the report isn't
+    // even fetched. Coerce the behaviour, don't just hide the widget.
+    final session = ref.watch(sessionProvider);
+    final isUmi = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
+    final attendance = isUmi ? null : ref.watch(adminAttendanceProvider(range));
 
     return Scaffold(
       appBar: BrandAppBar(
@@ -160,8 +166,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
             ),
 
-            // Attendance.
-            attendance.when(
+            // Attendance (not for UMI — a one-person business has nobody to track).
+            if (attendance != null)
+              attendance.when(
               loading: () => const SizedBox.shrink(),
               error: (e, _) => _InlineError(
                 message: t.errorHistory,
