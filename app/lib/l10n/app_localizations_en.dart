@@ -526,6 +526,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPayments => 'PAYMENT METHODS';
 
   @override
+  String get reportsProfit => 'GROSS PROFIT';
+
+  @override
+  String get plRevenue => 'Revenue';
+
+  @override
+  String get plCogs => 'Cost of goods';
+
+  @override
+  String get plGrossProfit => 'Gross profit';
+
+  @override
+  String get plMargin => 'Margin';
+
+  @override
+  String plMissingCost(int n) {
+    return '$n sales lines have no cost price — profit reads higher than it is';
+  }
+
+  @override
+  String get plSetCostPrices => 'Set cost prices';
+
+  @override
   String get reportsTopItems => 'TOP ITEMS';
 
   @override

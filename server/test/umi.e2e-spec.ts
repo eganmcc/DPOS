@@ -24,15 +24,18 @@ describe('UMI (Ultra Mikro) business size', () => {
   let ctx: TestContext;
   let umi: MerchantFixture;
   let general: MerchantFixture;
+  let pl: MerchantFixture; // its own merchant: the P/L assertions are exact totals
 
   beforeAll(async () => {
     ctx = await createTestApp();
     umi = await makeMerchant(ctx, { businessSize: 'UMI' });
     general = await makeMerchant(ctx);
+    pl = await makeMerchant(ctx);
   });
   afterAll(async () => {
     await cleanupMerchant(ctx.prisma, umi.merchantId);
     await cleanupMerchant(ctx.prisma, general.merchantId);
+    await cleanupMerchant(ctx.prisma, pl.merchantId);
     await ctx.app.close();
   });
 
@@ -266,5 +269,51 @@ describe('UMI (Ultra Mikro) business size', () => {
       .set('Authorization', `Bearer ${general.ownerToken}`)
       .send({ name: 'Uncapped', categoryName: 'Cat', price: 10000, trackInventory: false })
       .expect(201);
+  });
+
+  // ---------------------------------------------------------------- gross margin (P/L)
+
+  it('reports gross margin from costPriceSnapshot, flags missing costs, leaves netSales alone', async () => {
+    const COST = 7000; // Regular sells at 18000
+    await ctx.prisma.productVariant.update({
+      where: { id: pl.variantRegularId },
+      data: { costPrice: COST },
+    });
+    // variantLarge deliberately keeps costPrice = null — the missing-cost case.
+
+    const a = await sell(pl, 2); // costed line, qty 2
+    const b = await request(srv())
+      .post('/api/v1/orders')
+      .set('Authorization', `Bearer ${pl.cashierToken}`)
+      .send({
+        clientOrderId: uuidv4(),
+        outletId: pl.outletId,
+        type: 'TAKEAWAY',
+        lines: [{ variantId: pl.variantLargeId, qty: 1 }], // uncosted line
+        payment: { method: 'CASH', tendered: 1000000 },
+      })
+      .expect(201);
+
+    const res = await request(srv())
+      .get('/api/v1/admin/dashboard')
+      .set('Authorization', `Bearer ${pl.ownerToken}`)
+      .expect(200);
+    const d = res.body;
+
+    // COGS is per-unit cost x qty — only the costed line contributes.
+    expect(d.cogs).toBe(COST * 2);
+    expect(d.grossProfit).toBe(d.netRevenue - d.cogs);
+    expect(d.grossMarginBps).toBe(Math.round((d.grossProfit / d.netRevenue) * 10000));
+
+    // The uncosted line is surfaced, not swallowed.
+    expect(d.costCoverage.linesTotal).toBe(2);
+    expect(d.costCoverage.linesMissingCost).toBe(1);
+    expect(d.costCoverage.itemsMissingCost).toContain('Kopi Susu');
+
+    // Margin is computed on revenue excluding tax/service, so it is strictly below
+    // the tax-inclusive total — the fixture charges PBJT 10% + 5% service.
+    const grandTotal = a.grandTotal + b.body.grandTotal;
+    expect(d.netSales).toBe(grandTotal); // the existing contract is untouched
+    expect(d.netRevenue).toBeLessThan(d.netSales);
   });
 });

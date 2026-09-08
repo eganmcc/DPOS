@@ -422,6 +422,18 @@ class DashboardSummary {
   final List<({String name, int qty, int sales})> topItems;
   final List<({String day, int sales})> salesByDay;
 
+  /// Gross margin. Revenue here EXCLUDES tax and service charge (unlike [netSales]),
+  /// so the margin is not inflated for a merchant that charges them.
+  final int netRevenue;
+  final int cogs;
+  final int grossProfit;
+  final int grossMarginBps;
+
+  /// Sales lines with no cost price: they contribute 0 COGS, so profit reads high
+  /// until they're filled in. Surfaced in the UI, never swallowed.
+  final int linesMissingCost;
+  final List<String> itemsMissingCost;
+
   const DashboardSummary({
     required this.netSales,
     required this.orderCount,
@@ -432,7 +444,16 @@ class DashboardSummary {
     required this.byOutlet,
     required this.topItems,
     required this.salesByDay,
+    this.netRevenue = 0,
+    this.cogs = 0,
+    this.grossProfit = 0,
+    this.grossMarginBps = 0,
+    this.linesMissingCost = 0,
+    this.itemsMissingCost = const [],
   });
+
+  /// A margin can only be shown once there is revenue to measure it against.
+  bool get hasProfitData => netRevenue > 0;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> j) {
     final range = j['range'] as Map<String, dynamic>?;
@@ -451,6 +472,17 @@ class DashboardSummary {
       topItems: list('topItems',
           (e) => (name: e['name'] as String, qty: _asInt(e['qty']), sales: _asInt(e['sales']))),
       salesByDay: list('salesByDay', (e) => (day: e['day'] as String, sales: _asInt(e['sales']))),
+      // Defaulted, so an app built against a newer server still decodes an older
+      // server's response instead of crashing (same discipline as businessType).
+      netRevenue: _asInt(j['netRevenue']),
+      cogs: _asInt(j['cogs']),
+      grossProfit: _asInt(j['grossProfit']),
+      grossMarginBps: _asInt(j['grossMarginBps']),
+      linesMissingCost: _asInt((j['costCoverage'] ?? const {})['linesMissingCost']),
+      itemsMissingCost:
+          (((j['costCoverage'] ?? const {})['itemsMissingCost'] ?? const []) as List)
+              .map((e) => e.toString())
+              .toList(),
     );
   }
 }

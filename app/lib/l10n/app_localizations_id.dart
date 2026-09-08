@@ -528,6 +528,29 @@ class AppLocalizationsId extends AppLocalizations {
   String get reportsPayments => 'METODE PEMBAYARAN';
 
   @override
+  String get reportsProfit => 'LABA KOTOR';
+
+  @override
+  String get plRevenue => 'Pendapatan';
+
+  @override
+  String get plCogs => 'Modal barang';
+
+  @override
+  String get plGrossProfit => 'Laba kotor';
+
+  @override
+  String get plMargin => 'Margin';
+
+  @override
+  String plMissingCost(int n) {
+    return '$n baris penjualan belum ada harga modal — laba terlihat lebih besar';
+  }
+
+  @override
+  String get plSetCostPrices => 'Atur harga modal';
+
+  @override
   String get reportsTopItems => 'PRODUK TERLARIS';
 
   @override

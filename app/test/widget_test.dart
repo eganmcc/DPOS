@@ -29,4 +29,36 @@ void main() {
     expect(p.serviceChargeTotal, 1800); // 5%
     expect(p.grandTotal, 41400); // matches the verified backend sale
   });
+  test('DashboardSummary decodes a server that has no P/L keys yet', () {
+    // An app built against a newer server must still read an older one: the profit
+    // fields default to 0 rather than throwing, and hasProfitData hides the card.
+    final d = DashboardSummary.fromJson(const {
+      'netSales': 41400,
+      'orderCount': 1,
+      'avgTicket': 41400,
+    });
+    expect(d.netSales, 41400);
+    expect(d.netRevenue, 0);
+    expect(d.cogs, 0);
+    expect(d.grossProfit, 0);
+    expect(d.linesMissingCost, 0);
+    expect(d.itemsMissingCost, isEmpty);
+    expect(d.hasProfitData, isFalse);
+  });
+
+  test('DashboardSummary reads gross margin and the missing-cost flag', () {
+    final d = DashboardSummary.fromJson(const {
+      'netSales': 100000,
+      'netRevenue': 90000,
+      'cogs': 35000,
+      'grossProfit': 55000,
+      'grossMarginBps': 6111,
+      'costCoverage': {'linesTotal': 3, 'linesMissingCost': 1, 'itemsMissingCost': ['Es Teh']},
+    });
+    expect(d.grossProfit, 55000);
+    expect(d.grossMarginBps, 6111);
+    expect(d.linesMissingCost, 1);
+    expect(d.itemsMissingCost, ['Es Teh']);
+    expect(d.hasProfitData, isTrue);
+  });
 }

@@ -1082,6 +1082,48 @@ abstract class AppLocalizations {
   /// **'PAYMENT METHODS'**
   String get reportsPayments;
 
+  /// No description provided for @reportsProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'GROSS PROFIT'**
+  String get reportsProfit;
+
+  /// No description provided for @plRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Revenue'**
+  String get plRevenue;
+
+  /// No description provided for @plCogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost of goods'**
+  String get plCogs;
+
+  /// No description provided for @plGrossProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross profit'**
+  String get plGrossProfit;
+
+  /// No description provided for @plMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Margin'**
+  String get plMargin;
+
+  /// No description provided for @plMissingCost.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} sales lines have no cost price — profit reads higher than it is'**
+  String plMissingCost(int n);
+
+  /// No description provided for @plSetCostPrices.
+  ///
+  /// In en, this message translates to:
+  /// **'Set cost prices'**
+  String get plSetCostPrices;
+
   /// No description provided for @reportsTopItems.
   ///
   /// In en, this message translates to:

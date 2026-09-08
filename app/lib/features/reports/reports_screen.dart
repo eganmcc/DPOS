@@ -112,6 +112,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 children: [
                   _HeaderCard(d: d),
                   const SizedBox(height: 14),
+                  if (d.hasProfitData) ...[
+                    _ProfitCard(d: d),
+                    const SizedBox(height: 14),
+                  ],
                   if (d.paymentBreakdown.isNotEmpty) ...[
                     _SectionCard(
                       title: t.reportsPayments,
@@ -249,6 +253,47 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+}
+
+/// Gross margin: revenue - cost of goods.
+///
+/// Deliberately labelled GROSS ("Laba Kotor"), never bare "Laba" — it excludes rent,
+/// gas, packaging and the operator's own time, and a warung owner would otherwise read
+/// it as take-home. Lines with no cost price contribute nothing to COGS and so inflate
+/// the figure; that is stated on the card rather than left for the reader to discover.
+class _ProfitCard extends StatelessWidget {
+  const _ProfitCard({required this.d});
+  final DashboardSummary d;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final margin = (d.grossMarginBps / 100).toStringAsFixed(1);
+    return _SectionCard(
+      title: t.reportsProfit,
+      child: Column(children: [
+        _Row(label: t.plRevenue, value: formatRupiah(d.netRevenue)),
+        _Row(label: t.plCogs, value: '- ${formatRupiah(d.cogs)}'),
+        Divider(color: cs.outlineVariant, height: 12),
+        _Row(label: t.plGrossProfit, sub: '${t.plMargin} $margin%', value: formatRupiah(d.grossProfit)),
+        if (d.linesMissingCost > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.info_outline, size: 16, color: cs.tertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t.plMissingCost(d.linesMissingCost),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
+              ),
+            ]),
+          ),
+      ]),
     );
   }
 }
