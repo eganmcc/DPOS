@@ -3,10 +3,14 @@ import { api, TOKEN_KEY } from '../api';
 
 export type BusinessType = 'FNB' | 'GROCERY';
 
+/** Operating scale, orthogonal to business type. Read-only — set by DPOS provisioning. */
+export type BusinessSize = 'GENERAL' | 'UMKM' | 'UMI';
+
 interface Merchant {
   id: string;
   name: string;
   businessType: BusinessType;
+  businessSize: BusinessSize;
   logoUrl: string | null;
 }
 
