@@ -70,8 +70,13 @@ export class VoidService {
       });
     }
 
-    // Owner/manager self-authorize; a cashier must present a manager PIN.
-    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+    // Owner/manager self-authorize; a UMI merchant has nobody to approve, so every role
+    // does; otherwise a cashier must present a manager PIN.
+    const { approvedById, basis: approvalBasis } = await resolveCorrectionApprover(
+      this.prisma,
+      user,
+      dto.approverPin,
+    );
 
     try {
       await this.prisma.$transaction(async (tx) => {
@@ -169,6 +174,8 @@ export class VoidService {
               effectiveStatus: 'VOIDED',
               orderVoidId: orderVoid.id,
               reason: dto.reason ?? null,
+              approvedById,
+              approvalBasis,
               restoredMovements: saleMovements.length,
               reversedPayments: charges.length,
             },

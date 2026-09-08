@@ -559,7 +559,11 @@ export class OrdersService {
       throw new ConflictException('Only an open (unpaid) bill can be cancelled');
     }
 
-    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+    const { approvedById, basis: approvalBasis } = await resolveCorrectionApprover(
+      this.prisma,
+      user,
+      dto.approverPin,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       // Win the flip or bail — prevents a double stock restore on a concurrent retry.
@@ -617,6 +621,7 @@ export class OrdersService {
             status: 'CANCELLED',
             reason: dto.reason,
             approvedById,
+            approvalBasis,
             releasedMovements: reserved.length,
           },
         },

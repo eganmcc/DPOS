@@ -1,7 +1,13 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateStaffDto, SetPinDto, UpdateStaffDto } from './dto';
+import { isUmiMerchant } from '../common/business-size';
 
 @Injectable()
 export class StaffService {
@@ -17,6 +23,16 @@ export class StaffService {
   }
 
   async create(merchantId: string, dto: CreateStaffDto) {
+    // UMI is a single-person business. This guard is load-bearing, not defence in depth:
+    // StaffController is OWNER-gated and a UMI owner holds a genuine OWNER token from PIN
+    // login, so without it they could simply POST here. update()/setPin() stay open — the
+    // sole owner must still be able to rename themselves and rotate their own PIN.
+    if (await isUmiMerchant(this.prisma, merchantId)) {
+      throw new ForbiddenException({
+        code: 'UMI_SINGLE_USER',
+        message: 'Ultra Mikro accounts are single-user.',
+      });
+    }
     await this.assertOutlet(merchantId, dto.outletId);
     const employeeId = await this.nextEmployeeId(merchantId);
     const s = await this.prisma.staff.create({

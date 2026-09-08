@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { BusinessType, InventoryReason, ProductType } from '@prisma/client';
+import { BusinessSize, BusinessType, InventoryReason, ProductType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuthUser } from '../auth/auth.types';
 import { CreateProductDto, UpdateVariantDto } from './dto';
+import { UMI_PRODUCT_LIMIT } from '../common/business-size';
 
 @Injectable()
 export class ProductsService {
@@ -42,6 +43,24 @@ export class ProductsService {
   async createProduct(user: AuthUser, dto: CreateProductDto) {
     const merchant = await this.prisma.merchant.findUnique({ where: { id: user.merchantId } });
     if (!merchant) throw new BadRequestException('Merchant not found');
+
+    // A UMI ("Ultra Mikro") catalog is capped so a larger business cannot operate on UMI
+    // terms. This is a HARD stop: nothing writes Product.isAvailable, so there is no
+    // self-service way to free a slot — hence "contact DPOS", never "switch one off".
+    // Two concurrent creates can both pass this count (worst case 31 items); accepted,
+    // since no money, stock, or lifecycle rule is involved.
+    if (merchant.businessSize === BusinessSize.UMI) {
+      const items = await this.prisma.product.count({
+        where: { merchantId: user.merchantId, isAvailable: true },
+      });
+      if (items >= UMI_PRODUCT_LIMIT) {
+        throw new BadRequestException({
+          code: 'ITEM_LIMIT_REACHED',
+          message: `Ultra Mikro is limited to ${UMI_PRODUCT_LIMIT} items. Contact DPOS to change your plan.`,
+          limit: UMI_PRODUCT_LIMIT,
+        });
+      }
+    }
 
     const sku = dto.sku?.trim() || null;
     if (sku) {

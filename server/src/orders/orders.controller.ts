@@ -98,12 +98,13 @@ export class OrdersController {
   }
 
   /**
-   * Full-void a completed sale. OWNER only (Constitution VI) — a CASHIER is refused with 403.
-   * Idempotent: a retry returns the same order with no second stock restoration.
+   * Full-void a completed sale, same business day only. Authorization is enforced in the
+   * service, not by a role guard: any staff may initiate, OWNER/MANAGER self-authorize, and
+   * a CASHIER must supply a manager PIN — except at a UMI merchant, where there is nobody
+   * to approve. Idempotent: a retry returns the same order with no second stock restoration.
    */
   @Post(':id/void')
   @HttpCode(200) // contract: 200 whether this is the first void or an idempotent retry
-  // Any staff may initiate; a cashier must supply a manager PIN (enforced in the service).
   async void(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
@@ -114,12 +115,12 @@ export class OrdersController {
   }
 
   /**
-   * Refund a completed sale — full or line-level partial. OWNER/MANAGER only.
-   * Idempotent via clientRefundId; multiple partial refunds allowed up to the total.
+   * Refund a completed sale — full or line-level partial. Authorized like void (service-level,
+   * not a role guard): any staff may initiate, OWNER/MANAGER and UMI self-authorize, a CASHIER
+   * needs a manager PIN. Idempotent via clientRefundId; partials allowed up to the total.
    */
   @Post(':id/refund')
   @HttpCode(200)
-  // Any staff may initiate; a cashier must supply a manager PIN (enforced in the service).
   async refund(
     @CurrentUser() user: AuthUser,
     @Param('id', ParseUUIDPipe) id: string,
