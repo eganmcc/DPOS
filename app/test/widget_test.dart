@@ -61,4 +61,26 @@ void main() {
     expect(d.itemsMissingCost, ['Es Teh']);
     expect(d.hasProfitData, isTrue);
   });
+
+  test('Catalog from a stale cache has no businessSize and is NOT treated as UMI', () {
+    // The drift cache stores the whole catalog response as an opaque blob, so a device
+    // that hasn't refetched since deploy decodes this field as absent. It must fail
+    // closed — suppressing a PIN prompt the server still enforces would be a 403.
+    final c = Catalog.fromJson(const {'outletId': 'o1', 'taxRule': null, 'products': []});
+    expect(c.businessSize, 'GENERAL');
+    expect(c.isUmi, isFalse);
+    expect(c.businessType, 'FNB'); // the same discipline, already shipped
+  });
+
+  test('Catalog reads businessSize; only UMI is UMI', () {
+    Catalog of(String size) => Catalog.fromJson({
+          'outletId': 'o1',
+          'businessSize': size,
+          'taxRule': null,
+          'products': const [],
+        });
+    expect(of('UMI').isUmi, isTrue);
+    expect(of('UMKM').isUmi, isFalse); // UMKM behaves as GENERAL today
+    expect(of('GENERAL').isUmi, isFalse);
+  });
 }

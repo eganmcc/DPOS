@@ -124,6 +124,7 @@ class Catalog {
   final String? outletName;
   final String? merchantName; // company name (receipt header)
   final String businessType; // 'FNB' | 'GROCERY'
+  final String businessSize; // 'GENERAL' | 'UMKM' | 'UMI'
   final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
   final TaxRule? taxRule;
   final List<Product> products;
@@ -132,6 +133,7 @@ class Catalog {
       this.outletName,
       this.merchantName,
       this.businessType = 'FNB',
+      this.businessSize = 'GENERAL',
       this.paymentMode = 'IMMEDIATE',
       required this.taxRule,
       required this.products});
@@ -142,6 +144,11 @@ class Catalog {
   /// Grocery/retail: enables the barcode-scanner POS mode.
   bool get isGrocery => businessType == 'GROCERY';
 
+  /// UMI ("Ultra Mikro") is a one-person business: corrections need no approver PIN,
+  /// items are managed in-app, and attendance is pointless. UI ONLY — every UMI rule is
+  /// enforced server-side, because this value can come from a stale cached catalog.
+  bool get isUmi => businessSize == 'UMI';
+
   /// Restaurant flow: confirm the order now (reserves stock), settle later.
   bool get isOpenBill => paymentMode == 'OPEN_BILL';
 
@@ -151,6 +158,10 @@ class Catalog {
         merchantName: j['merchantName'] as String?,
         // Fallbacks keep catalogs cached before these fields shipped valid.
         businessType: j['businessType'] ?? 'FNB',
+        // Fails CLOSED on a stale cache: a device that hasn't refetched still prompts
+        // for an approver PIN (which the server then ignores) rather than suppressing
+        // one the server would still enforce.
+        businessSize: j['businessSize'] ?? 'GENERAL',
         paymentMode: j['paymentMode'] ?? 'IMMEDIATE',
         taxRule: j['taxRule'] != null ? TaxRule.fromJson(j['taxRule']) : null,
         products: ((j['products'] ?? []) as List)
