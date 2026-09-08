@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-05._
+_Last updated: 2026-09-08._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,23 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-08 — UMI (Ultra Mikro) business size, on `features/UMI`.** A new `Merchant.businessSize`
+> axis (`GENERAL | UMKM | UMI`), **orthogonal** to `businessType` — a UMI merchant is still F&B or
+> grocery. **UMI = a one-person business**: corrections need **no approver PIN for any role** (there is
+> nobody to approve; the **mandatory reason stays** — a test asserts a reason-less void is still 400),
+> the **portal is closed** to it (`loginOwner` → 403 `PORTAL_NOT_AVAILABLE`, which works because the app
+> only ever logs in by PIN), **staff creation is refused** (403 `UMI_SINGLE_USER`), and the catalog is
+> **capped at 30 products** (400 `ITEM_LIMIT_REACHED` — a hard stop; nothing writes `Product.isAvailable`,
+> so the message says *contact DPOS*, never "switch one off"). In the app a UMI operator **lands on the
+> POS** (not Reports), voids from the history tile in **2 taps** instead of 5, sees **no attendance**, and
+> gets an **Items & prices** screen. New **gross-profit reporting for every merchant** (Laba Kotor =
+> revenue − COGS from the already-written `costPriceSnapshot`; no schema change) with a visible
+> **missing-cost-price warning**. Every correction now records an **approval basis**
+> (`SELF | UMI_BYPASS | APPROVER_PIN`) in its `AuditLog`, so a null approver is never ambiguous.
+> **Migration 10 is applied to RDS** (both demo merchants backfilled to `GENERAL`). Constitution
+> **v1.7.0**, spec `specs/006-umi-business-size/spec.md`. Suite: **9 suites / 46 tests green**;
+> `flutter analyze` clean + 6 unit tests. **Not yet merged to `main`, and not yet walked on a device.**
 
 > **2026-09-05 — consolidated to a single trunk.** `main` is now the **only** branch; `beta-1` and the
 > `beta-with-SDP-printer` / `customer-portal` / `claude/*` branches were merged/superseded and retired
@@ -128,6 +145,10 @@ Release APKs are now **release-signed** from `android/key.properties` (falls bac
 - Outlet (has stock) `91298a41-b8ed-4b1a-a5c9-2e4aaad036b3` = "Outlet Pusat"; second outlet "Outlet Cabang".
 - F&B **Warung Kopi Demo**: Cashier PIN `1234` · Manager `8888` · Owner `9999` / `owner@warungdemo.id` / `owner123`.
 - Grocery **Toko Sembako Demo** (`admin@sembako.id` / `admin123`): Owner PIN `4321` · Manager `7777` · Cashier `2222`. These plaintext demo PINs are prefilled on the app login "Login as" picker (`Staff.demoPin`, DEMO ONLY).
+- **Both demo merchants are `businessSize = GENERAL`.** To demo UMI, provision one:
+  `cd server && npx ts-node prisma/set-business-size.ts "Warung Kopi Demo 1" UMI` (no args lists every
+  merchant and its size; revert with `… GENERAL`). There is no admin UI for this yet — a DPOS
+  super-admin surface is the planned home for it.
 - 20 products across Minuman / Makanan / Snack, PBJT tax 10% + 5% service. A 2× Kopi Susu sale = **Rp 41.400**.
 - `prisma/seed.ts` only seeds a *fresh* merchant; use `prisma/seed-menu.ts` against an existing one (e.g. RDS, which has orders).
 
@@ -154,6 +175,7 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 | Branch | What it is | Status |
 |---|---|---|
 | `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current |
+| `features/UMI` | UMI (Ultra Mikro) business size — 7 commits off `main` @ `1fc071f` | **ahead of `main`**, 2026-09-08 |
 
 **Workflow:** trunk-based on `main` — `main` is always deployable and is what EC2 ships. Cut a
 **short-lived** feature branch only for risky/parallel work, then merge back and delete it. Keep
