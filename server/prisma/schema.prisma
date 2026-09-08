@@ -25,6 +25,16 @@ enum BusinessType {
   GROCERY
 }
 
+// Merchant business SIZE — operating scale, orthogonal to businessType (a UMI
+// merchant is still F&B or grocery). UMI ("Ultra Mikro") is a single-person
+// operation: nobody else exists to approve a correction, there is no portal, and
+// the catalog is capped. Set by DPOS provisioning; published read-only, never accepted.
+enum BusinessSize {
+  GENERAL
+  UMKM
+  UMI
+}
+
 enum ProductType {
   FNB
   RETAIL
@@ -135,6 +145,7 @@ model Merchant {
   id           String       @id @default(uuid())
   name         String // company / legal name
   businessType BusinessType @default(FNB)
+  businessSize BusinessSize @default(GENERAL)
   logoUrl      String?
   createdAt    DateTime     @default(now())
 
