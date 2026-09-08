@@ -528,6 +528,68 @@ class AppLocalizationsId extends AppLocalizations {
   String get reportsPayments => 'METODE PEMBAYARAN';
 
   @override
+  String get itemsTitle => 'Barang & harga';
+
+  @override
+  String itemsCount(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get itemsAdd => 'Tambah barang';
+
+  @override
+  String get itemsEmpty => 'Belum ada barang — tambahkan yang pertama.';
+
+  @override
+  String get itemsLimitReached =>
+      'Batas barang tercapai. Hubungi DPOS untuk mengubah paket.';
+
+  @override
+  String get itemName => 'Nama barang';
+
+  @override
+  String get itemCategory => 'Kategori';
+
+  @override
+  String get itemPrice => 'Harga jual';
+
+  @override
+  String get itemCost => 'Harga modal';
+
+  @override
+  String get itemCostHint => 'Diperlukan untuk laporan laba';
+
+  @override
+  String get itemSku => 'SKU / barcode';
+
+  @override
+  String get itemAvailable => 'Tersedia untuk dijual';
+
+  @override
+  String get itemTrackStock => 'Lacak stok';
+
+  @override
+  String get itemOnHand => 'Stok saat ini';
+
+  @override
+  String get itemNoCost => 'Belum ada harga modal';
+
+  @override
+  String itemMargin(String amount) {
+    return 'Margin $amount';
+  }
+
+  @override
+  String get itemSaved => 'Tersimpan';
+
+  @override
+  String get itemSaveFailed => 'Gagal menyimpan — coba lagi';
+
+  @override
+  String get itemNameRequired => 'Nama dan kategori wajib diisi';
+
+  @override
   String get reportsProfit => 'LABA KOTOR';
 
   @override

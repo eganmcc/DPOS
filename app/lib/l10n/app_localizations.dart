@@ -1082,6 +1082,120 @@ abstract class AppLocalizations {
   /// **'PAYMENT METHODS'**
   String get reportsPayments;
 
+  /// No description provided for @itemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Items & prices'**
+  String get itemsTitle;
+
+  /// No description provided for @itemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {max}'**
+  String itemsCount(int used, int max);
+
+  /// No description provided for @itemsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get itemsAdd;
+
+  /// No description provided for @itemsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items yet — add your first one.'**
+  String get itemsEmpty;
+
+  /// No description provided for @itemsLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Item limit reached. Contact DPOS to change your plan.'**
+  String get itemsLimitReached;
+
+  /// No description provided for @itemName.
+  ///
+  /// In en, this message translates to:
+  /// **'Item name'**
+  String get itemName;
+
+  /// No description provided for @itemCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get itemCategory;
+
+  /// No description provided for @itemPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling price'**
+  String get itemPrice;
+
+  /// No description provided for @itemCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price'**
+  String get itemCost;
+
+  /// No description provided for @itemCostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for the profit report'**
+  String get itemCostHint;
+
+  /// No description provided for @itemSku.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU / barcode'**
+  String get itemSku;
+
+  /// No description provided for @itemAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available for sale'**
+  String get itemAvailable;
+
+  /// No description provided for @itemTrackStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Track stock'**
+  String get itemTrackStock;
+
+  /// No description provided for @itemOnHand.
+  ///
+  /// In en, this message translates to:
+  /// **'On hand'**
+  String get itemOnHand;
+
+  /// No description provided for @itemNoCost.
+  ///
+  /// In en, this message translates to:
+  /// **'No cost price'**
+  String get itemNoCost;
+
+  /// No description provided for @itemMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Margin {amount}'**
+  String itemMargin(String amount);
+
+  /// No description provided for @itemSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get itemSaved;
+
+  /// No description provided for @itemSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save — please try again'**
+  String get itemSaveFailed;
+
+  /// No description provided for @itemNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name and category are required'**
+  String get itemNameRequired;
+
   /// No description provided for @reportsProfit.
   ///
   /// In en, this message translates to:

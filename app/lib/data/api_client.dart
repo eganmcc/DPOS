@@ -98,6 +98,63 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  // ---- Admin catalog (UMI in-app item management; portal-equivalent endpoints) ----
+  // All OWNER-gated. A UMI operator logs in by PIN and still carries role OWNER, so
+  // these work from the app with no server-side auth change.
+
+  /// Products with variants — unlike GET /catalog this includes costPrice, which is
+  /// why the Items screen uses it. /catalog is deliberately NOT widened with cost:
+  /// that would push cost prices into every cashier device's offline cache.
+  Future<List<Map<String, dynamic>>> getAdminProducts() async {
+    final res = await _dio.get('/admin/products');
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Create a product with one default variant. Throws DioException with
+  /// `code: ITEM_LIMIT_REACHED` when a UMI catalog is full.
+  Future<Map<String, dynamic>> createAdminProduct(Map<String, dynamic> body) async {
+    final res = await _dio.post('/admin/products', data: body);
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// Update a variant's price / cost / SKU / availability. An empty `sku` clears it.
+  Future<Map<String, dynamic>> updateVariant(
+    String variantId, {
+    int? price,
+    int? costPrice,
+    bool? isAvailable,
+    String? sku,
+  }) async {
+    final res = await _dio.patch('/admin/products/variants/$variantId', data: {
+      if (price != null) 'price': price,
+      if (costPrice != null) 'costPrice': costPrice,
+      if (isAvailable != null) 'isAvailable': isAvailable,
+      if (sku != null) 'sku': sku,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// On-hand rows for an outlet.
+  Future<List<Map<String, dynamic>>> getInventory(String outletId) async {
+    final res = await _dio.get('/admin/inventory', queryParameters: {'outletId': outletId});
+    return (res.data as List).cast<Map<String, dynamic>>();
+  }
+
+  /// Set a variant's on-hand at an outlet. The server writes the delta as an
+  /// ADJUSTMENT movement — the ledger stays the source of truth (Constitution IV).
+  Future<Map<String, dynamic>> adjustStock({
+    required String outletId,
+    required String variantId,
+    required int quantityOnHand,
+  }) async {
+    final res = await _dio.post('/admin/inventory/adjust', data: {
+      'outletId': outletId,
+      'variantId': variantId,
+      'quantityOnHand': quantityOnHand,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Owner/manager attendance rows over a date range (YYYY-MM-DD).
   Future<List<Map<String, dynamic>>> getAdminAttendance({String? from, String? to}) async {
     final res = await _dio.get('/admin/attendance', queryParameters: {

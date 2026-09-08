@@ -170,6 +170,69 @@ class Catalog {
       );
 }
 
+/// A variant as the ADMIN endpoints return it — same sellable unit as [Variant] but
+/// carrying `costPrice`, which `GET /catalog` deliberately omits.
+class AdminVariant {
+  final String id;
+  final String name;
+  final int price;
+  final int? costPrice;
+  final String? sku;
+  final bool isAvailable;
+  final bool trackInventory;
+  const AdminVariant({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.costPrice,
+    required this.sku,
+    required this.isAvailable,
+    required this.trackInventory,
+  });
+
+  /// Margin per unit, or null when no cost has been set (which is what makes the
+  /// gross-profit report read high until it is).
+  int? get marginPerUnit => costPrice == null ? null : price - costPrice!;
+
+  factory AdminVariant.fromJson(Map<String, dynamic> j) => AdminVariant(
+        id: j['id'],
+        name: j['name'] ?? '',
+        price: _asInt(j['price']),
+        costPrice: (j['costPrice'] as num?)?.toInt(),
+        sku: j['sku'] as String?,
+        isAvailable: j['isAvailable'] ?? true,
+        trackInventory: j['trackInventory'] ?? false,
+      );
+}
+
+/// A product as the admin endpoints return it (GET /admin/products).
+class AdminProduct {
+  final String id;
+  final String name;
+  final String categoryName;
+  final bool isAvailable;
+  final List<AdminVariant> variants;
+  const AdminProduct({
+    required this.id,
+    required this.name,
+    required this.categoryName,
+    required this.isAvailable,
+    required this.variants,
+  });
+
+  AdminVariant? get defaultVariant => variants.isEmpty ? null : variants.first;
+
+  factory AdminProduct.fromJson(Map<String, dynamic> j) => AdminProduct(
+        id: j['id'],
+        name: j['name'] ?? '',
+        categoryName: j['categoryName'] ?? '',
+        isAvailable: j['isAvailable'] ?? true,
+        variants: ((j['variants'] ?? []) as List)
+            .map((v) => AdminVariant.fromJson(v as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
 class PaymentResult {
   final String method;
   final int amount;

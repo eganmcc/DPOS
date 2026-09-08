@@ -11,6 +11,7 @@ import '../../core/attendance_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/home_gate.dart'; // PosHome
 import '../settings/settings_screen.dart';
+import '../items/items_screen.dart';
 import '../transactions/transactions_screen.dart';
 
 enum _Period { daily, weekly, monthly }
@@ -63,6 +64,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.reportsOpenCashier, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          // Items & prices — UMI only. A GENERAL merchant manages its catalog in the
+          // portal, and an uncapped in-app editor for them would be a second surface.
+          if (isUmi && session.isOwner)
+            IconButton(
+              tooltip: t.itemsTitle,
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ItemsScreen())),
+              icon: const Icon(Icons.inventory_2_outlined),
+            ),
           IconButton(
             tooltip: t.historyLabel,
             onPressed: () => Navigator.of(context)

@@ -526,6 +526,68 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportsPayments => 'PAYMENT METHODS';
 
   @override
+  String get itemsTitle => 'Items & prices';
+
+  @override
+  String itemsCount(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get itemsAdd => 'Add item';
+
+  @override
+  String get itemsEmpty => 'No items yet — add your first one.';
+
+  @override
+  String get itemsLimitReached =>
+      'Item limit reached. Contact DPOS to change your plan.';
+
+  @override
+  String get itemName => 'Item name';
+
+  @override
+  String get itemCategory => 'Category';
+
+  @override
+  String get itemPrice => 'Selling price';
+
+  @override
+  String get itemCost => 'Cost price';
+
+  @override
+  String get itemCostHint => 'Needed for the profit report';
+
+  @override
+  String get itemSku => 'SKU / barcode';
+
+  @override
+  String get itemAvailable => 'Available for sale';
+
+  @override
+  String get itemTrackStock => 'Track stock';
+
+  @override
+  String get itemOnHand => 'On hand';
+
+  @override
+  String get itemNoCost => 'No cost price';
+
+  @override
+  String itemMargin(String amount) {
+    return 'Margin $amount';
+  }
+
+  @override
+  String get itemSaved => 'Saved';
+
+  @override
+  String get itemSaveFailed => 'Could not save — please try again';
+
+  @override
+  String get itemNameRequired => 'Name and category are required';
+
+  @override
   String get reportsProfit => 'GROSS PROFIT';
 
   @override
