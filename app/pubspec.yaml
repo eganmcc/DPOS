@@ -30,6 +30,9 @@ dependencies:
   connectivity_plus: ^6.1.0
   shared_preferences: ^2.3.2
 
+  # Brand marks for payment methods ship as SVG (crisp at any density).
+  flutter_svg: ^2.0.10+1
+
   # Spoken payment confirmation (Indonesian TTS)
   flutter_tts: ^4.2.0
 
@@ -57,6 +60,7 @@ flutter:
   generate: true
   assets:
     - assets/images/
+    - assets/images/payments/
     # Bundled Quicksand Bold so the DIKASIR wordmark renders offline (google_fonts
     # uses this local file instead of fetching at runtime).
     - google_fonts/

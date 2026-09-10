@@ -9,6 +9,8 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+
+  MaxLength,
   Matches,
   Max,
   Min,
@@ -55,6 +57,60 @@ export class LineDto {
   lineDiscount?: DiscountDto;
 }
 
+/** What the EDC terminal handed back for a card-present sale. Evidence only — never money math. */
+export class EdcDto {
+  @IsOptional()
+  @IsString()
+  scheme?: string; // VISA | MASTERCARD | BCA | JCB | OTHER
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(25)
+  maskedPan?: string; // digits + asterisks only; the provider refuses an unmasked PAN
+
+  @IsOptional()
+  @IsString()
+  entryMode?: string; // CHIP | CONTACTLESS | SWIPE
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  approvalCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  rrn?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  traceNo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(12)
+  batchNo?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  terminalId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cardholderName?: string;
+}
+
+/** The wallet's own reference for a settled e-wallet payment. */
+export class WalletDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  reference?: string;
+}
+
 export class PaymentDto {
   @IsEnum(PaymentMethod)
   method!: PaymentMethod;
@@ -62,6 +118,18 @@ export class PaymentDto {
   @IsOptional()
   @IsInt()
   tendered?: number;
+
+  /** Card-present evidence, present for CARD_CREDIT / CARD_DEBIT / CARD_BCA. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EdcDto)
+  edc?: EdcDto;
+
+  /** Wallet reference, present for the EWALLET_* tenders. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => WalletDto)
+  wallet?: WalletDto;
 }
 
 export class OrderSubmitDto {

@@ -13,7 +13,13 @@
   "posTitle": "Cashier",
   "actionLogout": "Log out",
   "errorCatalog": "Failed to load catalog: {error}",
-  "@errorCatalog": { "placeholders": { "error": { "type": "String" } } },
+  "@errorCatalog": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
   "emptyItems": "No items yet",
   "emptyCatalog": "No products available",
   "typeTakeaway": "Takeaway",
@@ -27,9 +33,21 @@
   "labelService": "Service",
   "labelTotal": "Total",
   "payWithTotal": "Pay · {amount}",
-  "@payWithTotal": { "placeholders": { "amount": { "type": "String" } } },
+  "@payWithTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "orderSummary": "Order ({count})",
-  "@orderSummary": { "placeholders": { "count": { "type": "int" } } },
+  "@orderSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "paymentTitle": "Payment",
   "methodCash": "Cash",
   "methodQris": "QRIS",
@@ -51,20 +69,43 @@
   "cartHeader": "Order",
   "viewOrder": "View order",
   "itemsLabel": "{count} item",
-  "@itemsLabel": { "placeholders": { "count": { "type": "int" } } },
+  "@itemsLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyLabel": "History",
   "totalDue": "Total due",
   "themeLight": "Light",
   "themeDark": "Dark",
   "tableLabelShort": "Table {n}",
-  "@tableLabelShort": { "placeholders": { "n": { "type": "String" } } },
-
+  "@tableLabelShort": {
+    "placeholders": {
+      "n": {
+        "type": "String"
+      }
+    }
+  },
   "historyTitle": "Transactions",
   "historyNetSales": "NET SALES",
   "historyCount": "{count} sale",
-  "@historyCount": { "placeholders": { "count": { "type": "int" } } },
+  "@historyCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "historyVoidedCount": "{count} voided",
-  "@historyVoidedCount": { "placeholders": { "count": { "type": "int" } } },
+  "@historyVoidedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "emptyHistory": "No transactions yet",
   "errorHistory": "Failed to load transactions",
   "actionRetry": "Retry",
@@ -125,7 +166,16 @@
   "removeItem": "Remove item",
   "labelQty": "Qty",
   "addQtyToOrder": "Add {qty} · {amount}",
-  "@addQtyToOrder": { "placeholders": { "qty": { "type": "int" }, "amount": { "type": "String" } } },
+  "@addQtyToOrder": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "saveOrder": "Process order",
   "updateOrder": "Update order",
   "orderSaved": "Order processed",
@@ -156,9 +206,21 @@
   "scannerAdd": "Add",
   "scannerBrowse": "Browse products",
   "scannerAdded": "Added: {name}",
-  "@scannerAdded": { "placeholders": { "name": { "type": "String" } } },
+  "@scannerAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "scannerSkuNotFound": "SKU not found: {sku}",
-  "@scannerSkuNotFound": { "placeholders": { "sku": { "type": "String" } } },
+  "@scannerSkuNotFound": {
+    "placeholders": {
+      "sku": {
+        "type": "String"
+      }
+    }
+  },
   "scannerOutOfStock": "Out of stock",
   "scannerModeLabel": "Scanner mode",
   "scannerModeAuto": "Auto",
@@ -177,7 +239,16 @@
   "reportsPayments": "PAYMENT METHODS",
   "itemsTitle": "Items & prices",
   "itemsCount": "{used} / {max}",
-  "@itemsCount": { "placeholders": { "used": { "type": "int" }, "max": { "type": "int" } } },
+  "@itemsCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "itemsAdd": "Add item",
   "itemsEmpty": "No items yet — add your first one.",
   "itemsLimitReached": "Item limit reached. Contact DPOS to change your plan.",
@@ -192,7 +263,13 @@
   "itemOnHand": "On hand",
   "itemNoCost": "No cost price",
   "itemMargin": "Margin {amount}",
-  "@itemMargin": { "placeholders": { "amount": { "type": "String" } } },
+  "@itemMargin": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "itemSaved": "Saved",
   "itemSaveFailed": "Could not save — please try again",
   "itemNameRequired": "Name and category are required",
@@ -202,13 +279,25 @@
   "plGrossProfit": "Gross profit",
   "plMargin": "Margin",
   "plMissingCost": "{n} sales lines have no cost price — profit reads higher than it is",
-  "@plMissingCost": { "placeholders": { "n": { "type": "int" } } },
+  "@plMissingCost": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "plSetCostPrices": "Set cost prices",
   "reportsTopItems": "TOP ITEMS",
   "reportsByOutlet": "BY OUTLET",
   "reportsByDay": "SALES BY DAY",
   "reportsQtySold": "{qty} sold",
-  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } },
+  "@reportsQtySold": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
   "reportsOpenCashier": "Open cashier",
   "reportsAttendance": "ATTENDANCE",
   "reportsNoAttendance": "No attendance in this period",
@@ -221,5 +310,60 @@
   "attendanceClockOut": "Clock out",
   "attendanceClockedOut": "Not clocked in",
   "attendanceSince": "On the clock since {time}",
-  "@attendanceSince": { "placeholders": { "time": { "type": "String" } } }
+  "@attendanceSince": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "methodDebit": "Debit card",
+  "methodCredit": "Credit card",
+  "methodBcaCard": "BCA card",
+  "methodShopeePay": "ShopeePay",
+  "methodGoPay": "GoPay",
+  "methodOvo": "OVO",
+  "tenderGroupCard": "Card",
+  "tenderGroupEwallet": "E-wallet",
+  "tenderGroupOther": "Cash & QRIS",
+  "actionProcessCard": "Process on EDC",
+  "actionWalletConfirm": "Payment received",
+  "walletScanHint": "Ask the customer to scan with {wallet}",
+  "@walletScanHint": {
+    "placeholders": {
+      "wallet": {
+        "type": "String"
+      }
+    }
+  },
+  "cardApprovedShort": "Approved · {code}",
+  "@cardApprovedShort": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "tenderNotAvailable": "This payment method is not available for your plan.",
+  "edcTitle": "EDC terminal",
+  "edcInsertCard": "INSERT, TAP OR SWIPE CARD",
+  "edcReadingCard": "READING CARD…",
+  "edcAuthorizing": "AUTHORIZING…",
+  "edcApproved": "APPROVED",
+  "edcDeclined": "DECLINED",
+  "edcDeclinedHint": "The card was declined. Try again or use another payment method.",
+  "edcEntryMode": "Entry mode",
+  "edcChip": "Chip",
+  "edcContactless": "Contactless",
+  "edcSwipe": "Swipe",
+  "edcScheme": "Card scheme",
+  "edcCard": "Card",
+  "edcApprovalCode": "Approval code",
+  "edcRrn": "RRN",
+  "edcTrace": "Trace / batch",
+  "edcTerminal": "Terminal",
+  "edcProcess": "Process card",
+  "edcSimulateDecline": "Simulate a declined card",
+  "edcContinue": "Continue",
+  "edcRetry": "Try again"
 }

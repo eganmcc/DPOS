@@ -10,6 +10,7 @@ import '../../data/session.dart';
 import '../../core/attendance_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/home_gate.dart'; // PosHome
+import '../payment/payment_tenders.dart' show paymentMethodLabel;
 import '../settings/settings_screen.dart';
 import '../items/items_screen.dart';
 import '../transactions/transactions_screen.dart';
@@ -203,18 +204,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  String _methodLabel(String m) {
-    switch (m) {
-      case 'CASH':
-        return 'Cash';
-      case 'QRIS_SIMULATED':
-        return 'QRIS';
-      case 'ONLINE':
-        return 'Online';
-      default:
-        return m;
-    }
-  }
+  /// Shared with the till and the printed slip so a payment split can never show a raw
+  /// enum code for a tender the app already knows how to name.
+  String _methodLabel(String m) => paymentMethodLabel(m);
 }
 
 class _HeaderCard extends StatelessWidget {

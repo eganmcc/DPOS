@@ -663,4 +663,115 @@ class AppLocalizationsId extends AppLocalizations {
   String attendanceSince(String time) {
     return 'Bekerja sejak $time';
   }
+
+  @override
+  String get methodDebit => 'Kartu debit';
+
+  @override
+  String get methodCredit => 'Kartu kredit';
+
+  @override
+  String get methodBcaCard => 'Kartu BCA';
+
+  @override
+  String get methodShopeePay => 'ShopeePay';
+
+  @override
+  String get methodGoPay => 'GoPay';
+
+  @override
+  String get methodOvo => 'OVO';
+
+  @override
+  String get tenderGroupCard => 'Kartu';
+
+  @override
+  String get tenderGroupEwallet => 'Dompet digital';
+
+  @override
+  String get tenderGroupOther => 'Tunai & QRIS';
+
+  @override
+  String get actionProcessCard => 'Proses di EDC';
+
+  @override
+  String get actionWalletConfirm => 'Pembayaran diterima';
+
+  @override
+  String walletScanHint(String wallet) {
+    return 'Minta pelanggan memindai dengan $wallet';
+  }
+
+  @override
+  String cardApprovedShort(String code) {
+    return 'Disetujui · $code';
+  }
+
+  @override
+  String get tenderNotAvailable =>
+      'Metode pembayaran ini tidak tersedia untuk paket Anda.';
+
+  @override
+  String get edcTitle => 'Mesin EDC';
+
+  @override
+  String get edcInsertCard => 'MASUKKAN, TEMPEL ATAU GESEK KARTU';
+
+  @override
+  String get edcReadingCard => 'MEMBACA KARTU…';
+
+  @override
+  String get edcAuthorizing => 'MEMPROSES…';
+
+  @override
+  String get edcApproved => 'DISETUJUI';
+
+  @override
+  String get edcDeclined => 'DITOLAK';
+
+  @override
+  String get edcDeclinedHint =>
+      'Kartu ditolak. Coba lagi atau gunakan metode pembayaran lain.';
+
+  @override
+  String get edcEntryMode => 'Cara baca';
+
+  @override
+  String get edcChip => 'Chip';
+
+  @override
+  String get edcContactless => 'Tempel';
+
+  @override
+  String get edcSwipe => 'Gesek';
+
+  @override
+  String get edcScheme => 'Jaringan kartu';
+
+  @override
+  String get edcCard => 'Kartu';
+
+  @override
+  String get edcApprovalCode => 'Kode persetujuan';
+
+  @override
+  String get edcRrn => 'RRN';
+
+  @override
+  String get edcTrace => 'Trace / batch';
+
+  @override
+  String get edcTerminal => 'Terminal';
+
+  @override
+  String get edcProcess => 'Proses kartu';
+
+  @override
+  String get edcSimulateDecline => 'Simulasikan kartu ditolak';
+
+  @override
+  String get edcContinue => 'Lanjut';
+
+  @override
+  String get edcRetry => 'Coba lagi';
 }

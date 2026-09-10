@@ -89,6 +89,15 @@ enum PaymentMethod {
   CASH
   QRIS_SIMULATED
   ONLINE // paid by an online-delivery platform (GoFood/GrabFood/ShopeeFood)
+  // Card present, captured by an EDC terminal (simulated for the MVP; a real EDC
+  // integration drops in behind the same PaymentProvider).
+  CARD_CREDIT
+  CARD_DEBIT
+  CARD_BCA // debit routed to the BCA acquirer — its own tender button on the till
+  // E-wallets. All three are QRIS issuers in practice, so the flow mirrors QRIS.
+  EWALLET_SHOPEEPAY
+  EWALLET_GOPAY
+  EWALLET_OVO
 }
 
 enum PaymentDirection {
@@ -532,6 +541,9 @@ model Payment {
   amount            Int
   status            PaymentStatus    @default(CREATED)
   providerRef       String?
+  /// Tender-specific evidence kept for the receipt and reconciliation: EDC approval
+  /// code / RRN / masked PAN / scheme, or the wallet reference. Never money math.
+  providerMeta      Json?
   tendered          Int?
   change            Int?
   createdAt         DateTime         @default(now())

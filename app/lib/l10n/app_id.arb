@@ -53,7 +53,6 @@
   "themeLight": "Terang",
   "themeDark": "Gelap",
   "tableLabelShort": "Meja {n}",
-
   "historyTitle": "Transaksi",
   "historyNetSales": "PENJUALAN BERSIH",
   "historyCount": "{count} transaksi",
@@ -167,7 +166,16 @@
   "reportsPayments": "METODE PEMBAYARAN",
   "itemsTitle": "Barang & harga",
   "itemsCount": "{used} / {max}",
-  "@itemsCount": { "placeholders": { "used": { "type": "int" }, "max": { "type": "int" } } },
+  "@itemsCount": {
+    "placeholders": {
+      "used": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
   "itemsAdd": "Tambah barang",
   "itemsEmpty": "Belum ada barang — tambahkan yang pertama.",
   "itemsLimitReached": "Batas barang tercapai. Hubungi DPOS untuk mengubah paket.",
@@ -182,7 +190,13 @@
   "itemOnHand": "Stok saat ini",
   "itemNoCost": "Belum ada harga modal",
   "itemMargin": "Margin {amount}",
-  "@itemMargin": { "placeholders": { "amount": { "type": "String" } } },
+  "@itemMargin": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "itemSaved": "Tersimpan",
   "itemSaveFailed": "Gagal menyimpan — coba lagi",
   "itemNameRequired": "Nama dan kategori wajib diisi",
@@ -192,13 +206,25 @@
   "plGrossProfit": "Laba kotor",
   "plMargin": "Margin",
   "plMissingCost": "{n} baris penjualan belum ada harga modal — laba terlihat lebih besar",
-  "@plMissingCost": { "placeholders": { "n": { "type": "int" } } },
+  "@plMissingCost": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "plSetCostPrices": "Atur harga modal",
   "reportsTopItems": "PRODUK TERLARIS",
   "reportsByOutlet": "PER OUTLET",
   "reportsByDay": "PENJUALAN HARIAN",
   "reportsQtySold": "{qty} terjual",
-  "@reportsQtySold": { "placeholders": { "qty": { "type": "int" } } },
+  "@reportsQtySold": {
+    "placeholders": {
+      "qty": {
+        "type": "int"
+      }
+    }
+  },
   "reportsOpenCashier": "Buka kasir",
   "reportsAttendance": "ABSENSI",
   "reportsNoAttendance": "Belum ada absensi di periode ini",
@@ -211,5 +237,46 @@
   "attendanceClockOut": "Absen keluar",
   "attendanceClockedOut": "Belum absen masuk",
   "attendanceSince": "Bekerja sejak {time}",
-  "@attendanceSince": { "placeholders": { "time": { "type": "String" } } }
+  "@attendanceSince": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "methodDebit": "Kartu debit",
+  "methodCredit": "Kartu kredit",
+  "methodBcaCard": "Kartu BCA",
+  "methodShopeePay": "ShopeePay",
+  "methodGoPay": "GoPay",
+  "methodOvo": "OVO",
+  "tenderGroupCard": "Kartu",
+  "tenderGroupEwallet": "Dompet digital",
+  "tenderGroupOther": "Tunai & QRIS",
+  "actionProcessCard": "Proses di EDC",
+  "actionWalletConfirm": "Pembayaran diterima",
+  "walletScanHint": "Minta pelanggan memindai dengan {wallet}",
+  "cardApprovedShort": "Disetujui · {code}",
+  "tenderNotAvailable": "Metode pembayaran ini tidak tersedia untuk paket Anda.",
+  "edcTitle": "Mesin EDC",
+  "edcInsertCard": "MASUKKAN, TEMPEL ATAU GESEK KARTU",
+  "edcReadingCard": "MEMBACA KARTU…",
+  "edcAuthorizing": "MEMPROSES…",
+  "edcApproved": "DISETUJUI",
+  "edcDeclined": "DITOLAK",
+  "edcDeclinedHint": "Kartu ditolak. Coba lagi atau gunakan metode pembayaran lain.",
+  "edcEntryMode": "Cara baca",
+  "edcChip": "Chip",
+  "edcContactless": "Tempel",
+  "edcSwipe": "Gesek",
+  "edcScheme": "Jaringan kartu",
+  "edcCard": "Kartu",
+  "edcApprovalCode": "Kode persetujuan",
+  "edcRrn": "RRN",
+  "edcTrace": "Trace / batch",
+  "edcTerminal": "Terminal",
+  "edcProcess": "Proses kartu",
+  "edcSimulateDecline": "Simulasikan kartu ditolak",
+  "edcContinue": "Lanjut",
+  "edcRetry": "Coba lagi"
 }

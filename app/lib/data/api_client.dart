@@ -238,12 +238,19 @@ class ApiClient {
   Future<Map<String, dynamic>> settleOrder(
     String orderId, {
     required String clientSettleId,
-    required String method, // CASH | QRIS_SIMULATED
+    required String method, // CASH | QRIS_SIMULATED | CARD_* | EWALLET_*
     int? tendered,
+    Map<String, dynamic>? edc, // card-present evidence from the EDC terminal
+    Map<String, dynamic>? wallet, // e-wallet reference
   }) async {
     final res = await _dio.post('/orders/$orderId/settle', data: {
       'clientSettleId': clientSettleId,
-      'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+      'payment': {
+        'method': method,
+        if (tendered != null) 'tendered': tendered,
+        if (edc != null) 'edc': edc,
+        if (wallet != null) 'wallet': wallet,
+      },
     });
     return res.data as Map<String, dynamic>;
   }

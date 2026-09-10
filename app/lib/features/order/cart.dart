@@ -199,8 +199,10 @@ class CartController extends StateNotifier<CartState> {
     required String clientOrderId,
     required String outletId,
     String? deviceId,
-    String? method, // CASH | QRIS_SIMULATED, or null for an open bill
+    String? method, // CASH | QRIS_SIMULATED | CARD_* | EWALLET_*, or null for an open bill
     int? tendered,
+    Map<String, dynamic>? edc, // card-present evidence from the EDC terminal
+    Map<String, dynamic>? wallet, // e-wallet reference
   }) {
     final table = state.tableLabel?.trim().toUpperCase();
     return {
@@ -220,7 +222,12 @@ class CartController extends StateNotifier<CartState> {
               })
           .toList(),
       if (method != null)
-        'payment': {'method': method, if (tendered != null) 'tendered': tendered},
+        'payment': {
+          'method': method,
+          if (tendered != null) 'tendered': tendered,
+          if (edc != null) 'edc': edc,
+          if (wallet != null) 'wallet': wallet,
+        },
     };
   }
 }

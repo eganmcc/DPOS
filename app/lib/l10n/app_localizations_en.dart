@@ -661,4 +661,115 @@ class AppLocalizationsEn extends AppLocalizations {
   String attendanceSince(String time) {
     return 'On the clock since $time';
   }
+
+  @override
+  String get methodDebit => 'Debit card';
+
+  @override
+  String get methodCredit => 'Credit card';
+
+  @override
+  String get methodBcaCard => 'BCA card';
+
+  @override
+  String get methodShopeePay => 'ShopeePay';
+
+  @override
+  String get methodGoPay => 'GoPay';
+
+  @override
+  String get methodOvo => 'OVO';
+
+  @override
+  String get tenderGroupCard => 'Card';
+
+  @override
+  String get tenderGroupEwallet => 'E-wallet';
+
+  @override
+  String get tenderGroupOther => 'Cash & QRIS';
+
+  @override
+  String get actionProcessCard => 'Process on EDC';
+
+  @override
+  String get actionWalletConfirm => 'Payment received';
+
+  @override
+  String walletScanHint(String wallet) {
+    return 'Ask the customer to scan with $wallet';
+  }
+
+  @override
+  String cardApprovedShort(String code) {
+    return 'Approved · $code';
+  }
+
+  @override
+  String get tenderNotAvailable =>
+      'This payment method is not available for your plan.';
+
+  @override
+  String get edcTitle => 'EDC terminal';
+
+  @override
+  String get edcInsertCard => 'INSERT, TAP OR SWIPE CARD';
+
+  @override
+  String get edcReadingCard => 'READING CARD…';
+
+  @override
+  String get edcAuthorizing => 'AUTHORIZING…';
+
+  @override
+  String get edcApproved => 'APPROVED';
+
+  @override
+  String get edcDeclined => 'DECLINED';
+
+  @override
+  String get edcDeclinedHint =>
+      'The card was declined. Try again or use another payment method.';
+
+  @override
+  String get edcEntryMode => 'Entry mode';
+
+  @override
+  String get edcChip => 'Chip';
+
+  @override
+  String get edcContactless => 'Contactless';
+
+  @override
+  String get edcSwipe => 'Swipe';
+
+  @override
+  String get edcScheme => 'Card scheme';
+
+  @override
+  String get edcCard => 'Card';
+
+  @override
+  String get edcApprovalCode => 'Approval code';
+
+  @override
+  String get edcRrn => 'RRN';
+
+  @override
+  String get edcTrace => 'Trace / batch';
+
+  @override
+  String get edcTerminal => 'Terminal';
+
+  @override
+  String get edcProcess => 'Process card';
+
+  @override
+  String get edcSimulateDecline => 'Simulate a declined card';
+
+  @override
+  String get edcContinue => 'Continue';
+
+  @override
+  String get edcRetry => 'Try again';
 }

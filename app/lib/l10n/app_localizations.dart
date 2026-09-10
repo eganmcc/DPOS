@@ -1333,6 +1333,216 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On the clock since {time}'**
   String attendanceSince(String time);
+
+  /// No description provided for @methodDebit.
+  ///
+  /// In en, this message translates to:
+  /// **'Debit card'**
+  String get methodDebit;
+
+  /// No description provided for @methodCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit card'**
+  String get methodCredit;
+
+  /// No description provided for @methodBcaCard.
+  ///
+  /// In en, this message translates to:
+  /// **'BCA card'**
+  String get methodBcaCard;
+
+  /// No description provided for @methodShopeePay.
+  ///
+  /// In en, this message translates to:
+  /// **'ShopeePay'**
+  String get methodShopeePay;
+
+  /// No description provided for @methodGoPay.
+  ///
+  /// In en, this message translates to:
+  /// **'GoPay'**
+  String get methodGoPay;
+
+  /// No description provided for @methodOvo.
+  ///
+  /// In en, this message translates to:
+  /// **'OVO'**
+  String get methodOvo;
+
+  /// No description provided for @tenderGroupCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get tenderGroupCard;
+
+  /// No description provided for @tenderGroupEwallet.
+  ///
+  /// In en, this message translates to:
+  /// **'E-wallet'**
+  String get tenderGroupEwallet;
+
+  /// No description provided for @tenderGroupOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash & QRIS'**
+  String get tenderGroupOther;
+
+  /// No description provided for @actionProcessCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Process on EDC'**
+  String get actionProcessCard;
+
+  /// No description provided for @actionWalletConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received'**
+  String get actionWalletConfirm;
+
+  /// No description provided for @walletScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the customer to scan with {wallet}'**
+  String walletScanHint(String wallet);
+
+  /// No description provided for @cardApprovedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved · {code}'**
+  String cardApprovedShort(String code);
+
+  /// No description provided for @tenderNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This payment method is not available for your plan.'**
+  String get tenderNotAvailable;
+
+  /// No description provided for @edcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'EDC terminal'**
+  String get edcTitle;
+
+  /// No description provided for @edcInsertCard.
+  ///
+  /// In en, this message translates to:
+  /// **'INSERT, TAP OR SWIPE CARD'**
+  String get edcInsertCard;
+
+  /// No description provided for @edcReadingCard.
+  ///
+  /// In en, this message translates to:
+  /// **'READING CARD…'**
+  String get edcReadingCard;
+
+  /// No description provided for @edcAuthorizing.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTHORIZING…'**
+  String get edcAuthorizing;
+
+  /// No description provided for @edcApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'APPROVED'**
+  String get edcApproved;
+
+  /// No description provided for @edcDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'DECLINED'**
+  String get edcDeclined;
+
+  /// No description provided for @edcDeclinedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The card was declined. Try again or use another payment method.'**
+  String get edcDeclinedHint;
+
+  /// No description provided for @edcEntryMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry mode'**
+  String get edcEntryMode;
+
+  /// No description provided for @edcChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Chip'**
+  String get edcChip;
+
+  /// No description provided for @edcContactless.
+  ///
+  /// In en, this message translates to:
+  /// **'Contactless'**
+  String get edcContactless;
+
+  /// No description provided for @edcSwipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe'**
+  String get edcSwipe;
+
+  /// No description provided for @edcScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Card scheme'**
+  String get edcScheme;
+
+  /// No description provided for @edcCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get edcCard;
+
+  /// No description provided for @edcApprovalCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval code'**
+  String get edcApprovalCode;
+
+  /// No description provided for @edcRrn.
+  ///
+  /// In en, this message translates to:
+  /// **'RRN'**
+  String get edcRrn;
+
+  /// No description provided for @edcTrace.
+  ///
+  /// In en, this message translates to:
+  /// **'Trace / batch'**
+  String get edcTrace;
+
+  /// No description provided for @edcTerminal.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal'**
+  String get edcTerminal;
+
+  /// No description provided for @edcProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Process card'**
+  String get edcProcess;
+
+  /// No description provided for @edcSimulateDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate a declined card'**
+  String get edcSimulateDecline;
+
+  /// No description provided for @edcContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get edcContinue;
+
+  /// No description provided for @edcRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get edcRetry;
 }
 
 class _AppLocalizationsDelegate

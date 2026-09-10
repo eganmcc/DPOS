@@ -15,6 +15,25 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-10 — card & e-wallet tenders, on `feat/payment-methods` (cut from `features/UMI`).**
+> Six new tenders for non-UMI merchants: `CARD_CREDIT`, `CARD_DEBIT`, `CARD_BCA`,
+> `EWALLET_SHOPEEPAY`, `EWALLET_GOPAY`, `EWALLET_OVO`, each behind the existing `PaymentProvider`
+> (`SimulatedEdcProvider`, `SimulatedEwalletProvider`) so a real EDC or PSP drops in unchanged. A
+> card tender routes through an **EDC simulation screen** (insert/tap/swipe → authorize → approve)
+> that returns approval code, RRN, masked PAN, entry mode, trace and batch; the server validates
+> that evidence, **refuses an unmasked PAN**, and stores it in a new nullable `Payment.providerMeta`
+> JSONB. Amounts stay server-computed — the terminal never supplies one. Wallets render a per-wallet
+> QR (all three are QRIS issuers). **UMI is refused card and wallet tenders server-side**
+> (`403 UMI_TENDER_NOT_AVAILABLE`, at checkout *and* at settle) because acceptance needs an acquirer
+> relationship; the till hides them too. Receipt, thermal slip and the reports payment-split now
+> share one label map, so no surface can print a raw enum. **Migration 11 is applied to RDS**
+> (additive: six enum values + one nullable column; the EC2 API on `main` is unaffected). Suite:
+> **10 suites / 56 tests green**; `flutter analyze` clean + 6 unit tests. Spec
+> `specs/007-payment-methods/spec.md`; no constitution change needed (Principle VII already covers
+> simulated payments behind a real interface). **Verified on the emulator end to end**: card sale →
+> EDC approval → receipt shows `VISA · 4*** **** **** 8944 · CHIP` and the approval code, and the
+> stored payment row matches the slip. **Not merged; the brand marks are still placeholders.**
+
 > **2026-09-08 — UMI (Ultra Mikro) business size, on `features/UMI`.** A new `Merchant.businessSize`
 > axis (`GENERAL | UMKM | UMI`), **orthogonal** to `businessType` — a UMI merchant is still F&B or
 > grocery. **UMI = a one-person business**: corrections need **no approver PIN for any role** (there is
@@ -220,6 +239,22 @@ Release APKs are now **release-signed** from `android/key.properties` (falls bac
 - 20 products across Minuman / Makanan / Snack, PBJT tax 10% + 5% service. A 2× Kopi Susu sale = **Rp 41.400**.
 - `prisma/seed.ts` only seeds a *fresh* merchant; use `prisma/seed-menu.ts` against an existing one (e.g. RDS, which has orders).
 
+### Payments / build traps (2026-09-10)
+
+1. **`versionCode` is 1 in the repo but installed APKs were 2070/4001.** `pubspec.yaml` says
+   `0.1.0+1`, so a plain `flutter build apk` produces versionCode 1 and `adb install` fails with
+   `INSTALL_FAILED_VERSION_DOWNGRADE` against anything installed earlier — `-d` does not override it
+   on Android 16. Build with `--build-number <n>` above whatever is on the device (2073 was used
+   here), or uninstall first and lose the app's local cache.
+2. **flutter_svg ignores CSS inside an SVG.** `mastercard.svg` styled its shapes with a
+   `<style>` block and `class="stN"`, with no inline `fill` — flutter_svg does not apply CSS class
+   rules, so the mark rendered as a **black blob**. `app/tool/inline-svg-css.js` rewrites those rules
+   as presentation attributes; run it on any new brand mark that renders black. The other eight
+   assets use inline fills and were fine.
+3. **The API 36 emulator runs this app fine on the desktop.** The Mac's "Pixel 9a / API 36 ANRs"
+   note did not reproduce here — a Medium Phone API 36.1 image ran the release build without an ANR
+   through a full card sale. Keep the API 34 advice for the Mac, not as a global rule.
+
 ## Gotchas already solved (don't re-debug these)
 - **Bluetooth thermal printers (RPP02N) reject the plugin's secure socket.** `print_bluetooth_thermal`'s `connect()` uses a *secure* RFCOMM socket and swallows the failure, so it "just fails" silently on cheap printers. The fix (in `MainActivity.kt`, MethodChannel `dpos/printer`) connects over an **insecure** RFCOMM socket first (then secure, then reflection channel-1) and writes the ESC/POS bytes. Also: the plugin reports the device's **factory name** (`RPP02N`), not the alias you rename it to (`DPOSP`), so match leniently / let the user pick the printer from the paired list. The scan **beep** uses the native `ToneGenerator` — the audio-asset (`audioplayers`) path queued/lagged (silent scans, then a stray beep seconds later).
 - **Release builds had no network.** Flutter declares `android.permission.INTERNET` only in the `debug/` and `profile/` manifests. Without it in `main/`, every release build fails every request instantly and shows "Gagal masuk (cek koneksi)" — which looks exactly like a server or TLS fault and isn't. Fixed in `main/AndroidManifest.xml`; don't remove it.
@@ -244,6 +279,7 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 |---|---|---|
 | `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current |
 | `features/UMI` | UMI (Ultra Mikro) business size — 7 commits off `main` @ `1fc071f` | **ahead of `main`**, 2026-09-08 |
+| `feat/payment-methods` | Card (EDC) + e-wallet tenders — cut from `features/UMI` | **ahead of `features/UMI`**, 2026-09-10 |
 
 **Workflow:** trunk-based on `main` — `main` is always deployable and is what EC2 ships. Cut a
 **short-lived** feature branch only for risky/parallel work, then merge back and delete it. Keep

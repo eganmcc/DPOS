@@ -248,6 +248,10 @@ class PaymentResult {
   /// VOID or REFUND for a REVERSAL; null for a CHARGE.
   final String? reversalType;
 
+  /// Tender-specific evidence the server stored: EDC approval code / RRN / masked PAN /
+  /// scheme for a card, or the wallet reference. Display and reconciliation only.
+  final Map<String, dynamic>? providerMeta;
+
   const PaymentResult({
     required this.method,
     required this.amount,
@@ -257,9 +261,19 @@ class PaymentResult {
     this.tendered,
     this.direction = 'CHARGE',
     this.reversalType,
+    this.providerMeta,
   });
 
   bool get isReversal => direction == 'REVERSAL';
+
+  /// "VISA · 4*** **** **** 1234 · CHIP" when the payment came from a card terminal.
+  String? get cardSummary {
+    final m = providerMeta;
+    if (m == null || m['maskedPan'] == null) return null;
+    return [m['scheme'], m['maskedPan'], m['entryMode']].where((x) => x != null).join(' · ');
+  }
+
+  String? get approvalCode => providerMeta?['approvalCode'] as String?;
 
   factory PaymentResult.fromJson(Map<String, dynamic> j) => PaymentResult(
         method: j['method'],
@@ -270,6 +284,7 @@ class PaymentResult {
         qrPayload: j['qrPayload'],
         direction: j['direction'] ?? 'CHARGE',
         reversalType: j['reversalType'],
+        providerMeta: (j['providerMeta'] as Map?)?.cast<String, dynamic>(),
       );
 }
 
