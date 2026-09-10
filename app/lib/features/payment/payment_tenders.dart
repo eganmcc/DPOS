@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/models.dart';
 import '../../l10n/app_localizations.dart';
 
 /// How a tender behaves at the till. Drives which panel the checkout screen shows.
@@ -98,6 +99,20 @@ final List<Tender> kAllTenders = [
 /// the server refuses the rest regardless (`UMI_TENDER_NOT_AVAILABLE`).
 List<Tender> tendersFor({required bool isUmi}) =>
     isUmi ? kAllTenders.where((x) => x.kind == TenderKind.cash || x.kind == TenderKind.qris).toList() : kAllTenders;
+
+/// Whether this till may offer card and e-wallet tenders at all.
+///
+/// FAILS CLOSED — cash and QRIS only — unless the catalog positively says the merchant is not
+/// UMI. Three ways the answer can be missing, and every one of them must hide the buttons:
+///   * the catalog hasn't loaded yet (cold start, offline),
+///   * it came from a cache written before `businessSize` shipped,
+///   * the API is older than the field — which is exactly what a release build talking to a
+///     server on `main` sees, and defaulting to GENERAL there would put card and e-wallet
+///     buttons on a UMI till.
+/// The server refuses these tenders for UMI regardless; this keeps the till from ever offering
+/// a button that would come back 403.
+bool cardTendersAllowed(Catalog? catalog) =>
+    catalog != null && catalog.businessSizeKnown && !catalog.isUmi;
 
 Tender tenderById(String id) =>
     kAllTenders.firstWhere((x) => x.id == id, orElse: () => kAllTenders.first);

@@ -199,11 +199,13 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final session = ref.watch(sessionProvider);
-    final isUmi = session != null &&
-        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
+    final catalog =
+        session == null ? null : ref.watch(catalogProvider(session.outletId)).valueOrNull;
 
-    // A UMI till has no acquirer relationship, so it keeps two tabs and no "other methods" strip.
-    final tabs = isUmi ? [PayTab.cash, PayTab.qris] : PayTab.values;
+    // Fails CLOSED: card and e-wallet appear only when the catalog positively says this
+    // merchant is not UMI. Unknown (cold start, stale cache, or an API older than
+    // businessSize) means cash and QRIS only.
+    final tabs = cardTendersAllowed(catalog) ? PayTab.values : [PayTab.cash, PayTab.qris];
     if (!tabs.contains(_tab)) _tab = PayTab.cash;
 
     return Scaffold(
@@ -472,9 +474,9 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
   /// has none of them.
   Widget _otherMethodsStrip(AppLocalizations t, ColorScheme cs) {
     final session = ref.watch(sessionProvider);
-    final isUmi = session != null &&
-        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
-    if (isUmi) return const SizedBox.shrink();
+    final catalog =
+        session == null ? null : ref.watch(catalogProvider(session.outletId)).valueOrNull;
+    if (!cardTendersAllowed(catalog)) return const SizedBox.shrink();
 
     final others = kAllTenders.where((x) => x.isCard || x.isEwallet).toList();
     return Container(

@@ -125,6 +125,14 @@ class Catalog {
   final String? merchantName; // company name (receipt header)
   final String businessType; // 'FNB' | 'GROCERY'
   final String businessSize; // 'GENERAL' | 'UMKM' | 'UMI'
+
+  /// Whether the catalog actually CARRIED `businessSize`, as opposed to defaulting to GENERAL.
+  ///
+  /// False means the answer is unknown: an API that predates the field, or a catalog cached
+  /// before it shipped. Anything gated on "this merchant is not UMI" must treat unknown as
+  /// "don't offer it" — defaulting to GENERAL would hand a UMI till card and e-wallet buttons.
+  final bool businessSizeKnown;
+
   final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
   final TaxRule? taxRule;
   final List<Product> products;
@@ -134,6 +142,7 @@ class Catalog {
       this.merchantName,
       this.businessType = 'FNB',
       this.businessSize = 'GENERAL',
+      this.businessSizeKnown = false,
       this.paymentMode = 'IMMEDIATE',
       required this.taxRule,
       required this.products});
@@ -162,6 +171,7 @@ class Catalog {
         // for an approver PIN (which the server then ignores) rather than suppressing
         // one the server would still enforce.
         businessSize: j['businessSize'] ?? 'GENERAL',
+        businessSizeKnown: j['businessSize'] != null,
         paymentMode: j['paymentMode'] ?? 'IMMEDIATE',
         taxRule: j['taxRule'] != null ? TaxRule.fromJson(j['taxRule']) : null,
         products: ((j['products'] ?? []) as List)

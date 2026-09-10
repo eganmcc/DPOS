@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dpos/core/money.dart';
 import 'package:dpos/data/models.dart';
 import 'package:dpos/features/order/cart.dart';
+import 'package:dpos/features/payment/payment_tenders.dart';
 
 void main() {
   test('formatRupiah renders Indonesian rupiah', () {
@@ -82,5 +83,33 @@ void main() {
     expect(of('UMI').isUmi, isTrue);
     expect(of('UMKM').isUmi, isFalse); // UMKM behaves as GENERAL today
     expect(of('GENERAL').isUmi, isFalse);
+  });
+
+  group('Card and e-wallet tenders are offered only to a confirmed non-UMI merchant', () {
+    Catalog of(Map<String, dynamic> extra) => Catalog.fromJson({
+          'outletId': 'o1',
+          'taxRule': null,
+          'products': const [],
+          ...extra,
+        });
+
+    test('UMI never gets them', () {
+      expect(cardTendersAllowed(of({'businessSize': 'UMI'})), isFalse);
+    });
+
+    test('a confirmed GENERAL/UMKM merchant does', () {
+      expect(cardTendersAllowed(of({'businessSize': 'GENERAL'})), isTrue);
+      expect(cardTendersAllowed(of({'businessSize': 'UMKM'})), isTrue);
+    });
+
+    test('unknown fails CLOSED — no catalog yet, stale cache, or an API without the field', () {
+      // No catalog loaded (cold start / offline).
+      expect(cardTendersAllowed(null), isFalse);
+      // Catalog with no businessSize: a cache written before the field shipped, or a server
+      // still on main. Defaulting to GENERAL here is what put card buttons on a UMI till.
+      expect(cardTendersAllowed(of(const {})), isFalse);
+      expect(of(const {}).businessSizeKnown, isFalse);
+      expect(of({'businessSize': 'UMI'}).businessSizeKnown, isTrue);
+    });
   });
 }
