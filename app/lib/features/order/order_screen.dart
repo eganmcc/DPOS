@@ -12,7 +12,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
-import '../payment/checkout_screen.dart';
+import '../payment/payment_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
@@ -1056,7 +1056,7 @@ class _TotalsBar extends ConsumerWidget {
                         if (ok && !floating) nav.pop();
                       } else {
                         Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) => CheckoutScreen(grandTotalPreview: preview.grandTotal),
+                          builder: (_) => PaymentScreen(grandTotalPreview: preview.grandTotal),
                         ));
                       }
                     },

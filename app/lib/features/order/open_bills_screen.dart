@@ -11,7 +11,7 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../core/void_actions.dart';
 import '../../l10n/app_localizations.dart';
-import '../payment/checkout_screen.dart';
+import '../payment/payment_screen.dart';
 import '../transactions/transaction_detail_screen.dart';
 import 'cart.dart';
 import 'online_orders_controller.dart';
@@ -184,7 +184,7 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
       ),
       // Tapping the row settles the bill; the pencil edits it.
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => CheckoutScreen(grandTotalPreview: b.grandTotal, settleOrderId: b.id),
+        builder: (_) => PaymentScreen(grandTotalPreview: b.grandTotal, settleOrderId: b.id),
       )),
     );
   }

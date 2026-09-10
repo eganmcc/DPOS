@@ -114,7 +114,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get actionComplete => 'Selesaikan';
 
   @override
-  String get actionMarkPaid => 'Tandai Lunas';
+  String get actionMarkPaid => 'Tandai sudah dibayar';
 
   @override
   String get qrisHint => 'Pindai untuk membayar (simulasi)';
@@ -774,4 +774,33 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get edcRetry => 'Coba lagi';
+
+  @override
+  String get otherMethods => 'Metode lain';
+
+  @override
+  String get chooseCard => 'Pilih kartu';
+
+  @override
+  String get chooseWallet => 'Pilih e-wallet';
+
+  @override
+  String get actionProcessPayment => 'Proses pembayaran';
+
+  @override
+  String get qrisAnyAppHint => 'Pindai dengan aplikasi pembayaran apa pun';
+
+  @override
+  String get edcPromptCard => 'Gesek, tap, atau masukkan kartu pada mesin EDC';
+
+  @override
+  String walletScanApp(String wallet) {
+    return 'Scan dengan aplikasi $wallet';
+  }
+
+  @override
+  String get amountReceivedLabel => 'Jumlah diterima';
+
+  @override
+  String get tabEwallet => 'E-Wallet';
 }

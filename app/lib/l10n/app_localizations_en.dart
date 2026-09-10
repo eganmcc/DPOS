@@ -772,4 +772,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get edcRetry => 'Try again';
+
+  @override
+  String get otherMethods => 'Other methods';
+
+  @override
+  String get chooseCard => 'Choose card';
+
+  @override
+  String get chooseWallet => 'Choose e-wallet';
+
+  @override
+  String get actionProcessPayment => 'Process payment';
+
+  @override
+  String get qrisAnyAppHint => 'Scan with any payment app';
+
+  @override
+  String get edcPromptCard =>
+      'Swipe, tap or insert the card on the EDC machine';
+
+  @override
+  String walletScanApp(String wallet) {
+    return 'Scan with the $wallet app';
+  }
+
+  @override
+  String get amountReceivedLabel => 'Amount received';
+
+  @override
+  String get tabEwallet => 'E-Wallet';
 }

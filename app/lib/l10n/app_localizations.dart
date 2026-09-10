@@ -1543,6 +1543,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Try again'**
   String get edcRetry;
+
+  /// No description provided for @otherMethods.
+  ///
+  /// In en, this message translates to:
+  /// **'Other methods'**
+  String get otherMethods;
+
+  /// No description provided for @chooseCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose card'**
+  String get chooseCard;
+
+  /// No description provided for @chooseWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose e-wallet'**
+  String get chooseWallet;
+
+  /// No description provided for @actionProcessPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Process payment'**
+  String get actionProcessPayment;
+
+  /// No description provided for @qrisAnyAppHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with any payment app'**
+  String get qrisAnyAppHint;
+
+  /// No description provided for @edcPromptCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe, tap or insert the card on the EDC machine'**
+  String get edcPromptCard;
+
+  /// No description provided for @walletScanApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with the {wallet} app'**
+  String walletScanApp(String wallet);
+
+  /// No description provided for @amountReceivedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received'**
+  String get amountReceivedLabel;
+
+  /// No description provided for @tabEwallet.
+  ///
+  /// In en, this message translates to:
+  /// **'E-Wallet'**
+  String get tabEwallet;
 }
 
 class _AppLocalizationsDelegate

@@ -20,6 +20,10 @@ import 'brand_mark.dart';
 import 'edc_screen.dart';
 import 'payment_tenders.dart';
 
+/// SUPERSEDED by [PaymentScreen] (payment_screen.dart), the tabbed redesign from the visual
+/// system handoff "DPOS Checkout Redesign". Kept — not deleted — as the fallback while the new screen
+/// proves itself on real shifts: nothing routes here any more (both call sites were switched on
+/// 2026-09-10), so deleting this file is a one-line change once you are happy.
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key, required this.grandTotalPreview, this.settleOrderId});
   final int grandTotalPreview;

@@ -365,5 +365,21 @@
   "edcProcess": "Process card",
   "edcSimulateDecline": "Simulate a declined card",
   "edcContinue": "Continue",
-  "edcRetry": "Try again"
+  "edcRetry": "Try again",
+  "otherMethods": "Other methods",
+  "chooseCard": "Choose card",
+  "chooseWallet": "Choose e-wallet",
+  "actionProcessPayment": "Process payment",
+  "qrisAnyAppHint": "Scan with any payment app",
+  "edcPromptCard": "Swipe, tap or insert the card on the EDC machine",
+  "walletScanApp": "Scan with the {wallet} app",
+  "@walletScanApp": {
+    "placeholders": {
+      "wallet": {
+        "type": "String"
+      }
+    }
+  },
+  "amountReceivedLabel": "Amount received",
+  "tabEwallet": "E-Wallet"
 }

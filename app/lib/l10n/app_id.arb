@@ -33,7 +33,7 @@
   "fieldCashReceived": "Uang diterima",
   "labelChange": "Kembalian",
   "actionComplete": "Selesaikan",
-  "actionMarkPaid": "Tandai Lunas",
+  "actionMarkPaid": "Tandai sudah dibayar",
   "qrisHint": "Pindai untuk membayar (simulasi)",
   "errorCashShort": "Uang tunai kurang dari total",
   "msgQueuedOffline": "Tersimpan offline — akan tersinkron saat online",
@@ -278,5 +278,14 @@
   "edcProcess": "Proses kartu",
   "edcSimulateDecline": "Simulasikan kartu ditolak",
   "edcContinue": "Lanjut",
-  "edcRetry": "Coba lagi"
+  "edcRetry": "Coba lagi",
+  "otherMethods": "Metode lain",
+  "chooseCard": "Pilih kartu",
+  "chooseWallet": "Pilih e-wallet",
+  "actionProcessPayment": "Proses pembayaran",
+  "qrisAnyAppHint": "Pindai dengan aplikasi pembayaran apa pun",
+  "edcPromptCard": "Gesek, tap, atau masukkan kartu pada mesin EDC",
+  "walletScanApp": "Scan dengan aplikasi {wallet}",
+  "amountReceivedLabel": "Jumlah diterima",
+  "tabEwallet": "E-Wallet"
 }

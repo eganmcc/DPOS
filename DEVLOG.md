@@ -15,6 +15,22 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-10 (later) — payment screen redesigned to the visual system, on `feat/payment-methods`.**
+> Rebuilt as `app/lib/features/payment/payment_screen.dart` from the handoff canvas *DPOS Checkout
+> Redesign* (`DPOS Visual System payment design.zip`): payment TYPE is now a **segmented tab**
+> (Tunai · QRIS · Kartu · E-Wallet) instead of eight equal-weight tiles, so each tab gets the full
+> width for one focused flow. Fixed chrome across tabs — app bar, TOTAL TAGIHAN block, tab track,
+> content pane, pinned gold pill button. Tunai = quick-tender pills + Jumlah diterima + green
+> Kembalian card; QRIS = centred gold-framed QR; Kartu = radio rows with brand marks then the EDC
+> step; E-Wallet = radio rows + that wallet's QR. A **Metode lain** strip (56px tiles) jumps
+> straight to any card or wallet. Selected state is one pattern everywhere: gold 2px border over a
+> light-gold tint. A UMI till shows two tabs and no strip. **The old grid screen
+> (`checkout_screen.dart`) is kept, not deleted** — marked SUPERSEDED, nothing routes to it, so it
+> is a one-line delete once the new one has done a few real shifts. This also fixes the overlap bug
+> where the wallet QR hint sat under the bottom button: the pane scrolls, the button is pinned
+> outside it. All four tabs walked on the emulator.
+
+
 > **2026-09-10 — card & e-wallet tenders, on `feat/payment-methods` (cut from `features/UMI`).**
 > Six new tenders for non-UMI merchants: `CARD_CREDIT`, `CARD_DEBIT`, `CARD_BCA`,
 > `EWALLET_SHOPEEPAY`, `EWALLET_GOPAY`, `EWALLET_OVO`, each behind the existing `PaymentProvider`
