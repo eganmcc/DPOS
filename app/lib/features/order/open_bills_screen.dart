@@ -9,8 +9,9 @@ import '../../data/api_client.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
+import '../../core/void_actions.dart';
 import '../../l10n/app_localizations.dart';
-import '../payment/checkout_screen.dart';
+import '../payment/payment_screen.dart';
 import '../transactions/transaction_detail_screen.dart';
 import 'cart.dart';
 import 'online_orders_controller.dart';
@@ -183,7 +184,7 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
       ),
       // Tapping the row settles the bill; the pencil edits it.
       onTap: () => Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => CheckoutScreen(grandTotalPreview: b.grandTotal, settleOrderId: b.id),
+        builder: (_) => PaymentScreen(grandTotalPreview: b.grandTotal, settleOrderId: b.id),
       )),
     );
   }
@@ -210,8 +211,8 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
 
     final session = ref.read(sessionProvider);
     String? approverPin;
-    if (session != null && !session.isOwnerOrManager) {
-      approverPin = await _askApproverPin();
+    if (needsApproverPin(ref)) {
+      approverPin = await askApproverPin(context);
       if (approverPin == null || approverPin.isEmpty || !mounted) return;
     }
     try {
@@ -284,27 +285,4 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
     );
   }
 
-  Future<String?> _askApproverPin() {
-    final t = AppLocalizations.of(context)!;
-    final ctrl = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.managerApprovalTitle),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: t.managerPinLabel, isDense: true),
-          onSubmitted: (_) => Navigator.of(ctx).pop(ctrl.text.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(t.actionCancel)),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: Text(t.actionOk)),
-        ],
-      ),
-    );
-  }
 }

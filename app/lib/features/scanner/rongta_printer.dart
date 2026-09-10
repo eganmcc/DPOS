@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/money.dart';
 import '../../data/models.dart';
+import '../payment/payment_tenders.dart' show paymentMethodLabel;
 import 'dpos_printer.dart' show BtPrinter, pairedPrinters, receiptPrinterMac;
 import 'receipt_printer.dart' show printReceipt, printTest;
 
@@ -99,8 +100,9 @@ Future<bool> printTestSmart() async {
   return printTest();
 }
 
-String _methodLabel(String m) =>
-    m == 'CASH' ? 'Tunai' : m == 'QRIS_SIMULATED' ? 'QRIS' : m == 'ONLINE' ? 'Online' : m;
+/// The slip prints in Indonesian regardless of the app locale, so it uses the shared
+/// static map — one place to keep in step with the server's `PaymentMethod`.
+String _methodLabel(String m) => paymentMethodLabel(m);
 
 /// Print a settled order's receipt via the Rongta path. Mirrors the layout of the
 /// working `printReceipt`, but sends through `printBytesRongta` (kept-open socket +

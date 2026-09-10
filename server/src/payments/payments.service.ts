@@ -10,22 +10,29 @@ import {
 import { CashProvider } from './providers/cash.provider';
 import { SimulatedQrisProvider } from './providers/simulated-qris.provider';
 import { OnlineProvider } from './providers/online.provider';
+import { SimulatedEdcProvider } from './providers/simulated-edc.provider';
+import { SimulatedEwalletProvider } from './providers/simulated-ewallet.provider';
 
 /** Resolves the PaymentProvider for a method and applies backend-owned lifecycle rules. */
 @Injectable()
 export class PaymentsService {
-  private readonly registry: Map<PaymentMethod, PaymentProvider>;
+  private readonly registry = new Map<PaymentMethod, PaymentProvider>();
 
-  constructor(cash: CashProvider, qris: SimulatedQrisProvider, online: OnlineProvider) {
-    this.registry = new Map<PaymentMethod, PaymentProvider>([
-      [cash.method, cash],
-      [qris.method, qris],
-      [online.method, online],
-    ]);
+  constructor(
+    cash: CashProvider,
+    qris: SimulatedQrisProvider,
+    online: OnlineProvider,
+    edc: SimulatedEdcProvider,
+    ewallet: SimulatedEwalletProvider,
+  ) {
+    // A provider may serve several tenders (one EDC covers credit/debit/BCA).
+    for (const p of [cash, qris, online, edc, ewallet] as PaymentProvider[]) {
+      for (const m of p.methods ?? [p.method]) this.registry.set(m, p);
+    }
   }
 
   charge(method: PaymentMethod, grandTotal: number, input: ChargeInput): ChargeResult {
-    return this.provider(method).charge(grandTotal, input);
+    return this.provider(method).charge(grandTotal, input, method);
   }
 
   /**
@@ -33,7 +40,7 @@ export class PaymentsService {
    * NEW Payment row (direction = REVERSAL) pointing at the original CHARGE.
    */
   reverse(method: PaymentMethod, input: ReversalInput): ReversalResult {
-    return this.provider(method).reverse(input);
+    return this.provider(method).reverse(input, method);
   }
 
   private provider(method: PaymentMethod): PaymentProvider {

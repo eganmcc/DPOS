@@ -26,6 +26,24 @@ final transactionsProvider =
   return rows.map(OrderResult.fromJson).toList();
 });
 
+/// Catalog as the OWNER sees it for editing (GET /admin/products) — includes cost
+/// prices. Invalidate after any mutation; autoDispose so it doesn't outlive the screen.
+final adminProductsProvider = FutureProvider.autoDispose<List<AdminProduct>>((ref) async {
+  final api = ref.watch(apiClientProvider);
+  final rows = await api.getAdminProducts();
+  return rows.map(AdminProduct.fromJson).toList();
+});
+
+/// On-hand per variant at one outlet (GET /admin/inventory), keyed by variantId.
+final adminStockProvider =
+    FutureProvider.autoDispose.family<Map<String, int>, String>((ref, outletId) async {
+  final api = ref.watch(apiClientProvider);
+  final rows = await api.getInventory(outletId);
+  return {
+    for (final r in rows) r['variantId'] as String: (r['quantityOnHand'] as num?)?.toInt() ?? 0,
+  };
+});
+
 /// A YYYY-MM-DD date range used to key the reporting providers.
 typedef DateRange = ({String from, String to});
 

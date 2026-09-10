@@ -1,7 +1,20 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.5.0 → 1.6.0
+Version change: 1.6.0 → 1.7.0
+Bump rationale: MINOR — add business SIZE as a merchant attribute (`Merchant.businessSize` ∈
+  `GENERAL` | `UMKM` | `UMI`), orthogonal to business type. `UMI` ("Ultra Mikro") is a single-person
+  operation: no second person exists to approve a correction, so the manager/owner-PIN override is
+  bypassed for every role; the catalog is capped; staff creation is refused; and the D-Customer Portal
+  is closed to it, the app carrying in-app gross-profit reporting and item/price management instead.
+  The bypass changes only WHO may authorize a correction, never what a correction does — void/refund/
+  cancel remain append-only compensating records, the same-business-day VOID window still bounds a
+  void, and the REASON REMAINS MANDATORY because it is the audit record. Every correction now records
+  an explicit approval basis (`SELF` | `UMI_BYPASS` | `APPROVER_PIN`) in its `AuditLog`, so a null
+  approver is never ambiguous. Business size is set by DPOS provisioning and is read-only over the
+  API. Additive; no money-math, stock, idempotency, or order-lifecycle rule changed.
+
+Prior — Version change: 1.5.0 → 1.6.0
 Bump rationale: MINOR — codify the corrections lifecycle and two additive domains. Corrections: a
   VOID is same-business-day only (Asia/Jakarta) and REQUIRES a reason; older sales are corrected by a
   REFUND, which MAY be full or line-level partial and is recorded as an append-only `Refund` (+
@@ -69,6 +82,14 @@ Amendment history:
     `channel` + `onlineStatus` fulfillment lifecycle; platform-paid → COMPLETED + synthetic ONLINE
     payment; one ingestion seam for the demo simulator + real webhooks); online-order intake is
     F&B-only.
+  - 1.7.0 (2026-09-08): business SIZE as a merchant attribute (`GENERAL` | `UMKM` | `UMI`),
+    orthogonal to business type and read-only over the API (set by DPOS provisioning). `UMI`
+    ("Ultra Mikro") is a single-person operation: the correction-approval override is bypassed for
+    every role (nobody else exists to approve), the catalog is capped, staff creation is refused, and
+    the portal is closed — with in-app gross-profit reporting and item/price management instead. The
+    bypass changes only who may authorize a correction; append-only compensating records, the
+    same-day VOID window and the mandatory reason are unchanged, and every correction now records an
+    approval basis (`SELF` | `UMI_BYPASS` | `APPROVER_PIN`) in its `AuditLog`.
   - 1.6.0 (2026-09-03): corrections lifecycle — same-day-only VOID (Asia/Jakarta) with a mandatory
     reason; full/partial (line-level) REFUND as append-only `Refund`/`RefundLine` + reversal
     `REFUND` `Payment`, stock restored via the ledger, effective `REFUNDED` only when fully
@@ -83,7 +104,8 @@ Modified principles:
     VOID, and an unpaid open bill may be `CANCELLED` releasing reserved stock (1.6.0)
   - VI. Multi-Tenant Scoping — tenancy-key placement wording clarified (1.0.1); corrections gated to
     OWNER/MANAGER, a CASHIER may initiate with a manager-PIN override recorded as the approver, all
-    audited (1.6.0)
+    audited (1.6.0); a UMI merchant bypasses the override for every role — no second person exists
+    to approve — and every correction records an explicit approval basis (1.7.0)
 Modified sections:
   - Technology & Architecture Constraints — Stored Order lifecycle gains a `CANCELLED` terminal for
     abandoned unpaid open bills (stock released via the ledger); employee ATTENDANCE and in-app
@@ -287,6 +309,19 @@ lets the MVP demo convincingly today and go live without re-architecting.
   for F&B; a **barcode-scanner POS mode** is offered only for grocery; **online-delivery order intake**
   is offered only for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle
   rules.
+- **Business size is a merchant attribute** (`Merchant.businessSize` ∈ `GENERAL` | `UMKM` | `UMI`)
+  and is **orthogonal to business type** — a UMI merchant is still F&B *or* grocery. `UMI`
+  ("Ultra Mikro") denotes a **single-person operation**: there is no second person to approve a
+  correction, so the manager/owner-PIN override is **bypassed for every role**; the catalog is capped;
+  staff creation is refused; and the D-Customer Portal is closed to it, so the app carries **in-app
+  gross-profit reporting** and **item/price management** instead. **The bypass changes only WHO may
+  authorize a correction, never what a correction does** — a void still writes an append-only
+  `OrderVoid` + `VOID_RESTORE` movements + a reversal `Payment`, the same-business-day window still
+  bounds it, and the **reason remains mandatory** because it IS the audit record. Every correction
+  records an explicit **approval basis** (`SELF` | `UMI_BYPASS` | `APPROVER_PIN`) in its `AuditLog`,
+  so a null approver is never ambiguous. Business size is set by **DPOS provisioning** and is
+  **read-only over the API** — a merchant MUST NOT be able to change its own size. Adding a size is
+  additive; it MUST NOT change money, stock, or lifecycle rules.
 - **Peripherals are presentation, never a source of truth.** Barcode scanning resolves a scanned
   value to a variant by **SKU** and adds it to the cart through the **same** server-authoritative
   add + stock-cap path as tapping — it introduces no client-side money or stock rule. Receipt
@@ -363,4 +398,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.6.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-03
+**Version**: 1.7.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-08

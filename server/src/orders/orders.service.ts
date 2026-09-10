@@ -1,11 +1,15 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
+
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InventoryReason, Prisma, PaymentDirection } from '@prisma/client';
+import { InventoryReason, Prisma, PaymentDirection, PaymentMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { isUmiMerchant } from '../common/business-size';
+import { isUmiRestrictedTender } from '../payments/tenders';
 import { PaymentsService } from '../payments/payments.service';
 import {
   computeOrder,
@@ -149,11 +153,15 @@ export class OrdersService {
     // SERVER-AUTHORITATIVE: recompute everything; any client totals are ignored.
     const computed = computeOrder(computeInput, variantMap, modifierMap, taxRule);
 
+    if (dto.payment) await this.assertTenderAllowed(user.merchantId, dto.payment.method);
+
     // Backend-owned payment — only when settling immediately. Open bills carry no
     // payment yet; the stock reservation below happens either way.
     const charge = dto.payment
       ? this.payments.charge(dto.payment.method, computed.grandTotal, {
           tendered: dto.payment.tendered ?? null,
+          edc: dto.payment.edc ?? null,
+          wallet: dto.payment.wallet ?? null,
         })
       : null;
 
@@ -231,6 +239,7 @@ export class OrdersService {
               amount: charge.amount,
               status: charge.status,
               providerRef: charge.providerRef ?? null,
+              providerMeta: (charge.providerMeta ?? undefined) as Prisma.InputJsonValue | undefined,
               tendered: charge.tendered ?? null,
               change: charge.change ?? null,
               paidAt: new Date(),
@@ -286,6 +295,22 @@ export class OrdersService {
     }
   }
 
+  /**
+   * Card and e-wallet acceptance needs an acquirer relationship a one-person Ultra Mikro
+   * business does not have, so UMI stays on cash and QRIS. Server-side because a hidden
+   * button is not a rule (Constitution VI) — the app hides them as well, for a clean till.
+   */
+  private async assertTenderAllowed(merchantId: string, method: PaymentMethod): Promise<void> {
+    if (!isUmiRestrictedTender(method)) return;
+    if (await isUmiMerchant(this.prisma, merchantId)) {
+      throw new ForbiddenException({
+        code: "UMI_TENDER_NOT_AVAILABLE",
+        message: "Ultra Mikro accepts cash and QRIS. Contact DPOS to enable card or e-wallet.",
+        method,
+      });
+    }
+  }
+
   async findById(merchantId: string, id: string) {
     return this.prisma.order.findFirst({ where: { id, merchantId }, include: ORDER_INCLUDE });
   }
@@ -303,9 +328,13 @@ export class OrdersService {
       throw new ConflictException('Only an open bill can be settled');
     }
 
+    await this.assertTenderAllowed(user.merchantId, dto.payment.method);
+
     // Charge against the order's stored, server-authoritative grand total.
     const charge = this.payments.charge(dto.payment.method, order.grandTotal, {
       tendered: dto.payment.tendered ?? null,
+      edc: dto.payment.edc ?? null,
+      wallet: dto.payment.wallet ?? null,
     });
 
     let raced = false;
@@ -328,6 +357,7 @@ export class OrdersService {
           amount: charge.amount,
           status: charge.status,
           providerRef: charge.providerRef ?? null,
+          providerMeta: (charge.providerMeta ?? undefined) as Prisma.InputJsonValue | undefined,
           tendered: charge.tendered ?? null,
           change: charge.change ?? null,
           paidAt: new Date(),
@@ -559,7 +589,11 @@ export class OrdersService {
       throw new ConflictException('Only an open (unpaid) bill can be cancelled');
     }
 
-    const approvedById = await resolveCorrectionApprover(this.prisma, user, dto.approverPin);
+    const { approvedById, basis: approvalBasis } = await resolveCorrectionApprover(
+      this.prisma,
+      user,
+      dto.approverPin,
+    );
 
     await this.prisma.$transaction(async (tx) => {
       // Win the flip or bail — prevents a double stock restore on a concurrent retry.
@@ -617,6 +651,7 @@ export class OrdersService {
             status: 'CANCELLED',
             reason: dto.reason,
             approvedById,
+            approvalBasis,
             releasedMovements: reserved.length,
           },
         },

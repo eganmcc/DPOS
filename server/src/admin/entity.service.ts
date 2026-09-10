@@ -11,7 +11,16 @@ export class EntityService {
   async getMerchant(merchantId: string) {
     const m = await this.prisma.merchant.findUnique({ where: { id: merchantId } });
     if (!m) throw new NotFoundException('Merchant not found');
-    return { id: m.id, name: m.name, businessType: m.businessType, logoUrl: m.logoUrl };
+    // businessSize is published but never accepted: it is absent from UpdateMerchantDto,
+    // so ValidationPipe({ whitelist: true }) strips it from any PATCH body. A merchant
+    // must not be able to move itself onto UMI pricing.
+    return {
+      id: m.id,
+      name: m.name,
+      businessType: m.businessType,
+      businessSize: m.businessSize,
+      logoUrl: m.logoUrl,
+    };
   }
 
   async updateMerchant(merchantId: string, dto: UpdateMerchantDto) {

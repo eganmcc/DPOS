@@ -124,6 +124,15 @@ class Catalog {
   final String? outletName;
   final String? merchantName; // company name (receipt header)
   final String businessType; // 'FNB' | 'GROCERY'
+  final String businessSize; // 'GENERAL' | 'UMKM' | 'UMI'
+
+  /// Whether the catalog actually CARRIED `businessSize`, as opposed to defaulting to GENERAL.
+  ///
+  /// False means the answer is unknown: an API that predates the field, or a catalog cached
+  /// before it shipped. Anything gated on "this merchant is not UMI" must treat unknown as
+  /// "don't offer it" — defaulting to GENERAL would hand a UMI till card and e-wallet buttons.
+  final bool businessSizeKnown;
+
   final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
   final TaxRule? taxRule;
   final List<Product> products;
@@ -132,6 +141,8 @@ class Catalog {
       this.outletName,
       this.merchantName,
       this.businessType = 'FNB',
+      this.businessSize = 'GENERAL',
+      this.businessSizeKnown = false,
       this.paymentMode = 'IMMEDIATE',
       required this.taxRule,
       required this.products});
@@ -142,6 +153,11 @@ class Catalog {
   /// Grocery/retail: enables the barcode-scanner POS mode.
   bool get isGrocery => businessType == 'GROCERY';
 
+  /// UMI ("Ultra Mikro") is a one-person business: corrections need no approver PIN,
+  /// items are managed in-app, and attendance is pointless. UI ONLY — every UMI rule is
+  /// enforced server-side, because this value can come from a stale cached catalog.
+  bool get isUmi => businessSize == 'UMI';
+
   /// Restaurant flow: confirm the order now (reserves stock), settle later.
   bool get isOpenBill => paymentMode == 'OPEN_BILL';
 
@@ -151,10 +167,78 @@ class Catalog {
         merchantName: j['merchantName'] as String?,
         // Fallbacks keep catalogs cached before these fields shipped valid.
         businessType: j['businessType'] ?? 'FNB',
+        // Fails CLOSED on a stale cache: a device that hasn't refetched still prompts
+        // for an approver PIN (which the server then ignores) rather than suppressing
+        // one the server would still enforce.
+        businessSize: j['businessSize'] ?? 'GENERAL',
+        businessSizeKnown: j['businessSize'] != null,
         paymentMode: j['paymentMode'] ?? 'IMMEDIATE',
         taxRule: j['taxRule'] != null ? TaxRule.fromJson(j['taxRule']) : null,
         products: ((j['products'] ?? []) as List)
             .map((p) => Product.fromJson(p as Map<String, dynamic>))
+            .toList(),
+      );
+}
+
+/// A variant as the ADMIN endpoints return it — same sellable unit as [Variant] but
+/// carrying `costPrice`, which `GET /catalog` deliberately omits.
+class AdminVariant {
+  final String id;
+  final String name;
+  final int price;
+  final int? costPrice;
+  final String? sku;
+  final bool isAvailable;
+  final bool trackInventory;
+  const AdminVariant({
+    required this.id,
+    required this.name,
+    required this.price,
+    required this.costPrice,
+    required this.sku,
+    required this.isAvailable,
+    required this.trackInventory,
+  });
+
+  /// Margin per unit, or null when no cost has been set (which is what makes the
+  /// gross-profit report read high until it is).
+  int? get marginPerUnit => costPrice == null ? null : price - costPrice!;
+
+  factory AdminVariant.fromJson(Map<String, dynamic> j) => AdminVariant(
+        id: j['id'],
+        name: j['name'] ?? '',
+        price: _asInt(j['price']),
+        costPrice: (j['costPrice'] as num?)?.toInt(),
+        sku: j['sku'] as String?,
+        isAvailable: j['isAvailable'] ?? true,
+        trackInventory: j['trackInventory'] ?? false,
+      );
+}
+
+/// A product as the admin endpoints return it (GET /admin/products).
+class AdminProduct {
+  final String id;
+  final String name;
+  final String categoryName;
+  final bool isAvailable;
+  final List<AdminVariant> variants;
+  const AdminProduct({
+    required this.id,
+    required this.name,
+    required this.categoryName,
+    required this.isAvailable,
+    required this.variants,
+  });
+
+  AdminVariant? get defaultVariant => variants.isEmpty ? null : variants.first;
+
+  factory AdminProduct.fromJson(Map<String, dynamic> j) => AdminProduct(
+        id: j['id'],
+        name: j['name'] ?? '',
+        categoryName: j['categoryName'] ?? '',
+        isAvailable: j['isAvailable'] ?? true,
+        variants: ((j['variants'] ?? []) as List)
+            .map((v) => AdminVariant.fromJson(v as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -174,6 +258,10 @@ class PaymentResult {
   /// VOID or REFUND for a REVERSAL; null for a CHARGE.
   final String? reversalType;
 
+  /// Tender-specific evidence the server stored: EDC approval code / RRN / masked PAN /
+  /// scheme for a card, or the wallet reference. Display and reconciliation only.
+  final Map<String, dynamic>? providerMeta;
+
   const PaymentResult({
     required this.method,
     required this.amount,
@@ -183,9 +271,19 @@ class PaymentResult {
     this.tendered,
     this.direction = 'CHARGE',
     this.reversalType,
+    this.providerMeta,
   });
 
   bool get isReversal => direction == 'REVERSAL';
+
+  /// "VISA · 4*** **** **** 1234 · CHIP" when the payment came from a card terminal.
+  String? get cardSummary {
+    final m = providerMeta;
+    if (m == null || m['maskedPan'] == null) return null;
+    return [m['scheme'], m['maskedPan'], m['entryMode']].where((x) => x != null).join(' · ');
+  }
+
+  String? get approvalCode => providerMeta?['approvalCode'] as String?;
 
   factory PaymentResult.fromJson(Map<String, dynamic> j) => PaymentResult(
         method: j['method'],
@@ -196,6 +294,7 @@ class PaymentResult {
         qrPayload: j['qrPayload'],
         direction: j['direction'] ?? 'CHARGE',
         reversalType: j['reversalType'],
+        providerMeta: (j['providerMeta'] as Map?)?.cast<String, dynamic>(),
       );
 }
 
@@ -422,6 +521,18 @@ class DashboardSummary {
   final List<({String name, int qty, int sales})> topItems;
   final List<({String day, int sales})> salesByDay;
 
+  /// Gross margin. Revenue here EXCLUDES tax and service charge (unlike [netSales]),
+  /// so the margin is not inflated for a merchant that charges them.
+  final int netRevenue;
+  final int cogs;
+  final int grossProfit;
+  final int grossMarginBps;
+
+  /// Sales lines with no cost price: they contribute 0 COGS, so profit reads high
+  /// until they're filled in. Surfaced in the UI, never swallowed.
+  final int linesMissingCost;
+  final List<String> itemsMissingCost;
+
   const DashboardSummary({
     required this.netSales,
     required this.orderCount,
@@ -432,7 +543,16 @@ class DashboardSummary {
     required this.byOutlet,
     required this.topItems,
     required this.salesByDay,
+    this.netRevenue = 0,
+    this.cogs = 0,
+    this.grossProfit = 0,
+    this.grossMarginBps = 0,
+    this.linesMissingCost = 0,
+    this.itemsMissingCost = const [],
   });
+
+  /// A margin can only be shown once there is revenue to measure it against.
+  bool get hasProfitData => netRevenue > 0;
 
   factory DashboardSummary.fromJson(Map<String, dynamic> j) {
     final range = j['range'] as Map<String, dynamic>?;
@@ -451,6 +571,17 @@ class DashboardSummary {
       topItems: list('topItems',
           (e) => (name: e['name'] as String, qty: _asInt(e['qty']), sales: _asInt(e['sales']))),
       salesByDay: list('salesByDay', (e) => (day: e['day'] as String, sales: _asInt(e['sales']))),
+      // Defaulted, so an app built against a newer server still decodes an older
+      // server's response instead of crashing (same discipline as businessType).
+      netRevenue: _asInt(j['netRevenue']),
+      cogs: _asInt(j['cogs']),
+      grossProfit: _asInt(j['grossProfit']),
+      grossMarginBps: _asInt(j['grossMarginBps']),
+      linesMissingCost: _asInt((j['costCoverage'] ?? const {})['linesMissingCost']),
+      itemsMissingCost:
+          (((j['costCoverage'] ?? const {})['itemsMissingCost'] ?? const []) as List)
+              .map((e) => e.toString())
+              .toList(),
     );
   }
 }

@@ -9,6 +9,7 @@ import '../../data/api_client.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
+import '../../core/void_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../order/online_orders_controller.dart';
 import '../scanner/rongta_printer.dart';
@@ -46,55 +47,13 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
       o.isOnline && o.onlineStatus != 'COMPLETED' && o.onlineStatus != 'CANCELLED';
 
   Future<void> _confirmAndVoid(OrderResult order) async {
-    final t = AppLocalizations.of(context)!;
-    final reason = await showDialog<String?>(
-      context: context,
-      builder: (_) => const _VoidReasonDialog(),
-    );
-    if (reason == null || reason.isEmpty || !mounted) return; // dismissed / no reason = no void
-
-    // A cashier needs a manager/owner PIN to authorize; owner/manager self-authorize.
-    final session = ref.read(sessionProvider);
-    String? approverPin;
-    if (session != null && !session.isOwnerOrManager) {
-      approverPin = await _askApproverPin();
-      if (approverPin == null || approverPin.isEmpty || !mounted) return;
-    }
-
-    setState(() {
-      _voiding = true;
-      _clientVoidId ??= const Uuid().v4();
-    });
+    setState(() => _clientVoidId ??= const Uuid().v4());
+    setState(() => _voiding = true);
     try {
-      final json = await ref.read(apiClientProvider).voidOrder(
-            order.id,
-            clientVoidId: _clientVoidId!,
-            reason: reason,
-            approverPin: approverPin,
-          );
-      final voided = OrderResult.fromJson(json);
-      if (!mounted) return;
-      // Server state is canonical — refresh both the detail and the history list from it.
-      ref.invalidate(transactionDetailProvider(order.id));
-      final outletId = ref.read(sessionProvider)?.outletId;
-      if (outletId != null) ref.invalidate(transactionsProvider(outletId));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(voided.isVoided ? t.voidSuccess : t.voidFailed)),
-      );
-    } on DioException catch (e) {
-      if (!mounted) return;
-      final code = e.response?.statusCode;
-      final serverCode = e.response?.data is Map ? e.response?.data['code'] : null;
-      final msg = serverCode == 'VOID_WINDOW_EXPIRED'
-          ? t.voidWindowExpired
-          : serverCode == 'APPROVAL_INVALID'
-              ? t.approvalInvalid
-              : serverCode == 'APPROVAL_REQUIRED'
-                  ? t.approvalRequired
-                  : code == 403
-                      ? t.voidForbidden
-                      : t.voidFailed;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      // Reason (mandatory), approver PIN when one is needed, call, invalidation and
+      // messaging all live in core/void_actions.dart — shared with the history list,
+      // where a UMI operator voids in two taps instead of five.
+      await voidOrderFlow(context, ref, order, clientVoidId: _clientVoidId);
     } finally {
       if (mounted) setState(() => _voiding = false);
     }
@@ -112,10 +71,9 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     );
     if (choice == null || !mounted) return;
 
-    final session = ref.read(sessionProvider);
     String? approverPin;
-    if (session != null && !session.isOwnerOrManager) {
-      approverPin = await _askApproverPin();
+    if (needsApproverPin(ref)) {
+      approverPin = await askApproverPin(context);
       if (approverPin == null || approverPin.isEmpty || !mounted) return;
     }
 
@@ -154,31 +112,6 @@ class _TransactionDetailScreenState extends ConsumerState<TransactionDetailScree
     } finally {
       if (mounted) setState(() => _refunding = false);
     }
-  }
-
-  /// Ask a manager/owner to authorize a cashier-initiated correction with their PIN.
-  Future<String?> _askApproverPin() {
-    final t = AppLocalizations.of(context)!;
-    final ctrl = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t.managerApprovalTitle),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(labelText: t.managerPinLabel, isDense: true),
-          onSubmitted: (_) => Navigator.of(ctx).pop(ctrl.text.trim()),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text(t.actionCancel)),
-          FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(ctrl.text.trim()), child: Text(t.actionOk)),
-        ],
-      ),
-    );
   }
 
   /// Reprint this transaction's receipt — routes through the Rongta path when a
@@ -556,80 +489,6 @@ class _PrintReceiptBar extends StatelessWidget {
 }
 
 /// Confirmation + optional reason. Returns the reason (possibly empty) on confirm, null on cancel.
-class _VoidReasonDialog extends StatefulWidget {
-  const _VoidReasonDialog();
-
-  @override
-  State<_VoidReasonDialog> createState() => _VoidReasonDialogState();
-}
-
-class _VoidReasonDialogState extends State<_VoidReasonDialog> {
-  final _reason = TextEditingController();
-
-  @override
-  void dispose() {
-    _reason.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final t = AppLocalizations.of(context)!;
-    final cs = Theme.of(context).colorScheme;
-    final presets = [
-      t.voidReasonWrongItem,
-      t.voidReasonWrongPrice,
-      t.voidReasonCustomerCancel,
-      t.voidReasonTest,
-    ];
-    final valid = _reason.text.trim().isNotEmpty;
-    return AlertDialog(
-      title: Text(t.voidConfirmTitle),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(t.voidConfirmBody),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              for (final p in presets)
-                ActionChip(
-                  label: Text(p),
-                  onPressed: () => setState(() {
-                    _reason.text = p;
-                    _reason.selection = TextSelection.collapsed(offset: p.length);
-                  }),
-                ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _reason,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(labelText: '${t.voidReasonLabel} *', isDense: true),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: Text(t.actionCancel),
-        ),
-        FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError),
-          onPressed: valid ? () => Navigator.of(context).pop(_reason.text.trim()) : null,
-          child: Text(t.actionVoidConfirm),
-        ),
-      ],
-    );
-  }
-}
-
 /// Result of the refund sheet: a full refund, or line-level quantities, + reason.
 class _RefundChoice {
   final bool full;

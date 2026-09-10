@@ -114,7 +114,7 @@ class AppLocalizationsId extends AppLocalizations {
   String get actionComplete => 'Selesaikan';
 
   @override
-  String get actionMarkPaid => 'Tandai Lunas';
+  String get actionMarkPaid => 'Tandai sudah dibayar';
 
   @override
   String get qrisHint => 'Pindai untuk membayar (simulasi)';
@@ -528,6 +528,91 @@ class AppLocalizationsId extends AppLocalizations {
   String get reportsPayments => 'METODE PEMBAYARAN';
 
   @override
+  String get itemsTitle => 'Barang & harga';
+
+  @override
+  String itemsCount(int used, int max) {
+    return '$used / $max';
+  }
+
+  @override
+  String get itemsAdd => 'Tambah barang';
+
+  @override
+  String get itemsEmpty => 'Belum ada barang — tambahkan yang pertama.';
+
+  @override
+  String get itemsLimitReached =>
+      'Batas barang tercapai. Hubungi DPOS untuk mengubah paket.';
+
+  @override
+  String get itemName => 'Nama barang';
+
+  @override
+  String get itemCategory => 'Kategori';
+
+  @override
+  String get itemPrice => 'Harga jual';
+
+  @override
+  String get itemCost => 'Harga modal';
+
+  @override
+  String get itemCostHint => 'Diperlukan untuk laporan laba';
+
+  @override
+  String get itemSku => 'SKU / barcode';
+
+  @override
+  String get itemAvailable => 'Tersedia untuk dijual';
+
+  @override
+  String get itemTrackStock => 'Lacak stok';
+
+  @override
+  String get itemOnHand => 'Stok saat ini';
+
+  @override
+  String get itemNoCost => 'Belum ada harga modal';
+
+  @override
+  String itemMargin(String amount) {
+    return 'Margin $amount';
+  }
+
+  @override
+  String get itemSaved => 'Tersimpan';
+
+  @override
+  String get itemSaveFailed => 'Gagal menyimpan — coba lagi';
+
+  @override
+  String get itemNameRequired => 'Nama dan kategori wajib diisi';
+
+  @override
+  String get reportsProfit => 'LABA KOTOR';
+
+  @override
+  String get plRevenue => 'Pendapatan';
+
+  @override
+  String get plCogs => 'Modal barang';
+
+  @override
+  String get plGrossProfit => 'Laba kotor';
+
+  @override
+  String get plMargin => 'Margin';
+
+  @override
+  String plMissingCost(int n) {
+    return '$n baris penjualan belum ada harga modal — laba terlihat lebih besar';
+  }
+
+  @override
+  String get plSetCostPrices => 'Atur harga modal';
+
+  @override
   String get reportsTopItems => 'PRODUK TERLARIS';
 
   @override
@@ -578,4 +663,144 @@ class AppLocalizationsId extends AppLocalizations {
   String attendanceSince(String time) {
     return 'Bekerja sejak $time';
   }
+
+  @override
+  String get methodDebit => 'Kartu debit';
+
+  @override
+  String get methodCredit => 'Kartu kredit';
+
+  @override
+  String get methodBcaCard => 'Kartu BCA';
+
+  @override
+  String get methodShopeePay => 'ShopeePay';
+
+  @override
+  String get methodGoPay => 'GoPay';
+
+  @override
+  String get methodOvo => 'OVO';
+
+  @override
+  String get tenderGroupCard => 'Kartu';
+
+  @override
+  String get tenderGroupEwallet => 'Dompet digital';
+
+  @override
+  String get tenderGroupOther => 'Tunai & QRIS';
+
+  @override
+  String get actionProcessCard => 'Proses di EDC';
+
+  @override
+  String get actionWalletConfirm => 'Pembayaran diterima';
+
+  @override
+  String walletScanHint(String wallet) {
+    return 'Minta pelanggan memindai dengan $wallet';
+  }
+
+  @override
+  String cardApprovedShort(String code) {
+    return 'Disetujui · $code';
+  }
+
+  @override
+  String get tenderNotAvailable =>
+      'Metode pembayaran ini tidak tersedia untuk paket Anda.';
+
+  @override
+  String get edcTitle => 'Mesin EDC';
+
+  @override
+  String get edcInsertCard => 'MASUKKAN, TEMPEL ATAU GESEK KARTU';
+
+  @override
+  String get edcReadingCard => 'MEMBACA KARTU…';
+
+  @override
+  String get edcAuthorizing => 'MEMPROSES…';
+
+  @override
+  String get edcApproved => 'DISETUJUI';
+
+  @override
+  String get edcDeclined => 'DITOLAK';
+
+  @override
+  String get edcDeclinedHint =>
+      'Kartu ditolak. Coba lagi atau gunakan metode pembayaran lain.';
+
+  @override
+  String get edcEntryMode => 'Cara baca';
+
+  @override
+  String get edcChip => 'Chip';
+
+  @override
+  String get edcContactless => 'Tempel';
+
+  @override
+  String get edcSwipe => 'Gesek';
+
+  @override
+  String get edcScheme => 'Jaringan kartu';
+
+  @override
+  String get edcCard => 'Kartu';
+
+  @override
+  String get edcApprovalCode => 'Kode persetujuan';
+
+  @override
+  String get edcRrn => 'RRN';
+
+  @override
+  String get edcTrace => 'Trace / batch';
+
+  @override
+  String get edcTerminal => 'Terminal';
+
+  @override
+  String get edcProcess => 'Proses kartu';
+
+  @override
+  String get edcSimulateDecline => 'Simulasikan kartu ditolak';
+
+  @override
+  String get edcContinue => 'Lanjut';
+
+  @override
+  String get edcRetry => 'Coba lagi';
+
+  @override
+  String get otherMethods => 'Metode lain';
+
+  @override
+  String get chooseCard => 'Pilih kartu';
+
+  @override
+  String get chooseWallet => 'Pilih e-wallet';
+
+  @override
+  String get actionProcessPayment => 'Proses pembayaran';
+
+  @override
+  String get qrisAnyAppHint => 'Pindai dengan aplikasi pembayaran apa pun';
+
+  @override
+  String get edcPromptCard => 'Gesek, tap, atau masukkan kartu pada mesin EDC';
+
+  @override
+  String walletScanApp(String wallet) {
+    return 'Scan dengan aplikasi $wallet';
+  }
+
+  @override
+  String get amountReceivedLabel => 'Jumlah diterima';
+
+  @override
+  String get tabEwallet => 'E-Wallet';
 }

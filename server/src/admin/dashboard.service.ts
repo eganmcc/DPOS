@@ -34,12 +34,30 @@ export class DashboardService {
     const orderCount = live.length;
     const avgTicket = orderCount ? Math.round(netSales / orderCount) : 0;
 
+    // Gross margin. COGS comes from OrderLine.costPriceSnapshot, which is already written
+    // on every sale, so no schema change is involved.
+    //
+    // The base is netRevenue (subtotal - discount), NOT netSales: netSales sums grandTotal,
+    // which includes tax and service charge, and margin against that is silently optimistic
+    // for any merchant with a taxRule. netSales itself is left exactly as it was.
+    //
+    // Known limitation: `live` excludes voided orders only, so a partially refunded sale
+    // still contributes full revenue and full COGS. That matches today's netSales; changing
+    // it would change an existing number and belongs in its own change.
+    let netRevenue = 0;
+    let cogs = 0;
+    let linesTotal = 0;
+    let linesMissingCost = 0;
+    const missingCostItems = new Set<string>();
+
     const byMethod = new Map<string, number>();
     const byOutlet = new Map<string, { name: string; sales: number; count: number }>();
     const byItem = new Map<string, { name: string; qty: number; sales: number }>();
     const byDay = new Map<string, number>();
 
     for (const o of live) {
+      netRevenue += o.subtotal - o.discountTotal;
+
       for (const p of o.payments) {
         if (p.direction === 'CHARGE' && p.status === 'PAID') {
           byMethod.set(p.method, (byMethod.get(p.method) ?? 0) + p.amount);
@@ -51,6 +69,17 @@ export class DashboardService {
       byOutlet.set(o.outletId, ob);
 
       for (const l of o.lines) {
+        linesTotal += 1;
+        if (l.costPriceSnapshot == null) {
+          // A line with no cost contributes 0 COGS and would silently overstate profit —
+          // so it is counted and named rather than swallowed.
+          linesMissingCost += 1;
+          missingCostItems.add(l.productNameSnapshot);
+        } else {
+          // costPriceSnapshot is PER UNIT (written beside unitPriceSnapshot); qty is Decimal.
+          cogs += Math.round(l.costPriceSnapshot * Number(l.qty));
+        }
+
         const it = byItem.get(l.productNameSnapshot) ?? { name: l.productNameSnapshot, qty: 0, sales: 0 };
         it.qty += Number(l.qty);
         it.sales += l.lineTotal;
@@ -70,6 +99,16 @@ export class DashboardService {
       byOutlet: [...byOutlet.values()].sort((a, b) => b.sales - a.sales),
       topItems: [...byItem.values()].sort((a, b) => b.qty - a.qty).slice(0, 8),
       salesByDay: [...byDay.entries()].sort().map(([day, sales]) => ({ day, sales })),
+      // Gross margin — additive; every key above is unchanged.
+      netRevenue,
+      cogs,
+      grossProfit: netRevenue - cogs,
+      grossMarginBps: netRevenue > 0 ? Math.round(((netRevenue - cogs) / netRevenue) * 10000) : 0,
+      costCoverage: {
+        linesTotal,
+        linesMissingCost,
+        itemsMissingCost: [...missingCostItems].sort().slice(0, 8),
+      },
     };
   }
 }

@@ -6,10 +6,13 @@ import '../../core/money.dart';
 import '../../core/theme.dart';
 import '../../data/models.dart';
 import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../core/attendance_actions.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/home_gate.dart'; // PosHome
+import '../payment/payment_tenders.dart' show paymentMethodLabel;
 import '../settings/settings_screen.dart';
+import '../items/items_screen.dart';
 import '../transactions/transactions_screen.dart';
 
 enum _Period { daily, weekly, monthly }
@@ -45,7 +48,12 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final t = AppLocalizations.of(context)!;
     final range = _rangeFor(_period);
     final dash = ref.watch(dashboardProvider(range));
-    final attendance = ref.watch(adminAttendanceProvider(range));
+    // A UMI merchant is one person: no attendance to report, and the report isn't
+    // even fetched. Coerce the behaviour, don't just hide the widget.
+    final session = ref.watch(sessionProvider);
+    final isUmi = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
+    final attendance = isUmi ? null : ref.watch(adminAttendanceProvider(range));
 
     return Scaffold(
       appBar: BrandAppBar(
@@ -57,6 +65,15 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.reportsOpenCashier, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          // Items & prices — UMI only. A GENERAL merchant manages its catalog in the
+          // portal, and an uncapped in-app editor for them would be a second surface.
+          if (isUmi && session.isOwner)
+            IconButton(
+              tooltip: t.itemsTitle,
+              onPressed: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ItemsScreen())),
+              icon: const Icon(Icons.inventory_2_outlined),
+            ),
           IconButton(
             tooltip: t.historyLabel,
             onPressed: () => Navigator.of(context)
@@ -112,6 +129,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 children: [
                   _HeaderCard(d: d),
                   const SizedBox(height: 14),
+                  if (d.hasProfitData) ...[
+                    _ProfitCard(d: d),
+                    const SizedBox(height: 14),
+                  ],
                   if (d.paymentBreakdown.isNotEmpty) ...[
                     _SectionCard(
                       title: t.reportsPayments,
@@ -156,8 +177,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
               ),
             ),
 
-            // Attendance.
-            attendance.when(
+            // Attendance (not for UMI — a one-person business has nobody to track).
+            if (attendance != null)
+              attendance.when(
               loading: () => const SizedBox.shrink(),
               error: (e, _) => _InlineError(
                 message: t.errorHistory,
@@ -182,18 +204,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     );
   }
 
-  String _methodLabel(String m) {
-    switch (m) {
-      case 'CASH':
-        return 'Cash';
-      case 'QRIS_SIMULATED':
-        return 'QRIS';
-      case 'ONLINE':
-        return 'Online';
-      default:
-        return m;
-    }
-  }
+  /// Shared with the till and the printed slip so a payment split can never show a raw
+  /// enum code for a tender the app already knows how to name.
+  String _methodLabel(String m) => paymentMethodLabel(m);
 }
 
 class _HeaderCard extends StatelessWidget {
@@ -249,6 +262,47 @@ class _Stat extends StatelessWidget {
         const SizedBox(height: 2),
         Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w700)),
       ],
+    );
+  }
+}
+
+/// Gross margin: revenue - cost of goods.
+///
+/// Deliberately labelled GROSS ("Laba Kotor"), never bare "Laba" — it excludes rent,
+/// gas, packaging and the operator's own time, and a warung owner would otherwise read
+/// it as take-home. Lines with no cost price contribute nothing to COGS and so inflate
+/// the figure; that is stated on the card rather than left for the reader to discover.
+class _ProfitCard extends StatelessWidget {
+  const _ProfitCard({required this.d});
+  final DashboardSummary d;
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final margin = (d.grossMarginBps / 100).toStringAsFixed(1);
+    return _SectionCard(
+      title: t.reportsProfit,
+      child: Column(children: [
+        _Row(label: t.plRevenue, value: formatRupiah(d.netRevenue)),
+        _Row(label: t.plCogs, value: '- ${formatRupiah(d.cogs)}'),
+        Divider(color: cs.outlineVariant, height: 12),
+        _Row(label: t.plGrossProfit, sub: '${t.plMargin} $margin%', value: formatRupiah(d.grossProfit)),
+        if (d.linesMissingCost > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4, bottom: 8),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Icon(Icons.info_outline, size: 16, color: cs.tertiary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  t.plMissingCost(d.linesMissingCost),
+                  style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
+                ),
+              ),
+            ]),
+          ),
+      ]),
     );
   }
 }

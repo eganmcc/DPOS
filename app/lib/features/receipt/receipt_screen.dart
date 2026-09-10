@@ -9,6 +9,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../scanner/rongta_printer.dart';
 import '../transactions/transaction_status.dart';
+import '../payment/payment_tenders.dart' show paymentMethodLabel;
 
 class ReceiptScreen extends ConsumerWidget {
   const ReceiptScreen({super.key, required this.order});
@@ -96,10 +97,27 @@ class ReceiptScreen extends ConsumerWidget {
                           const SizedBox(height: 6),
                           // For cash, show the amount handed over (tendered), then the
                           // change — not the bill total again.
-                          _row(context, payment.method, payment.tendered ?? payment.amount,
+                          _row(context, paymentMethodLabel(payment.method, t),
+                              payment.tendered ?? payment.amount,
                               muted: true),
                           if (payment.change != null)
                             _row(context, t.labelChange, payment.change!, muted: true),
+                          // Card slip data, so the receipt matches the EDC slip in hand.
+                          if (payment.cardSummary != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(payment.cardSummary!,
+                                  style: TextStyle(
+                                      color: cs.onSurfaceVariant,
+                                      fontSize: 11,
+                                      fontFamily: 'monospace')),
+                            ),
+                          if (payment.approvalCode != null)
+                            Text('${t.edcApprovalCode}: ${payment.approvalCode}',
+                                style: TextStyle(
+                                    color: cs.onSurfaceVariant,
+                                    fontSize: 11,
+                                    fontFamily: 'monospace')),
                         ],
                         const SizedBox(height: 20),
                         SizedBox(

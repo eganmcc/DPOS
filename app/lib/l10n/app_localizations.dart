@@ -1082,6 +1082,162 @@ abstract class AppLocalizations {
   /// **'PAYMENT METHODS'**
   String get reportsPayments;
 
+  /// No description provided for @itemsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Items & prices'**
+  String get itemsTitle;
+
+  /// No description provided for @itemsCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{used} / {max}'**
+  String itemsCount(int used, int max);
+
+  /// No description provided for @itemsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get itemsAdd;
+
+  /// No description provided for @itemsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items yet — add your first one.'**
+  String get itemsEmpty;
+
+  /// No description provided for @itemsLimitReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Item limit reached. Contact DPOS to change your plan.'**
+  String get itemsLimitReached;
+
+  /// No description provided for @itemName.
+  ///
+  /// In en, this message translates to:
+  /// **'Item name'**
+  String get itemName;
+
+  /// No description provided for @itemCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'Category'**
+  String get itemCategory;
+
+  /// No description provided for @itemPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling price'**
+  String get itemPrice;
+
+  /// No description provided for @itemCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost price'**
+  String get itemCost;
+
+  /// No description provided for @itemCostHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Needed for the profit report'**
+  String get itemCostHint;
+
+  /// No description provided for @itemSku.
+  ///
+  /// In en, this message translates to:
+  /// **'SKU / barcode'**
+  String get itemSku;
+
+  /// No description provided for @itemAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available for sale'**
+  String get itemAvailable;
+
+  /// No description provided for @itemTrackStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Track stock'**
+  String get itemTrackStock;
+
+  /// No description provided for @itemOnHand.
+  ///
+  /// In en, this message translates to:
+  /// **'On hand'**
+  String get itemOnHand;
+
+  /// No description provided for @itemNoCost.
+  ///
+  /// In en, this message translates to:
+  /// **'No cost price'**
+  String get itemNoCost;
+
+  /// No description provided for @itemMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Margin {amount}'**
+  String itemMargin(String amount);
+
+  /// No description provided for @itemSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get itemSaved;
+
+  /// No description provided for @itemSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save — please try again'**
+  String get itemSaveFailed;
+
+  /// No description provided for @itemNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Name and category are required'**
+  String get itemNameRequired;
+
+  /// No description provided for @reportsProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'GROSS PROFIT'**
+  String get reportsProfit;
+
+  /// No description provided for @plRevenue.
+  ///
+  /// In en, this message translates to:
+  /// **'Revenue'**
+  String get plRevenue;
+
+  /// No description provided for @plCogs.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost of goods'**
+  String get plCogs;
+
+  /// No description provided for @plGrossProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Gross profit'**
+  String get plGrossProfit;
+
+  /// No description provided for @plMargin.
+  ///
+  /// In en, this message translates to:
+  /// **'Margin'**
+  String get plMargin;
+
+  /// No description provided for @plMissingCost.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} sales lines have no cost price — profit reads higher than it is'**
+  String plMissingCost(int n);
+
+  /// No description provided for @plSetCostPrices.
+  ///
+  /// In en, this message translates to:
+  /// **'Set cost prices'**
+  String get plSetCostPrices;
+
   /// No description provided for @reportsTopItems.
   ///
   /// In en, this message translates to:
@@ -1177,6 +1333,270 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'On the clock since {time}'**
   String attendanceSince(String time);
+
+  /// No description provided for @methodDebit.
+  ///
+  /// In en, this message translates to:
+  /// **'Debit card'**
+  String get methodDebit;
+
+  /// No description provided for @methodCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit card'**
+  String get methodCredit;
+
+  /// No description provided for @methodBcaCard.
+  ///
+  /// In en, this message translates to:
+  /// **'BCA card'**
+  String get methodBcaCard;
+
+  /// No description provided for @methodShopeePay.
+  ///
+  /// In en, this message translates to:
+  /// **'ShopeePay'**
+  String get methodShopeePay;
+
+  /// No description provided for @methodGoPay.
+  ///
+  /// In en, this message translates to:
+  /// **'GoPay'**
+  String get methodGoPay;
+
+  /// No description provided for @methodOvo.
+  ///
+  /// In en, this message translates to:
+  /// **'OVO'**
+  String get methodOvo;
+
+  /// No description provided for @tenderGroupCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get tenderGroupCard;
+
+  /// No description provided for @tenderGroupEwallet.
+  ///
+  /// In en, this message translates to:
+  /// **'E-wallet'**
+  String get tenderGroupEwallet;
+
+  /// No description provided for @tenderGroupOther.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash & QRIS'**
+  String get tenderGroupOther;
+
+  /// No description provided for @actionProcessCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Process on EDC'**
+  String get actionProcessCard;
+
+  /// No description provided for @actionWalletConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment received'**
+  String get actionWalletConfirm;
+
+  /// No description provided for @walletScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask the customer to scan with {wallet}'**
+  String walletScanHint(String wallet);
+
+  /// No description provided for @cardApprovedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Approved · {code}'**
+  String cardApprovedShort(String code);
+
+  /// No description provided for @tenderNotAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This payment method is not available for your plan.'**
+  String get tenderNotAvailable;
+
+  /// No description provided for @edcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'EDC terminal'**
+  String get edcTitle;
+
+  /// No description provided for @edcInsertCard.
+  ///
+  /// In en, this message translates to:
+  /// **'INSERT, TAP OR SWIPE CARD'**
+  String get edcInsertCard;
+
+  /// No description provided for @edcReadingCard.
+  ///
+  /// In en, this message translates to:
+  /// **'READING CARD…'**
+  String get edcReadingCard;
+
+  /// No description provided for @edcAuthorizing.
+  ///
+  /// In en, this message translates to:
+  /// **'AUTHORIZING…'**
+  String get edcAuthorizing;
+
+  /// No description provided for @edcApproved.
+  ///
+  /// In en, this message translates to:
+  /// **'APPROVED'**
+  String get edcApproved;
+
+  /// No description provided for @edcDeclined.
+  ///
+  /// In en, this message translates to:
+  /// **'DECLINED'**
+  String get edcDeclined;
+
+  /// No description provided for @edcDeclinedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The card was declined. Try again or use another payment method.'**
+  String get edcDeclinedHint;
+
+  /// No description provided for @edcEntryMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry mode'**
+  String get edcEntryMode;
+
+  /// No description provided for @edcChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Chip'**
+  String get edcChip;
+
+  /// No description provided for @edcContactless.
+  ///
+  /// In en, this message translates to:
+  /// **'Contactless'**
+  String get edcContactless;
+
+  /// No description provided for @edcSwipe.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe'**
+  String get edcSwipe;
+
+  /// No description provided for @edcScheme.
+  ///
+  /// In en, this message translates to:
+  /// **'Card scheme'**
+  String get edcScheme;
+
+  /// No description provided for @edcCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Card'**
+  String get edcCard;
+
+  /// No description provided for @edcApprovalCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Approval code'**
+  String get edcApprovalCode;
+
+  /// No description provided for @edcRrn.
+  ///
+  /// In en, this message translates to:
+  /// **'RRN'**
+  String get edcRrn;
+
+  /// No description provided for @edcTrace.
+  ///
+  /// In en, this message translates to:
+  /// **'Trace / batch'**
+  String get edcTrace;
+
+  /// No description provided for @edcTerminal.
+  ///
+  /// In en, this message translates to:
+  /// **'Terminal'**
+  String get edcTerminal;
+
+  /// No description provided for @edcProcess.
+  ///
+  /// In en, this message translates to:
+  /// **'Process card'**
+  String get edcProcess;
+
+  /// No description provided for @edcSimulateDecline.
+  ///
+  /// In en, this message translates to:
+  /// **'Simulate a declined card'**
+  String get edcSimulateDecline;
+
+  /// No description provided for @edcContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get edcContinue;
+
+  /// No description provided for @edcRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get edcRetry;
+
+  /// No description provided for @otherMethods.
+  ///
+  /// In en, this message translates to:
+  /// **'Other methods'**
+  String get otherMethods;
+
+  /// No description provided for @chooseCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose card'**
+  String get chooseCard;
+
+  /// No description provided for @chooseWallet.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose e-wallet'**
+  String get chooseWallet;
+
+  /// No description provided for @actionProcessPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Process payment'**
+  String get actionProcessPayment;
+
+  /// No description provided for @qrisAnyAppHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with any payment app'**
+  String get qrisAnyAppHint;
+
+  /// No description provided for @edcPromptCard.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe, tap or insert the card on the EDC machine'**
+  String get edcPromptCard;
+
+  /// No description provided for @walletScanApp.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan with the {wallet} app'**
+  String walletScanApp(String wallet);
+
+  /// No description provided for @amountReceivedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount received'**
+  String get amountReceivedLabel;
+
+  /// No description provided for @tabEwallet.
+  ///
+  /// In en, this message translates to:
+  /// **'E-Wallet'**
+  String get tabEwallet;
 }
 
 class _AppLocalizationsDelegate

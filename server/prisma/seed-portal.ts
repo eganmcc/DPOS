@@ -5,7 +5,7 @@
 //     (owner@warungdemo.id / owner123).
 //  3) Create a GROCERY demo merchant with its own admin, branch, and products,
 //     so the portal can be seen adapting to businessType.
-import { BusinessType, PrismaClient, ProductType, StaffRole } from '@prisma/client';
+import { BusinessSize, BusinessType, PrismaClient, ProductType, StaffRole } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -42,7 +42,10 @@ async function ensureFnbAdmin(): Promise<void> {
     console.log('no F&B demo merchant found — skipping F&B admin');
     return;
   }
-  await prisma.merchant.update({ where: { id: fnb.id }, data: { businessType: BusinessType.FNB } });
+  await prisma.merchant.update({
+    where: { id: fnb.id },
+    data: { businessType: BusinessType.FNB, businessSize: BusinessSize.GENERAL },
+  });
   const owner = await prisma.staff.findFirst({ where: { merchantId: fnb.id, role: StaffRole.OWNER } });
   if (owner) {
     await prisma.staff.update({
@@ -72,7 +75,11 @@ async function seedGrocery(): Promise<void> {
     return;
   }
   const merchant = await prisma.merchant.create({
-    data: { name: 'Toko Sembako Demo', businessType: BusinessType.GROCERY },
+    data: {
+      name: 'Toko Sembako Demo',
+      businessType: BusinessType.GROCERY,
+      businessSize: BusinessSize.GENERAL,
+    },
   });
   const outlet = await prisma.outlet.create({
     data: { merchantId: merchant.id, code: 'HQ', name: 'Toko Pusat', address: 'Jl. Pasar No. 1' },

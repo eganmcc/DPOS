@@ -4,7 +4,12 @@ import { api } from '../api';
 import { useAuth } from '../stores/auth';
 import Modal from '../components/Modal.vue';
 
-interface Merchant { id: string; name: string; businessType: 'FNB' | 'GROCERY'; logoUrl: string | null }
+interface Merchant {
+  id: string; name: string;
+  businessType: 'FNB' | 'GROCERY';
+  businessSize: 'GENERAL' | 'UMKM' | 'UMI';
+  logoUrl: string | null;
+}
 interface Branch {
   id: string; code: string | null; name: string; address: string | null;
   managerId: string | null; managerName: string | null; paymentMode: string; isActive: boolean;
@@ -12,7 +17,9 @@ interface Branch {
 interface Staff { id: string; name: string; role: string }
 
 const auth = useAuth();
-const merchant = reactive<Merchant>({ id: '', name: '', businessType: 'FNB', logoUrl: null });
+const merchant = reactive<Merchant>({
+  id: '', name: '', businessType: 'FNB', businessSize: 'GENERAL', logoUrl: null,
+});
 const branches = ref<Branch[]>([]);
 const managers = ref<Staff[]>([]);
 const loading = ref(true);
@@ -116,6 +123,7 @@ function settlementLabel(pm: string) {
         <label>Business type</label>
         <div class="ro">
           <span class="badge" :class="auth.isFnb ? 'badge-gold' : 'badge-navy'">{{ merchant.businessType }}</span>
+          <span class="badge badge-navy">{{ merchant.businessSize }}</span>
           <span class="muted small">set by DPOS admin</span>
         </div>
       </div>

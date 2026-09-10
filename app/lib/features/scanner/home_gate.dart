@@ -24,14 +24,14 @@ class HomeGate extends ConsumerStatefulWidget {
 class _HomeGateState extends ConsumerState<HomeGate> {
   bool _askedClockIn = false;
 
-  @override
-  void initState() {
-    super.initState();
-    // Offer to clock in once per session, after the first frame.
+  /// Offer to clock in once per session, after the first frame. Driven from build
+  /// rather than initState because the decision depends on the catalog: a UMI
+  /// merchant is one person, so there is nobody to track and we don't ask at all.
+  void _maybePromptClockIn() {
+    if (_askedClockIn) return;
+    _askedClockIn = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_askedClockIn || !mounted) return;
-      _askedClockIn = true;
-      promptClockInOnLogin(context, ref);
+      if (mounted) promptClockInOnLogin(context, ref);
     });
   }
 
@@ -43,7 +43,10 @@ class _HomeGateState extends ConsumerState<HomeGate> {
     return catalogAsync.maybeWhen(
       data: (catalog) {
         if (catalog.isFnb) ref.watch(onlineOrdersProvider(session.outletId));
-        if (session.isOwnerOrManager) return const ReportsScreen();
+        if (!catalog.isUmi) _maybePromptClockIn();
+        // A UMI operator's next action is always ringing up a customer, so land on
+        // the till. Reports stays one tap away via the POS app bar's insights icon.
+        if (session.isOwnerOrManager && !catalog.isUmi) return const ReportsScreen();
         return const PosHome();
       },
       orElse: () => const PosHome(),

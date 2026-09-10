@@ -1,9 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { StaffRole } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtPayload } from './auth.types';
+import { isUmiMerchant } from '../common/business-size';
 
 export interface AuthResult {
   token: string;
@@ -25,6 +26,16 @@ export class AuthService {
     });
     if (!staff || !staff.passwordHash || !(await bcrypt.compare(password, staff.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
+    }
+    // Email/password is the D-Customer Portal's door — the app logs in by PIN. A UMI
+    // merchant manages its business in the app, so the portal is closed to it. Checked
+    // AFTER the password comparison: before it, this would tell an unauthenticated
+    // prober which emails exist and would cost a query on every failed attempt.
+    if (await isUmiMerchant(this.prisma, staff.merchantId)) {
+      throw new ForbiddenException({
+        code: 'PORTAL_NOT_AVAILABLE',
+        message: 'This account manages its business in the DPOS app.',
+      });
     }
     return this.issue(staff.id, staff.merchantId, staff.role);
   }
