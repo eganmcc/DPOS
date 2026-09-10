@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-08._
+_Last updated: 2026-09-10._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -31,6 +31,74 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 > **Migration 10 is applied to RDS** (both demo merchants backfilled to `GENERAL`). Constitution
 > **v1.7.0**, spec `specs/006-umi-business-size/spec.md`. Suite: **9 suites / 46 tests green**;
 > `flutter analyze` clean + 6 unit tests. **Not yet merged to `main`, and not yet walked on a device.**
+
+### UMI — handoff for the next session (written 2026-09-10, on `features/UMI`)
+
+**Where it stands:** all 7 planned steps are committed on `features/UMI` (10 commits off `main` @
+`1fc071f`). Server, app and portal all build; **9 suites / 46 tests green**, `flutter analyze` clean,
+6 Flutter unit tests. The branch has **never been merged to `main`** and the app has **not been
+walked on a device as a UMI merchant** — that is the main thing left.
+
+**Read first:** `specs/006-umi-business-size/spec.md` (what was built and why) and constitution
+**v1.7.0** (the clause that makes the approval bypass legal). Both are on this branch.
+
+**Decisions already made with the user — do not relitigate:**
+- Void/cancel bypasses the approver PIN for **every role** at a UMI merchant, but the **reason stays
+  mandatory**. `umi.e2e-spec.ts` asserts a reason-less UMI void is still `400`. Don't "simplify" that.
+- P/L is **gross margin only** (revenue − COGS). No expense table. Revenue is `netRevenue`
+  (subtotal − discount), **not** the tax-inclusive `netSales`, which is left byte-identical.
+- The 30-item cap is a **hard stop**. Nothing writes `Product.isAvailable`, so there is no
+  self-service escape; the message must say *contact DPOS*, never "switch one off" (a test asserts it).
+- `businessSize` is **read-only over the API** — set by script/SQL until a DPOS super-admin exists.
+- The P/L card shows for **all** merchants, not just UMI.
+
+**Environment traps that cost time here — don't rediscover them:**
+1. **RDS blocks a new machine.** Add the desktop's public IP to the RDS security group (inbound
+   5432) or nothing works — `nc -z dpos.cjcm0wuu2mj5.ap-southeast-3.rds.amazonaws.com 5432` is the
+   quick check. This bit mid-session when the Mac's IP changed.
+2. **RDS is already one migration ahead of `main`.** `20260908120000_merchant_business_size` was
+   applied to production RDS on 2026-09-08 (both existing merchants backfilled to `GENERAL`). Harmless
+   for the deployed API — it doesn't read the column — but `main` no longer describes the live schema.
+   **Do not re-run the migration**; `prisma migrate status` will already show it applied.
+3. **Stale APKs in `app/build/`.** `flutter build apk --release` writes `app-release.apk`, but
+   `app-x86_64-release.apk` and the arm64/armeabi ones may be weeks old with identical `versionCode`
+   (4001), so installing one looks successful and silently runs old code. `flutter clean` first, or
+   check the file's timestamp.
+4. **Emulator choice matters.** A Pixel 9a / API 36 image runs this app in 16 KB page-compat mode and
+   ANRs repeatedly on both debug and release. **Pixel 3a / API 34 runs it fine.** Also: the debug APK
+   is ~165 MB and takes ~3 min per install — use a release build for manual testing (already in
+   Gotchas).
+
+**To pick it up on another machine:**
+```
+git fetch origin && git checkout features/UMI       # then git pull --ff-only
+cd server && npm install && npx prisma generate     # regenerate: the client has BusinessSize now
+npm test                                            # expect 9 suites / 46 tests
+cd ../app && flutter pub get && flutter gen-l10n && flutter analyze && flutter test
+```
+
+**Demo UMI merchant — already seeded on RDS, so don't re-seed unless it's missing:**
+`Warung Bu Sri` · merchant `c06dbad8-69ae-4cb1-8f39-52345b0984dd` · outlet
+`a54ab023-d020-465d-b815-552b098b4695` · **owner PIN `1111`** (Bu Sri, the only staff) ·
+portal `busri@warungbusri.id` / `busri123` → **403 `PORTAL_NOT_AVAILABLE`** (that's the point) ·
+14 of 30 items, **no tax rule**, stock only on Air Mineral (48) and Teh Botol (24) ·
+**Bakwan Sayur has no cost price on purpose** — sell one and the Reports missing-cost warning goes
+live. Re-create with `npx ts-node prisma/seed-umi.ts` (idempotent). The two original demo merchants
+were deliberately left alone and are still `GENERAL` with all their order history.
+
+**Verified against the live API (not just tests):** portal login → 403; the same person's PIN login →
+200 as OWNER; catalog carries `businessSize: UMI`; `POST /admin/staff` → 403 `UMI_SINGLE_USER`; and
+the P/L on Warung Kopi Demo 1 reads Rp 6.298.000 − Rp 2.644.000 = Rp 3.654.000 (58.0%), rendered on
+the emulator as the **Laba Kotor** card.
+
+**Still to do, in order:**
+1. **Walk the UMI flow on a device** as Bu Sri: lands on the POS (not Reports), sell something, void
+   from the history tile in 2 taps with no PIN, check Reports shows Laba Kotor + the missing-cost
+   warning after selling a Bakwan Sayur, open Items & prices, confirm the `14 / 30` chip.
+2. Confirm a **GENERAL** merchant is unchanged: cashier void still demands a manager PIN, owner still
+   lands on Reports, attendance still prompts.
+3. Merge to `main` and delete the branch (trunk-based; record the tip SHA in the deletion ledger).
+4. Redeploy EC2 from `main` — no migration needed, it is already applied.
 
 > **2026-09-05 — consolidated to a single trunk.** `main` is now the **only** branch; `beta-1` and the
 > `beta-with-SDP-printer` / `customer-portal` / `claude/*` branches were merged/superseded and retired
