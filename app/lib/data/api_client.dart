@@ -233,6 +233,26 @@ class ApiClient {
     return res.data as Map<String, dynamic>;
   }
 
+  /// Read a photographed nota. The app's first multipart call.
+  ///
+  /// Reading handwriting is a model call on the server, so this waits far longer than the default
+  /// 12s receive timeout — the server allows up to ~60s with its own retry. Nothing is stored and
+  /// no sale is created; the response is only what the nota says.
+  Future<Map<String, dynamic>> readNota(String imagePath) async {
+    final form = FormData.fromMap({
+      'file': await MultipartFile.fromFile(imagePath, filename: 'nota.jpg'),
+    });
+    final res = await _dio.post(
+      '/nota/read',
+      data: form,
+      options: Options(
+        sendTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 75),
+      ),
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
   /// Settle an open bill: attach payment and complete it. Returns the settled order.
   /// [clientSettleId] is the idempotency key.
   Future<Map<String, dynamic>> settleOrder(

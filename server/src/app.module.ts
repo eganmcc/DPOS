@@ -8,6 +8,7 @@ import { OnlineOrdersModule } from './online-orders/online-orders.module';
 import { AdminModule } from './admin/admin.module';
 import { AttendanceModule } from './attendance/attendance.module';
 import { DemoModule } from './demo/demo.module';
+import { NotaModule } from './nota/nota.module';
 import { VersionController } from './version.controller';
 
 @Module({
@@ -21,6 +22,7 @@ import { VersionController } from './version.controller';
     AdminModule,
     AttendanceModule,
     DemoModule,
+    NotaModule,
   ],
   controllers: [VersionController],
 })

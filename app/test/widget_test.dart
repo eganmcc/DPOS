@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:dpos/core/money.dart';
 import 'package:dpos/data/models.dart';
 import 'package:dpos/features/order/cart.dart';
+import 'package:dpos/features/nota/nota_models.dart';
 import 'package:dpos/features/payment/payment_tenders.dart';
 
 void main() {
@@ -110,6 +111,48 @@ void main() {
       expect(cardTendersAllowed(of(const {})), isFalse);
       expect(of(const {}).businessSizeKnown, isFalse);
       expect(of({'businessSize': 'UMI'}).businessSizeKnown, isTrue);
+    });
+  });
+  group('NotaReading', () {
+    test('keeps blanks as blanks — a missing total is null, never zero', () {
+      final r = NotaReading.fromJson({
+        'notaNumber': null,
+        'notaDate': null,
+        'customerName': 'Edward',
+        'items': [
+          {'rawText': '1 M BESAR', 'qty': 1, 'unitPrice': null, 'lineTotal': 130000},
+        ],
+        'total': null,
+        'unclear': ['nota number'],
+        'confidence': 55,
+        'model': 'stub',
+        'latencyMs': 1200,
+      });
+      expect(r.notaNumber, isNull);
+      expect(r.notaDate, isNull);
+      expect(r.total, isNull);
+      expect(r.items.single.unitPrice, isNull);
+      expect(r.items.single.rawText, '1 M BESAR'); // verbatim
+      expect(r.unclear, ['nota number']);
+    });
+
+    test('reads the ISO date the server sends, day and month in the right places', () {
+      final r = NotaReading.fromJson({'notaDate': '2026-08-02', 'items': [], 'unclear': []});
+      expect(r.notaDate!.day, 2);
+      expect(r.notaDate!.month, 8);
+    });
+
+    test('sums only the line totals that were readable, and is null when none were', () {
+      final r = NotaReading.fromJson({
+        'items': [
+          {'rawText': 'a', 'lineTotal': 65000},
+          {'rawText': 'b', 'lineTotal': null},
+          {'rawText': 'c', 'lineTotal': 5000},
+        ],
+        'unclear': [],
+      });
+      expect(r.linesSum, 70000);
+      expect(NotaReading.fromJson({'items': [], 'unclear': []}).linesSum, isNull);
     });
   });
 }

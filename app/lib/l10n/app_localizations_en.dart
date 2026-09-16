@@ -802,4 +802,109 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get tabEwallet => 'E-Wallet';
+
+  @override
+  String get notaTitle => 'Read nota';
+
+  @override
+  String get notaIntro =>
+      'Take a photo of a handwritten nota and DPOS will read it for you. Nothing is saved.';
+
+  @override
+  String get notaTakePhoto => 'Take photo';
+
+  @override
+  String get notaChooseGallery => 'Choose from gallery';
+
+  @override
+  String get notaRetake => 'Retake';
+
+  @override
+  String get notaReading => 'Reading the nota…';
+
+  @override
+  String get notaReadingHint => 'This can take up to half a minute.';
+
+  @override
+  String get notaResultTitle => 'What DPOS read';
+
+  @override
+  String get notaNumber => 'Nota no.';
+
+  @override
+  String get notaDate => 'Date';
+
+  @override
+  String get notaCustomer => 'Name';
+
+  @override
+  String get notaItems => 'Items';
+
+  @override
+  String get notaColItem => 'Item';
+
+  @override
+  String get notaColQty => 'Qty';
+
+  @override
+  String get notaColPrice => 'Price';
+
+  @override
+  String get notaColTotal => 'Total';
+
+  @override
+  String get notaTotalWritten => 'Total on the nota';
+
+  @override
+  String get notaLinesSum => 'Sum of the lines';
+
+  @override
+  String get notaTotalMismatch =>
+      'The lines don\'t add up to the written total — check the photo.';
+
+  @override
+  String get notaUnreadable => 'Not readable';
+
+  @override
+  String get notaNoItems => 'No item lines could be read.';
+
+  @override
+  String get notaUnclearTitle => 'Couldn\'t read clearly';
+
+  @override
+  String notaConfidence(int pct) {
+    return 'Confidence $pct%';
+  }
+
+  @override
+  String notaReadBy(String model, String secs) {
+    return 'Read by $model in ${secs}s';
+  }
+
+  @override
+  String get notaRawData => 'Raw data';
+
+  @override
+  String get notaErrorUnsupported =>
+      'That file isn\'t a supported photo. Use JPEG or PNG.';
+
+  @override
+  String get notaErrorTooLarge =>
+      'That photo is too large. Try again with the camera.';
+
+  @override
+  String get notaErrorUnreadable =>
+      'The nota couldn\'t be read. Try a clearer, closer photo.';
+
+  @override
+  String notaErrorGeneric(String code) {
+    return 'Reading failed ($code). Check the connection and try again.';
+  }
+
+  @override
+  String get notaReadAnother => 'Read another nota';
+
+  @override
+  String get notaCameraDenied =>
+      'Camera access is needed to photograph a nota.';
 }
