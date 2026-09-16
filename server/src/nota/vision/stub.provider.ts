@@ -26,7 +26,7 @@ export class StubNotaVisionProvider implements NotaVisionProvider {
       customerName: 'Edward',
       items: [{ rawText: '1. M. KECIL', qty: 1, unitPrice: 65000, lineTotal: 65000 }],
       total: 65000,
-      unclear: ['handwritten digit below the price'],
+      unclear: ['angka tulisan tangan di bawah harga'],
       confidence: 80,
     };
   }
