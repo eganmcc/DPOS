@@ -1783,6 +1783,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Camera access is needed to photograph a nota.'**
   String get notaCameraDenied;
+
+  /// No description provided for @notaPanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Drag · double-tap or pinch to zoom'**
+  String get notaPanHint;
+
+  /// No description provided for @notaFitImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fit to width'**
+  String get notaFitImage;
+
+  /// No description provided for @notaFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get notaFullscreen;
+
+  /// No description provided for @notaStubBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Demo mode: the AI reader is not switched on for this server yet, so this is a fixed sample — it did NOT read your photo. Every photo will show the same result until it is enabled.'**
+  String get notaStubBanner;
 }
 
 class _AppLocalizationsDelegate

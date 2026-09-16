@@ -318,5 +318,9 @@
   "notaErrorUnreadable": "Nota tidak dapat dibaca. Coba foto yang lebih jelas dan dekat.",
   "notaErrorGeneric": "Gagal membaca ({code}). Periksa koneksi lalu coba lagi.",
   "notaReadAnother": "Baca nota lain",
-  "notaCameraDenied": "Akses kamera diperlukan untuk memotret nota."
+  "notaCameraDenied": "Akses kamera diperlukan untuk memotret nota.",
+  "notaPanHint": "Geser · ketuk 2x atau cubit untuk zoom",
+  "notaFitImage": "Sesuaikan lebar",
+  "notaFullscreen": "Layar penuh",
+  "notaStubBanner": "Mode contoh: pembaca AI belum diaktifkan di server, jadi ini hasil contoh tetap — foto Anda TIDAK dibaca. Semua foto akan menampilkan hasil yang sama sampai fitur ini diaktifkan."
 }

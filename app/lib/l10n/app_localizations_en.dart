@@ -907,4 +907,17 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notaCameraDenied =>
       'Camera access is needed to photograph a nota.';
+
+  @override
+  String get notaPanHint => 'Drag · double-tap or pinch to zoom';
+
+  @override
+  String get notaFitImage => 'Fit to width';
+
+  @override
+  String get notaFullscreen => 'Full screen';
+
+  @override
+  String get notaStubBanner =>
+      'Demo mode: the AI reader is not switched on for this server yet, so this is a fixed sample — it did NOT read your photo. Every photo will show the same result until it is enabled.';
 }

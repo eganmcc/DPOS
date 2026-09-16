@@ -907,4 +907,17 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get notaCameraDenied => 'Akses kamera diperlukan untuk memotret nota.';
+
+  @override
+  String get notaPanHint => 'Geser · ketuk 2x atau cubit untuk zoom';
+
+  @override
+  String get notaFitImage => 'Sesuaikan lebar';
+
+  @override
+  String get notaFullscreen => 'Layar penuh';
+
+  @override
+  String get notaStubBanner =>
+      'Mode contoh: pembaca AI belum diaktifkan di server, jadi ini hasil contoh tetap — foto Anda TIDAK dibaca. Semua foto akan menampilkan hasil yang sama sampai fitur ini diaktifkan.';
 }

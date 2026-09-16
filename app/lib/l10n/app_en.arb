@@ -436,5 +436,9 @@
     }
   },
   "notaReadAnother": "Read another nota",
-  "notaCameraDenied": "Camera access is needed to photograph a nota."
+  "notaCameraDenied": "Camera access is needed to photograph a nota.",
+  "notaPanHint": "Drag · double-tap or pinch to zoom",
+  "notaFitImage": "Fit to width",
+  "notaFullscreen": "Full screen",
+  "notaStubBanner": "Demo mode: the AI reader is not switched on for this server yet, so this is a fixed sample — it did NOT read your photo. Every photo will show the same result until it is enabled."
 }
