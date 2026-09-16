@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-10._
+_Last updated: 2026-09-16._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,18 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-16 — nota reader (read-only), live on `main` and EC2.** `POST /api/v1/nota/read` + the
+> **Baca nota** screen (scan icon in the POS app bar): photograph a handwritten nota and see what it
+> says — number, date, name, verbatim lines, written total vs line sum, unclear fields. **Nothing is
+> stored and no sale is created.** Reader is `claude-sonnet-5` via structured output, but **only when
+> `ANTHROPIC_API_KEY` is set**; without it (the case on EC2 today) a stub returns a fixed laundry
+> nota (Edward · 1. M. KECIL · Rp 65.000) for every photo. Adding the key to `/opt/dpos/server/.env`
+> sends photos outside ap-southeast-3 — needs a Constitution VII exception + merchant consent first.
+> **Server change outside git:** `client_max_body_size 8m;` added to the 443 block of
+> `/etc/nginx/conf.d/dpos.conf` (backup `dpos.conf.bak-nota`) — nginx's 1 MB default returned 413
+> on detailed photos before Node saw them. Phone has build **2082** (`dist/DIKASIR-0.1.0-2082.apk`).
+> Suite: **11 suites / 63 tests**. Plan for turning nota into sales: `~/.claude/plans/i-want-the-pos-zesty-crab.md` (earlier revision).
 
 > **2026-09-10 (later) — payment screen redesigned to the visual system, on `feat/payment-methods`.**
 > Rebuilt as `app/lib/features/payment/payment_screen.dart` from the handoff canvas *DPOS Checkout
