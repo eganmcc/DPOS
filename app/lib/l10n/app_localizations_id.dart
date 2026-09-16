@@ -803,4 +803,108 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get tabEwallet => 'E-Wallet';
+
+  @override
+  String get notaTitle => 'Baca nota';
+
+  @override
+  String get notaIntro =>
+      'Foto nota tulisan tangan dan DPOS akan membacanya. Tidak ada yang disimpan.';
+
+  @override
+  String get notaTakePhoto => 'Ambil foto';
+
+  @override
+  String get notaChooseGallery => 'Pilih dari galeri';
+
+  @override
+  String get notaRetake => 'Foto ulang';
+
+  @override
+  String get notaReading => 'Membaca nota…';
+
+  @override
+  String get notaReadingHint => 'Bisa memakan waktu hingga setengah menit.';
+
+  @override
+  String get notaResultTitle => 'Hasil bacaan DPOS';
+
+  @override
+  String get notaNumber => 'No. nota';
+
+  @override
+  String get notaDate => 'Tanggal';
+
+  @override
+  String get notaCustomer => 'Nama';
+
+  @override
+  String get notaItems => 'Item';
+
+  @override
+  String get notaColItem => 'Keterangan';
+
+  @override
+  String get notaColQty => 'Qty';
+
+  @override
+  String get notaColPrice => 'Harga';
+
+  @override
+  String get notaColTotal => 'Jumlah';
+
+  @override
+  String get notaTotalWritten => 'Total di nota';
+
+  @override
+  String get notaLinesSum => 'Jumlah per baris';
+
+  @override
+  String get notaTotalMismatch =>
+      'Jumlah per baris tidak sama dengan total yang tertulis — periksa fotonya.';
+
+  @override
+  String get notaUnreadable => 'Tidak terbaca';
+
+  @override
+  String get notaNoItems => 'Tidak ada baris item yang terbaca.';
+
+  @override
+  String get notaUnclearTitle => 'Kurang jelas terbaca';
+
+  @override
+  String notaConfidence(int pct) {
+    return 'Keyakinan $pct%';
+  }
+
+  @override
+  String notaReadBy(String model, String secs) {
+    return 'Dibaca oleh $model dalam $secs dtk';
+  }
+
+  @override
+  String get notaRawData => 'Data mentah';
+
+  @override
+  String get notaErrorUnsupported =>
+      'File bukan foto yang didukung. Gunakan JPEG atau PNG.';
+
+  @override
+  String get notaErrorTooLarge =>
+      'Foto terlalu besar. Coba lagi dengan kamera.';
+
+  @override
+  String get notaErrorUnreadable =>
+      'Nota tidak dapat dibaca. Coba foto yang lebih jelas dan dekat.';
+
+  @override
+  String notaErrorGeneric(String code) {
+    return 'Gagal membaca ($code). Periksa koneksi lalu coba lagi.';
+  }
+
+  @override
+  String get notaReadAnother => 'Baca nota lain';
+
+  @override
+  String get notaCameraDenied => 'Akses kamera diperlukan untuk memotret nota.';
 }

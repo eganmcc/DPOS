@@ -12,6 +12,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../nota/nota_reader_screen.dart';
 import '../payment/payment_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
@@ -80,6 +81,15 @@ class OrderScreen extends ConsumerWidget {
                 ),
               ),
             ),
+          // Icon, not a label: this app bar already carries the table chip, Pesanan and Riwayat,
+          // and one more word overflows on a phone.
+          IconButton(
+            tooltip: t.notaTitle,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const NotaReaderScreen()),
+            ),
+            icon: const Icon(Icons.document_scanner_outlined),
+          ),
           TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const TransactionsScreen()),

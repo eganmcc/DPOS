@@ -1597,6 +1597,192 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'E-Wallet'**
   String get tabEwallet;
+
+  /// No description provided for @notaTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Read nota'**
+  String get notaTitle;
+
+  /// No description provided for @notaIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Take a photo of a handwritten nota and DPOS will read it for you. Nothing is saved.'**
+  String get notaIntro;
+
+  /// No description provided for @notaTakePhoto.
+  ///
+  /// In en, this message translates to:
+  /// **'Take photo'**
+  String get notaTakePhoto;
+
+  /// No description provided for @notaChooseGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose from gallery'**
+  String get notaChooseGallery;
+
+  /// No description provided for @notaRetake.
+  ///
+  /// In en, this message translates to:
+  /// **'Retake'**
+  String get notaRetake;
+
+  /// No description provided for @notaReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the nota…'**
+  String get notaReading;
+
+  /// No description provided for @notaReadingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'This can take up to half a minute.'**
+  String get notaReadingHint;
+
+  /// No description provided for @notaResultTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'What DPOS read'**
+  String get notaResultTitle;
+
+  /// No description provided for @notaNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota no.'**
+  String get notaNumber;
+
+  /// No description provided for @notaDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get notaDate;
+
+  /// No description provided for @notaCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get notaCustomer;
+
+  /// No description provided for @notaItems.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get notaItems;
+
+  /// No description provided for @notaColItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get notaColItem;
+
+  /// No description provided for @notaColQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get notaColQty;
+
+  /// No description provided for @notaColPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get notaColPrice;
+
+  /// No description provided for @notaColTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get notaColTotal;
+
+  /// No description provided for @notaTotalWritten.
+  ///
+  /// In en, this message translates to:
+  /// **'Total on the nota'**
+  String get notaTotalWritten;
+
+  /// No description provided for @notaLinesSum.
+  ///
+  /// In en, this message translates to:
+  /// **'Sum of the lines'**
+  String get notaLinesSum;
+
+  /// No description provided for @notaTotalMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The lines don\'t add up to the written total — check the photo.'**
+  String get notaTotalMismatch;
+
+  /// No description provided for @notaUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not readable'**
+  String get notaUnreadable;
+
+  /// No description provided for @notaNoItems.
+  ///
+  /// In en, this message translates to:
+  /// **'No item lines could be read.'**
+  String get notaNoItems;
+
+  /// No description provided for @notaUnclearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t read clearly'**
+  String get notaUnclearTitle;
+
+  /// No description provided for @notaConfidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Confidence {pct}%'**
+  String notaConfidence(int pct);
+
+  /// No description provided for @notaReadBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Read by {model} in {secs}s'**
+  String notaReadBy(String model, String secs);
+
+  /// No description provided for @notaRawData.
+  ///
+  /// In en, this message translates to:
+  /// **'Raw data'**
+  String get notaRawData;
+
+  /// No description provided for @notaErrorUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'That file isn\'t a supported photo. Use JPEG or PNG.'**
+  String get notaErrorUnsupported;
+
+  /// No description provided for @notaErrorTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'That photo is too large. Try again with the camera.'**
+  String get notaErrorTooLarge;
+
+  /// No description provided for @notaErrorUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The nota couldn\'t be read. Try a clearer, closer photo.'**
+  String get notaErrorUnreadable;
+
+  /// No description provided for @notaErrorGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading failed ({code}). Check the connection and try again.'**
+  String notaErrorGeneric(String code);
+
+  /// No description provided for @notaReadAnother.
+  ///
+  /// In en, this message translates to:
+  /// **'Read another nota'**
+  String get notaReadAnother;
+
+  /// No description provided for @notaCameraDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera access is needed to photograph a nota.'**
+  String get notaCameraDenied;
 }
 
 class _AppLocalizationsDelegate
