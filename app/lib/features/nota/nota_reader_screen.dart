@@ -17,6 +17,10 @@ import 'nota_photo_viewer.dart';
 
 enum _Stage { idle, reading, done, failed }
 
+/// Longest edge a nota photo is downscaled to before upload. One number, one place, because it
+/// is the cost dial for the whole feature (input tokens scale with pixel area).
+const double kNotaMaxPixels = 600;
+
 /// Photograph a handwritten nota and show what DPOS reads off it.
 ///
 /// Read-only by design: nothing is saved and no sale is created. This screen exists to find out
@@ -54,12 +58,15 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     final t = AppLocalizations.of(context)!;
     XFile? picked;
     try {
-      // 1600px on the long edge at q85 keeps handwriting legible while holding the upload to a few
-      // hundred kB — faster over mobile data, and a predictable size for the model call.
+      // Input tokens scale with pixel AREA, so this is the cost dial: measured on one nota,
+      // 600px costs ~641 image tokens against ~4,469 at 1600px — roughly Rp 106 vs Rp 416 of
+      // input per read. It buys almost no speed (the model takes ~4s either way), only money.
+      // The open risk is legibility: a faint pencil digit may not survive the downscale, so
+      // compare a real slip at both sizes before treating this as settled.
       picked = await _picker.pickImage(
         source: source,
-        maxWidth: 1600,
-        maxHeight: 1600,
+        maxWidth: kNotaMaxPixels,
+        maxHeight: kNotaMaxPixels,
         imageQuality: 85,
       );
     } catch (_) {
@@ -90,8 +97,14 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     final t = AppLocalizations.of(context)!;
     setState(() => _stage = _Stage.reading);
     try {
+      final sentBytes = _photoBytes?.length ?? 0;
       final json = await ref.read(apiClientProvider).readNota(photo.path);
       if (!mounted) return;
+      // Logged so a reading can be pulled off the device with `adb logcat -s flutter:V` and
+      // compared against the paper. Contains whatever was written on the slip, customer name
+      // included — fine while this is being trialled on your own nota, not for a live fleet.
+      debugPrint('NOTA_READ sent=${sentBytes}B maxPx=${kNotaMaxPixels.toInt()} '
+          'result=${jsonEncode(json)}');
       setState(() {
         _reading = NotaReading.fromJson(json);
         _stage = _Stage.done;

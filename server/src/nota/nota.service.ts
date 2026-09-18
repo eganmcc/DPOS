@@ -53,6 +53,11 @@ export class NotaService {
       `nota read via ${this.vision.name}: ${extraction.items.length} line(s), ` +
         `confidence ${extraction.confidence}, ${latencyMs}ms, ${image.length} bytes`,
     );
+    // The full extraction, so a reading can be compared against the paper from the server side
+    // (`journalctl -u dpos | grep NOTA_RESULT`). This includes whatever the slip says, customer
+    // name included — acceptable while the feature is being trialled on the owner's own nota,
+    // but it must go before real merchants' slips run through it.
+    this.logger.log(`NOTA_RESULT ${JSON.stringify(extraction)}`);
 
     return { ...extraction, model: this.vision.name, latencyMs };
   }
