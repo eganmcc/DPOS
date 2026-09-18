@@ -18,12 +18,20 @@ type Config = {
   thinkingDisabled: boolean;
 };
 
+/**
+ * The shortlist for "which model reads a real slip well enough".
+ *
+ * Latency is already settled and is NOT what this script is for — measured on a 600x800 page on
+ * EC2, warm: Opus 5 ~2.9s, Sonnet 5 ~2.3s, Haiku 4.5 ~1.4s, and real slips run ~0.8s slower than
+ * that. The open question is only whether the faster models still read the handwriting, which
+ * needs real slips and therefore has to run on the machine that holds them.
+ *
+ * `effort` is ignored for Haiku, which rejects the parameter outright.
+ */
 const CONFIGS: Config[] = [
-  { label: 'sonnet-5 · high · thinking', model: 'claude-sonnet-5', effort: 'high', thinkingDisabled: false },
-  { label: 'sonnet-5 · low · no thinking', model: 'claude-sonnet-5', effort: 'low', thinkingDisabled: true },
-  { label: 'opus-5 · low · no thinking', model: 'claude-opus-5', effort: 'low', thinkingDisabled: true },
-  { label: 'opus-5 · medium · no thinking', model: 'claude-opus-5', effort: 'medium', thinkingDisabled: true },
-  { label: 'haiku-4-5 · low · no thinking', model: 'claude-haiku-4-5', effort: 'low', thinkingDisabled: true },
+  { label: 'opus-5 · medium', model: 'claude-opus-5', effort: 'medium', thinkingDisabled: true },
+  { label: 'sonnet-5 · medium', model: 'claude-sonnet-5', effort: 'medium', thinkingDisabled: true },
+  { label: 'haiku-4-5', model: 'claude-haiku-4-5-20251001', effort: 'low', thinkingDisabled: true },
 ];
 
 /** A one-line fingerprint of the extraction, so two runs can be compared at a glance. */

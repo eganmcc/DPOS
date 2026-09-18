@@ -36,6 +36,14 @@ export const WireSchema = z.object({
   conf: z.number().int(),
 });
 
+/**
+ * Whether this model accepts an `effort` level. Haiku 4.5 does not, and rejects the whole request
+ * rather than ignoring the field, so the check is by model rather than by trial.
+ */
+export function modelSupportsEffort(model: string): boolean {
+  return !/haiku/i.test(model);
+}
+
 /** Back to the names the rest of the system speaks. The wire shape stops at this file. */
 export function toExtraction(w: z.infer<typeof WireSchema>): NotaExtraction {
   return {
@@ -153,7 +161,10 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
       ],
       output_config: {
         format: zodOutputFormat(WireSchema),
-        effort: this.effort,
+        // Not every model accepts an effort level — Haiku 4.5 answers `400 This model does not
+        // support the effort parameter`. Sending it unconditionally would turn NOTA_VISION_MODEL
+        // into a switch that breaks the reader instead of changing it.
+        ...(modelSupportsEffort(this.model) ? { effort: this.effort } : {}),
       },
     });
 
