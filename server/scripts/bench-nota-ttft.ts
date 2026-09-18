@@ -30,6 +30,19 @@ const MODEL = process.env.NOTA_VISION_MODEL ?? 'claude-opus-5';
 const EFFORT = (process.env.NOTA_VISION_EFFORT ?? 'medium') as 'low' | 'medium' | 'high';
 /** NOTA_BENCH_CACHE=1 marks the system block cacheable, to see whether the prefix qualifies. */
 const CACHE = process.env.NOTA_BENCH_CACHE === '1';
+/**
+ * NOTA_BENCH_FREEFORM=1 drops structured output and asks for the same JSON in the prompt.
+ *
+ * Structured output constrains every token as it is decoded, and the measured ~13-22ms per output
+ * token is slow enough to suspect that constraint is being paid for. If free-form generation is
+ * materially faster, the reader can parse and validate the JSON itself and keep the same guarantee
+ * — a reading either satisfies the schema or is rejected — without paying for it during decoding.
+ */
+const FREEFORM = process.env.NOTA_BENCH_FREEFORM === '1';
+
+/** The schema, spelled out for the model when structured output is not doing it for us. */
+const FREEFORM_INSTRUCTION = `Reply with ONLY a JSON object, no markdown fence and no commentary:
+{"no":string|null,"dt":string|null,"cust":string|null,"it":[{"raw":string,"q":number|null,"up":number|null,"lt":number|null}],"tot":number|null,"unc":[string],"conf":number}`;
 
 type Run = {
   ttft: number;
@@ -39,6 +52,7 @@ type Run = {
   chars: number;
   cacheWrite: number;
   cacheRead: number;
+  valid: boolean;
 };
 
 async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run> {
@@ -51,8 +65,16 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
     max_tokens: 4096,
     thinking: { type: 'disabled' },
     system: CACHE
-      ? [{ type: 'text' as const, text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' as const } }]
-      : SYSTEM_PROMPT,
+      ? [
+          {
+            type: 'text' as const,
+            text: FREEFORM ? `${SYSTEM_PROMPT}\n\n${FREEFORM_INSTRUCTION}` : SYSTEM_PROMPT,
+            cache_control: { type: 'ephemeral' as const },
+          },
+        ]
+      : FREEFORM
+        ? `${SYSTEM_PROMPT}\n\n${FREEFORM_INSTRUCTION}`
+        : SYSTEM_PROMPT,
     messages: [
       {
         role: 'user',
@@ -65,17 +87,31 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(WireSchema), effort: EFFORT },
+    ...(FREEFORM
+      ? { output_config: { effort: EFFORT } }
+      : { output_config: { format: zodOutputFormat(WireSchema), effort: EFFORT } }),
   });
 
+  let body = '';
   for await (const event of stream) {
     if (event.type === 'content_block_delta') {
       if (!ttft) ttft = Date.now() - t0;
       const d = event.delta as { text?: string; partial_json?: string };
-      chars += (d.text ?? d.partial_json ?? '').length;
+      const piece = d.text ?? d.partial_json ?? '';
+      chars += piece.length;
+      body += piece;
     }
   }
   const final = await stream.finalMessage();
+  // A faster reading that does not satisfy the schema is not a faster reading. Free-form mode has
+  // to clear the same bar structured output clears for free.
+  let valid: boolean;
+  try {
+    WireSchema.parse(JSON.parse(body.replace(/^```(?:json)?|```$/g, '').trim()));
+    valid = true;
+  } catch {
+    valid = false;
+  }
   return {
     ttft,
     total: Date.now() - t0,
@@ -84,6 +120,7 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
     chars,
     cacheWrite: final.usage.cache_creation_input_tokens ?? 0,
     cacheRead: final.usage.cache_read_input_tokens ?? 0,
+    valid,
   };
 }
 
@@ -130,7 +167,7 @@ async function main() {
     console.log(
       `  ${String(i).padEnd(3)} ${(r.ttft + ' ms').padStart(9)} ${(gen + ' ms').padStart(11)} ` +
         `${(r.total + ' ms').padStart(9)} ${String(r.inTok).padStart(9)} ${String(r.outTok).padStart(9)} ` +
-        `${(r.outTok ? (gen / r.outTok).toFixed(1) : '-').padStart(13)}   ${r.cacheWrite}/${r.cacheRead}`,
+        `${(r.outTok ? (gen / r.outTok).toFixed(1) : '-').padStart(13)}   ${r.cacheWrite}/${r.cacheRead}  ${r.valid ? 'ok' : 'BAD JSON'}`,
     );
   }
 
