@@ -15,6 +15,36 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-18 (models) — Opus 5 is the only reader that gets the money right. Haiku is not an
+> option.** Compared on all three real laundry slips at 600px and 1200px, through the live
+> endpoint via the new owner-only `?model=` override:
+>
+> | Slip | Opus 5 | Sonnet 5 | Haiku 4.5 |
+> |---|---|---|---|
+> | 1900 | correct, c88 | correct, c80 | lost the price |
+> | 2237 | correct, c90 | correct, c75 | **total 120000, paper says 130000** |
+> | 2532 | correct incl. `spre=1`, `S/B GULING=4`, `pkn=46`, c88 | dropped all three extra lines, c62 | **total 260000**, read the loose "2" as the amount |
+>
+> **Haiku got the total wrong on two of three slips, and 1200px did not fix it** (still 120000 and
+> 260000) — it is misreading, not under-resolving. Sonnet keeps the totals but silently drops
+> lines on 2532, which is arguably worse: a missing line looks like a clean read. Opus is the only
+> one that reads 2532 completely.
+>
+> **So the ~4s wait is the price of a correct total, and it stays.** Opus at 600px (3.3-5.8s) is
+> as good as Opus at 1200px (4.4-5.0s) and slightly faster — at 1200px it mangled the shorthand
+> into `S/B 6uLIN6` — so **600px stays the setting**. Latency per model on these slips: Opus
+> 3.3-5.8s, Sonnet 2.6-3.2s, Haiku 2.0-2.3s.
+>
+> Testing this needed neither a production restart nor sending slips to the API from a laptop:
+> `POST /nota/read?model=` picks the reader for one request, OWNER-only and allowlisted to the
+> three candidates (`EVALUATION_MODELS`), because choosing the model chooses the bill. The app
+> never sends it. **12 suites / 69 tests.**
+>
+> What is left for the wait is perception, not seconds: cache a reading by image hash so a
+> re-read is instant, or stream the reading so the nota number lands at ~1.7s. Nothing makes Opus
+> faster.
+
+
 > **2026-09-18 (latest) — the nota reader's wait is the model, and nothing else.** Measured on the
 > phone (build 2088, `adb logcat | grep NOTA_TIMING`):
 >
