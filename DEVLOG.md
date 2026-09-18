@@ -15,6 +15,33 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-18 (later) — the nota reader's ~4s, measured properly.** `scripts/bench-nota-ttft.ts`
+> splits the one opaque `latencyMs` into time-to-first-token and generation. On EC2, Opus 5,
+> effort medium, 600x800 page: **TTFT ~1.6-1.8s, then ~13ms per output token.** Four levers were
+> tried and only one of them is real:
+>
+> | Lever | Result |
+> |---|---|
+> | Prompt caching (`cache_control` on the system block) | **No speed change at all.** Input fell 2144 -> 651 tokens and TTFT did not budge, so the 1.6s is *not* prefill. **Kept for cost**, not speed. |
+> | Fewer output tokens (terse wire schema + no prose in `unclear[]`) | Output **181 -> 69 tokens**, generation 2144 -> 1527ms on a dense page. **Invisible on a real 2-line slip**, whose output was already tiny. |
+> | `effort: low` | **3538ms vs 3280ms at medium — no faster.** Not a speed lever; dropped without risking accuracy. |
+> | Keep-alive for a cold connection | **Not a real effect.** The cold-run penalty measured +1222ms, +705ms, +14ms, -252ms across runs. It was noise. Dropped. |
+>
+> Net: input cost down ~70%, output tokens down 62%, **wall clock unchanged for short slips**.
+> Live reads of a real slip after the change: 3634 / 4637 / 5669 ms — a +-1s spread that swamps
+> any of the above. **The floor is ~1.7s of fixed overhead before the first token plus ~1.2-1.5s
+> of generation, and nothing short of a different model moves it.** The only untried option is
+> streaming the reading to the app so the nota number appears at ~1.7s instead of the whole thing
+> at ~4s; that is perceived latency, not real, and it is half a day on `/nota/read`.
+>
+> The model now fills a terse wire schema (`no`/`dt`/`cust`/`it`/`raw`/`q`/`up`/`lt`) renamed back
+> to `NotaExtraction` in `claude.provider.ts` — the API and the app are unchanged. That rename is
+> where a nota's money could go silently wrong, so `test/nota.wire.e2e-spec.ts` pins it.
+> **12 suites / 66 tests.** App also logs `NOTA_TIMING capture/roundTrip/model/network`
+> (`adb logcat | grep NOTA_TIMING`) — the phone's share of the wait has never actually been
+> measured, only the server's.
+
+
 > **2026-09-18 — nota reader: 600 px photos, and the full reading in the log.** Two changes on
 > `main` @ `b27b179`. (1) The app now downscales to **600 px** before upload (`kNotaMaxPixels` in
 > `nota_reader_screen.dart`, was 1600). Image tokens scale with **pixel area**, not file size —
