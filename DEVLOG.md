@@ -15,6 +15,35 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-18 (latest) — the nota reader's wait is the model, and nothing else.** Measured on the
+> phone (build 2088, `adb logcat | grep NOTA_TIMING`):
+>
+> ```
+> afterSelect=3890ms = resize=30ms + roundTrip=3860ms (model=3729ms + network=131ms)
+> ```
+>
+> **The app and the network are 161ms of 3890ms.** An earlier reading showed `capture=14606ms`,
+> which looked alarming until the resize was separated from the picker: `pickImage(maxWidth:)`
+> performs the downscale inside the same call the user spends browsing the gallery, so the two
+> could not be told apart. Picking at full size and resizing with `flutter_image_compress` puts
+> the resize at **30ms** — the 14.6s was a human choosing a photo. Every phone-side theory about
+> why the reader feels slow is now retired.
+>
+> Six server-side levers were measured and **none of them moved the total**: prompt caching (cost
+> win only, TTFT unchanged), fewer output tokens (181 -> 69, invisible on a 2-line slip),
+> `effort: low` (not faster), a keep-alive for cold connections (the effect was noise), free-form
+> JSON instead of structured output (faster per token, more tokens, net wash), and streaming vs
+> `messages.parse()` (3030ms vs 2986ms — identical). **Opus 5's floor here is ~1.7s before the
+> first token plus ~1.2-2s generating.** Nothing in the request shape changes it.
+>
+> What did land: input cost down ~70%, output tokens down 62%, and accuracy slightly *better* —
+> the terse `unc` schema reads `"31 pc"` as qty 31 where the old prompt returned null, and returns
+> `["tanggal"]` instead of a sentence. **The only remaining option is streaming the reading to the
+> app** so the nota number lands at ~1.7s instead of everything at ~3.9s. That is perceived
+> latency, not real, and it is the honest answer to "why is Claude web faster" — it is not, it
+> just shows the words as they arrive.
+
+
 > **2026-09-18 (later) — the nota reader's ~4s, measured properly.** `scripts/bench-nota-ttft.ts`
 > splits the one opaque `latencyMs` into time-to-first-token and generation. On EC2, Opus 5,
 > effort medium, 600x800 page: **TTFT ~1.6-1.8s, then ~13ms per output token.** Four levers were
