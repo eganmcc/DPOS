@@ -39,6 +39,15 @@ const CACHE = process.env.NOTA_BENCH_CACHE === '1';
  * — a reading either satisfies the schema or is rejected — without paying for it during decoding.
  */
 const FREEFORM = process.env.NOTA_BENCH_FREEFORM === '1';
+/**
+ * NOTA_BENCH_NOSTREAM=1 uses `messages.parse()` — exactly what the live reader does.
+ *
+ * Worth isolating because the benchmark and production disagree: streamed reads of a 600x800 page
+ * finish in ~3.0s while the live endpoint reports 3.6-5.7s for a slip of the same dimensions. If a
+ * non-streaming request is simply slower to deliver, the reader can stream internally, accumulate,
+ * and still hand the app one complete JSON response — a speed win that costs no contract change.
+ */
+const NOSTREAM = process.env.NOTA_BENCH_NOSTREAM === '1';
 
 /** The schema, spelled out for the model when structured output is not doing it for us. */
 const FREEFORM_INSTRUCTION = `Reply with ONLY a JSON object, no markdown fence and no commentary:
@@ -60,7 +69,7 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
   let ttft = 0;
   let chars = 0;
 
-  const stream = client.messages.stream({
+  const request = {
     model: MODEL,
     max_tokens: 4096,
     thinking: { type: 'disabled' },
@@ -90,7 +99,36 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
     ...(FREEFORM
       ? { output_config: { effort: EFFORT } }
       : { output_config: { format: zodOutputFormat(WireSchema), effort: EFFORT } }),
-  });
+  } as Parameters<typeof client.messages.stream>[0];
+
+  // No first-token event exists without streaming, so TTFT is reported as the whole wait — which
+  // is precisely the point being measured.
+  if (NOSTREAM) {
+    const res = await client.messages.parse(request as never);
+    const total = Date.now() - t0;
+    const text = res.content
+      .map((b) => ('text' in b ? b.text : ''))
+      .join('');
+    let ok: boolean;
+    try {
+      WireSchema.parse(res.parsed_output ?? JSON.parse(text));
+      ok = true;
+    } catch {
+      ok = false;
+    }
+    return {
+      ttft: total,
+      total,
+      inTok: res.usage.input_tokens,
+      outTok: res.usage.output_tokens,
+      chars: text.length,
+      cacheWrite: res.usage.cache_creation_input_tokens ?? 0,
+      cacheRead: res.usage.cache_read_input_tokens ?? 0,
+      valid: ok,
+    };
+  }
+
+  const stream = client.messages.stream(request);
 
   let body = '';
   for await (const event of stream) {
