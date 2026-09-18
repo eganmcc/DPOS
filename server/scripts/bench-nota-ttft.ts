@@ -24,8 +24,7 @@ import 'dotenv/config';
 import * as fs from 'fs';
 import Anthropic from '@anthropic-ai/sdk';
 import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod';
-import { SYSTEM_PROMPT } from '../src/nota/vision/claude.provider';
-import { NotaExtractionSchema } from '../src/nota/vision/nota-vision.provider';
+import { SYSTEM_PROMPT, WireSchema } from '../src/nota/vision/claude.provider';
 
 const MODEL = process.env.NOTA_VISION_MODEL ?? 'claude-opus-5';
 const EFFORT = (process.env.NOTA_VISION_EFFORT ?? 'medium') as 'low' | 'medium' | 'high';
@@ -66,7 +65,7 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
         ],
       },
     ],
-    output_config: { format: zodOutputFormat(NotaExtractionSchema), effort: EFFORT },
+    output_config: { format: zodOutputFormat(WireSchema), effort: EFFORT },
   });
 
   for await (const event of stream) {
@@ -114,7 +113,7 @@ async function main() {
     model: MODEL,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: [{ type: 'text', text: 'Read this nota.' }] }],
-    output_config: { format: zodOutputFormat(NotaExtractionSchema) },
+    output_config: { format: zodOutputFormat(WireSchema) },
   });
   console.log(
     `  system prompt + instruction: ${bare.input_tokens} tok · with schema: ${withSchema.input_tokens} tok ` +
