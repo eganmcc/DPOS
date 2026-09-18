@@ -140,6 +140,7 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
       body += piece;
     }
   }
+  if (process.env.NOTA_BENCH_SHOW === '1') console.log(`    first 110 chars: ${body.slice(0, 110)}`);
   const final = await stream.finalMessage();
   // A faster reading that does not satisfy the schema is not a faster reading. Free-form mode has
   // to clear the same bar structured output clears for free.
