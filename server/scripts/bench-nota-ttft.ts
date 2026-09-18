@@ -29,8 +29,18 @@ import { NotaExtractionSchema } from '../src/nota/vision/nota-vision.provider';
 
 const MODEL = process.env.NOTA_VISION_MODEL ?? 'claude-opus-5';
 const EFFORT = (process.env.NOTA_VISION_EFFORT ?? 'medium') as 'low' | 'medium' | 'high';
+/** NOTA_BENCH_CACHE=1 marks the system block cacheable, to see whether the prefix qualifies. */
+const CACHE = process.env.NOTA_BENCH_CACHE === '1';
 
-type Run = { ttft: number; total: number; inTok: number; outTok: number; chars: number };
+type Run = {
+  ttft: number;
+  total: number;
+  inTok: number;
+  outTok: number;
+  chars: number;
+  cacheWrite: number;
+  cacheRead: number;
+};
 
 async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run> {
   const t0 = Date.now();
@@ -41,7 +51,9 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
     model: MODEL,
     max_tokens: 4096,
     thinking: { type: 'disabled' },
-    system: SYSTEM_PROMPT,
+    system: CACHE
+      ? [{ type: 'text' as const, text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' as const } }]
+      : SYSTEM_PROMPT,
     messages: [
       {
         role: 'user',
@@ -71,6 +83,8 @@ async function once(client: Anthropic, image: Buffer, mime: string): Promise<Run
     inTok: final.usage.input_tokens,
     outTok: final.usage.output_tokens,
     chars,
+    cacheWrite: final.usage.cache_creation_input_tokens ?? 0,
+    cacheRead: final.usage.cache_read_input_tokens ?? 0,
   };
 }
 
@@ -83,8 +97,31 @@ async function main() {
   const mime = file.endsWith('.png') ? 'image/png' : 'image/jpeg';
   const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
 
-  console.log(`${MODEL} · effort ${EFFORT} · thinking off · ${(image.length / 1024).toFixed(0)} kB\n`);
-  console.log('  run        TTFT    generate     total    in tok   out tok    ms/out tok');
+  console.log(
+    `${MODEL} · effort ${EFFORT} · thinking off · ${(image.length / 1024).toFixed(0)} kB` +
+      `${CACHE ? ' · prompt caching ON' : ''}\n`,
+  );
+
+  // Where the non-image input tokens live. The system prompt is only part of it — structured
+  // output injects the JSON schema too — and that split decides whether marking the system block
+  // cacheable can even reach the model's minimum cacheable prefix.
+  const bare = await client.messages.countTokens({
+    model: MODEL,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'Read this nota.' }] }],
+  });
+  const withSchema = await client.messages.countTokens({
+    model: MODEL,
+    system: SYSTEM_PROMPT,
+    messages: [{ role: 'user', content: [{ type: 'text', text: 'Read this nota.' }] }],
+    output_config: { format: zodOutputFormat(NotaExtractionSchema) },
+  });
+  console.log(
+    `  system prompt + instruction: ${bare.input_tokens} tok · with schema: ${withSchema.input_tokens} tok ` +
+      `(schema costs ${withSchema.input_tokens - bare.input_tokens})\n`,
+  );
+
+  console.log('  run        TTFT    generate     total    in tok   out tok    ms/out tok   cache w/r');
 
   const all: Run[] = [];
   for (let i = 1; i <= runs; i++) {
@@ -94,7 +131,7 @@ async function main() {
     console.log(
       `  ${String(i).padEnd(3)} ${(r.ttft + ' ms').padStart(9)} ${(gen + ' ms').padStart(11)} ` +
         `${(r.total + ' ms').padStart(9)} ${String(r.inTok).padStart(9)} ${String(r.outTok).padStart(9)} ` +
-        `${(r.outTok ? (gen / r.outTok).toFixed(1) : '-').padStart(13)}`,
+        `${(r.outTok ? (gen / r.outTok).toFixed(1) : '-').padStart(13)}   ${r.cacheWrite}/${r.cacheRead}`,
     );
   }
 
