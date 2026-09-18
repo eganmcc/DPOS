@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-16._
+_Last updated: 2026-09-18._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,26 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-18 — nota reader: 600 px photos, and the full reading in the log.** Two changes on
+> `main` @ `b27b179`. (1) The app now downscales to **600 px** before upload (`kNotaMaxPixels` in
+> `nota_reader_screen.dart`, was 1600). Image tokens scale with **pixel area**, not file size —
+> measured 641 tokens at 600 px vs 4469 at 1600 px, so this is a ~7x cut in input cost, and it does
+> **not** change latency (~4 s either way; the model is the wait, not the upload). (2) Both ends now
+> log the whole reading: `NOTA_RESULT <json>` from `NotaService`
+> (`sudo journalctl -u dpos | grep NOTA_RESULT`) and `NOTA_READ sent=<bytes> maxPx=600 result=<json>`
+> from the app (`adb logcat | grep NOTA_READ`). **Both lines contain everything written on the slip,
+> customer name included** — fine while this is trialled on the owner's own nota, but they must go
+> before a real merchant's slips run through it, alongside the Constitution VII residency exception.
+>
+> Reader on EC2 is **`claude-opus-5 · effort medium · thinking off`** (module defaults; no
+> `NOTA_VISION_*` in `/opt/dpos/server/.env`). Verified against one of the real laundry slips on
+> 18 Sep: a 600 px, 42.8 kB copy posted to production came back in **4.2 s** with every field
+> matching the paper at confidence 95 — and critically returned **nulls for the line that has no
+> price** rather than inventing 0, which is what thinking-on runs used to do. So 600 px is legible
+> for this handwriting. **Not yet settled:** whether 900/1200/1600 read *better* on the harder
+> slips. `scripts/bench-nota-size.ts` answers that but is blocked in the cloud sandbox as data
+> exfiltration — run it from a local shell. Phone has build **2086**.
 
 > **2026-09-16 — nota reader (read-only), live on `main` and EC2.** `POST /api/v1/nota/read` + the
 > **Baca nota** screen (scan icon in the POS app bar): photograph a handwritten nota and see what it
