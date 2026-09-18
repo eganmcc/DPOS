@@ -58,10 +58,21 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
   private readonly client: Anthropic;
   readonly name: string;
 
-  constructor(apiKey: string, private readonly model: string) {
-    // 30s covers a slow mobile-network round trip; one retry, because the SDK already retries
-    // 429/5xx itself and a second attempt at a hard failure just doubles the bill.
-    this.client = new Anthropic({ apiKey, timeout: 30_000, maxRetries: 1 });
+  constructor(
+    apiKey: string,
+    private readonly model: string,
+    /**
+     * How hard the model works before answering. Reading a slip is perception, not deduction, so
+     * the default is `low`: at `high` (the API default) the model spends many seconds thinking
+     * about a task where thinking buys very little, and the cashier waits for it.
+     */
+    private readonly effort: 'low' | 'medium' | 'high' | 'xhigh' | 'max' = 'low',
+    /** Set false to let the model think first — slower, worth measuring against on hard slips. */
+    private readonly thinkingDisabled = true,
+  ) {
+    // 45s covers a slow mobile-network round trip on a large photo; one retry, because the SDK
+    // already retries 429/5xx itself and a second attempt at a hard failure just doubles the bill.
+    this.client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
     this.name = model;
   }
 
@@ -69,6 +80,7 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
     const response = await this.client.messages.parse({
       model: this.model,
       max_tokens: 4096,
+      ...(this.thinkingDisabled ? { thinking: { type: 'disabled' as const } } : {}),
       system: SYSTEM_PROMPT,
       messages: [
         {
@@ -86,7 +98,10 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
           ],
         },
       ],
-      output_config: { format: zodOutputFormat(NotaExtractionSchema) },
+      output_config: {
+        format: zodOutputFormat(NotaExtractionSchema),
+        effort: this.effort,
+      },
     });
 
     // parsed_output is null when the model's answer did not satisfy the schema. Surfacing that as
