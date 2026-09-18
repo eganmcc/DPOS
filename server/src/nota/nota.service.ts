@@ -43,14 +43,17 @@ export class NotaService {
     return match.mime;
   }
 
-  async read(image: Buffer): Promise<NotaReadResult> {
+  async read(image: Buffer, modelOverride?: string): Promise<NotaReadResult> {
     const mimeType = this.sniff(image);
     const startedAt = Date.now();
-    const extraction = await this.vision.extract(image, mimeType);
+    const extraction = await this.vision.extract(image, mimeType, modelOverride);
     const latencyMs = Date.now() - startedAt;
+    // The model that actually read it, not the one configured — otherwise an evaluation run would
+    // be reported under the default's name and the comparison would be worthless.
+    const model = modelOverride ?? this.vision.name;
 
     this.logger.log(
-      `nota read via ${this.vision.name}: ${extraction.items.length} line(s), ` +
+      `nota read via ${model}: ${extraction.items.length} line(s), ` +
         `confidence ${extraction.confidence}, ${latencyMs}ms, ${image.length} bytes`,
     );
     // The full extraction, so a reading can be compared against the paper from the server side
@@ -59,6 +62,6 @@ export class NotaService {
     // but it must go before real merchants' slips run through it.
     this.logger.log(`NOTA_RESULT ${JSON.stringify(extraction)}`);
 
-    return { ...extraction, model: this.vision.name, latencyMs };
+    return { ...extraction, model, latencyMs };
   }
 }

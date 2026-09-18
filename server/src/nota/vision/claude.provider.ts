@@ -130,9 +130,10 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
     this.name = model;
   }
 
-  async extract(image: Buffer, mimeType: string): Promise<NotaExtraction> {
+  async extract(image: Buffer, mimeType: string, modelOverride?: string): Promise<NotaExtraction> {
+    const model = modelOverride ?? this.model;
     const response = await this.client.messages.parse({
-      model: this.model,
+      model,
       max_tokens: 4096,
       ...(this.thinkingDisabled ? { thinking: { type: 'disabled' as const } } : {}),
       // Cached because the prompt and the injected schema — ~1,490 tokens — are byte-identical on
@@ -164,7 +165,7 @@ export class ClaudeNotaVisionProvider implements NotaVisionProvider {
         // Not every model accepts an effort level — Haiku 4.5 answers `400 This model does not
         // support the effort parameter`. Sending it unconditionally would turn NOTA_VISION_MODEL
         // into a switch that breaks the reader instead of changing it.
-        ...(modelSupportsEffort(this.model) ? { effort: this.effort } : {}),
+        ...(modelSupportsEffort(model) ? { effort: this.effort } : {}),
       },
     });
 

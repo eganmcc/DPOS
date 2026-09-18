@@ -46,7 +46,23 @@ export interface NotaReadResult extends NotaExtraction {
  */
 export interface NotaVisionProvider {
   readonly name: string;
-  extract(image: Buffer, mimeType: string): Promise<NotaExtraction>;
+  /**
+   * `model` overrides the configured reader for this one request. It exists so two models can be
+   * compared on the same real slip without restarting the server or editing its environment —
+   * accuracy on real handwriting is the only thing that decides which model to run, and it cannot
+   * be answered with a synthetic page.
+   */
+  extract(image: Buffer, mimeType: string, model?: string): Promise<NotaExtraction>;
 }
+
+/**
+ * The only models a request may ask for. An allowlist rather than a free-text model name: this is
+ * a spend lever reachable over HTTP, so it is limited to the three under evaluation.
+ */
+export const EVALUATION_MODELS = [
+  'claude-opus-5',
+  'claude-sonnet-5',
+  'claude-haiku-4-5-20251001',
+] as const;
 
 export const NOTA_VISION_PROVIDER = Symbol('NOTA_VISION_PROVIDER');

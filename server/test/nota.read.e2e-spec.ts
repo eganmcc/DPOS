@@ -121,4 +121,37 @@ describe('Nota reader', () => {
       .attach('file', jpeg(), { filename: 'nota.jpg', contentType: 'image/jpeg' })
       .expect(401);
   });
+
+  // ?model= picks which model reads the slip, and therefore what the read costs. It is an
+  // evaluation affordance, so it is fenced on both sides: who may ask, and what they may ask for.
+  describe('?model= override', () => {
+    it('refuses a cashier — choosing the model chooses the bill', async () => {
+      const res = await api()
+        .post('/api/v1/nota/read?model=claude-haiku-4-5-20251001')
+        .set('Authorization', `Bearer ${fx.cashierToken}`)
+        .attach('file', jpeg(), { filename: 'nota.jpg', contentType: 'image/jpeg' })
+        .expect(403);
+      expect(res.body.code).toBe('NOTA_MODEL_OVERRIDE_FORBIDDEN');
+    });
+
+    it('refuses a model outside the allowlist, even from an owner', async () => {
+      const res = await api()
+        .post('/api/v1/nota/read?model=some-other-model')
+        .set('Authorization', `Bearer ${fx.ownerToken}`)
+        .attach('file', jpeg(), { filename: 'nota.jpg', contentType: 'image/jpeg' })
+        .expect(400);
+      expect(res.body.code).toBe('NOTA_MODEL_NOT_ALLOWED');
+    });
+
+    it('lets an owner name an allowlisted model', async () => {
+      // The stub ignores the override, but the request must be accepted and the reading must come
+      // back reported under the model that was asked for, or a comparison would be meaningless.
+      const res = await api()
+        .post('/api/v1/nota/read?model=claude-sonnet-5')
+        .set('Authorization', `Bearer ${fx.ownerToken}`)
+        .attach('file', jpeg(), { filename: 'nota.jpg', contentType: 'image/jpeg' })
+        .expect(200);
+      expect(res.body.model).toBe('claude-sonnet-5');
+    });
+  });
 });
