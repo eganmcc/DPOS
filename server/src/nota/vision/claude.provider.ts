@@ -19,7 +19,8 @@ import {
  *  - and a total that was never written must come back null rather than be quietly computed,
  *    because an invented total is indistinguishable from a read one.
  */
-const SYSTEM_PROMPT = `You read photographs of Indonesian handwritten sales receipts (nota) and return structured data.
+/** Exported so scripts/bench-nota-tokens.ts measures the real prompt, not an approximation. */
+export const SYSTEM_PROMPT = `You read photographs of Indonesian handwritten sales receipts (nota) and return structured data.
 
 TRANSCRIPTION
 - Transcribe each item line VERBATIM into rawText, including abbreviations, punctuation and capitalisation exactly as written ("1. M. KECIL", "1 M BESAR").
