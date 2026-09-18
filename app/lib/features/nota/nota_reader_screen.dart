@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -54,26 +55,22 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     super.dispose();
   }
 
-  /// How long the picker took to capture, downscale and re-encode, in ms. Logged with the read so
-  /// the wait can be split into phone work, network and model instead of guessed at.
-  int _captureMs = 0;
+  /// How long the downscale took, in ms — measured from the moment the photo was chosen, so it
+  /// excludes however long the user spent framing the shot or browsing the gallery. That split is
+  /// the whole reason the resize is done here instead of inside `pickImage`.
+  int _resizeMs = 0;
+
+  /// When the chosen photo came back from the picker: the start of everything we can control.
+  DateTime? _selectedAt;
 
   Future<void> _pick(ImageSource source) async {
     final t = AppLocalizations.of(context)!;
     XFile? picked;
-    final pickedAt = DateTime.now();
     try {
-      // Input tokens scale with pixel AREA, so this is the cost dial: measured on one nota,
-      // 600px costs ~641 image tokens against ~4,469 at 1600px — roughly Rp 106 vs Rp 416 of
-      // input per read. It buys almost no speed (the model takes ~4s either way), only money.
-      // The open risk is legibility: a faint pencil digit may not survive the downscale, so
-      // compare a real slip at both sizes before treating this as settled.
-      picked = await _picker.pickImage(
-        source: source,
-        maxWidth: kNotaMaxPixels,
-        maxHeight: kNotaMaxPixels,
-        imageQuality: 85,
-      );
+      // Deliberately NO maxWidth/maxHeight: asking image_picker to resize buries the downscale in
+      // the same call as the user's own browsing, and the two cannot be told apart afterwards.
+      // This returns as soon as a photo is chosen; the resize below is ours to measure.
+      picked = await _picker.pickImage(source: source);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -83,8 +80,23 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
       return;
     }
     if (picked == null || !mounted) return; // cancelled
-    final bytes = await picked.readAsBytes();
-    _captureMs = DateTime.now().difference(pickedAt).inMilliseconds;
+    final selectedAt = DateTime.now();
+    _selectedAt = selectedAt;
+
+    // Input tokens scale with pixel AREA, so this is the cost dial: measured on one nota, 600px
+    // costs ~641 image tokens against ~4,469 at 1600px — roughly Rp 106 vs Rp 416 of input per
+    // read. It buys no speed (the model takes ~4s either way), only money. The open risk is
+    // legibility: a faint pencil digit may not survive the downscale.
+    final resized = await FlutterImageCompress.compressWithFile(
+      picked.path,
+      minWidth: kNotaMaxPixels.toInt(),
+      minHeight: kNotaMaxPixels.toInt(),
+      quality: 85,
+    );
+    _resizeMs = DateTime.now().difference(selectedAt).inMilliseconds;
+    // If the platform cannot compress it, send the original rather than failing the read: a slow
+    // upload beats no reading at all, and the server caps the size anyway.
+    final bytes = resized ?? await picked.readAsBytes();
     if (!mounted) return;
     setState(() {
       _photo = File(picked!.path);
@@ -107,12 +119,17 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
       final json = await ref.read(apiClientProvider).readNota(bytes);
       final roundTripMs = DateTime.now().difference(sentAt).inMilliseconds;
       if (!mounted) return;
-      // Where the wait actually goes. `model` is what the server measured around the vision call,
-      // so `roundTrip - model` is everything else: TLS, the uplink, nginx and JSON. `capture`
-      // includes the seconds you spend framing the shot, so read it as an upper bound.
+      // Where the wait actually goes, counted from the instant a photo was chosen — the user's own
+      // framing and browsing is excluded, so `afterSelect` is the part this app is answerable for.
+      // `model` is what the server measured around the vision call, leaving `network` as the TLS,
+      // uplink, nginx and JSON around it.
       final modelMs = (json['latencyMs'] as num?)?.toInt() ?? 0;
-      debugPrint('NOTA_TIMING capture=${_captureMs}ms roundTrip=${roundTripMs}ms '
-          'model=${modelMs}ms network=${roundTripMs - modelMs}ms sent=${bytes.length}B');
+      final afterSelectMs = _selectedAt == null
+          ? roundTripMs
+          : DateTime.now().difference(_selectedAt!).inMilliseconds;
+      debugPrint('NOTA_TIMING afterSelect=${afterSelectMs}ms = resize=${_resizeMs}ms + '
+          'roundTrip=${roundTripMs}ms (model=${modelMs}ms + network=${roundTripMs - modelMs}ms) '
+          'sent=${bytes.length}B');
       // Logged so a reading can be pulled off the device with `adb logcat -s flutter:V` and
       // compared against the paper. Contains whatever was written on the slip, customer name
       // included — fine while this is being trialled on your own nota, not for a live fleet.

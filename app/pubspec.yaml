@@ -48,6 +48,9 @@ dependencies:
   # Brand wordmark font (Quicksand)
   google_fonts: ^6.2.1
   image_picker: ^1.2.3
+  # Resizing is done here rather than inside image_picker so the wait can be attributed:
+  # pickImage(maxWidth:) hides the downscale inside the same call as the user browsing.
+  flutter_image_compress: ^2.3.0
 
 dev_dependencies:
   flutter_test:
