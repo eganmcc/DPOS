@@ -54,9 +54,14 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     super.dispose();
   }
 
+  /// How long the picker took to capture, downscale and re-encode, in ms. Logged with the read so
+  /// the wait can be split into phone work, network and model instead of guessed at.
+  int _captureMs = 0;
+
   Future<void> _pick(ImageSource source) async {
     final t = AppLocalizations.of(context)!;
     XFile? picked;
+    final pickedAt = DateTime.now();
     try {
       // Input tokens scale with pixel AREA, so this is the cost dial: measured on one nota,
       // 600px costs ~641 image tokens against ~4,469 at 1600px — roughly Rp 106 vs Rp 416 of
@@ -79,6 +84,7 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     }
     if (picked == null || !mounted) return; // cancelled
     final bytes = await picked.readAsBytes();
+    _captureMs = DateTime.now().difference(pickedAt).inMilliseconds;
     if (!mounted) return;
     setState(() {
       _photo = File(picked!.path);
@@ -92,18 +98,25 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
   }
 
   Future<void> _read() async {
-    final photo = _photo;
-    if (photo == null) return;
+    final bytes = _photoBytes;
+    if (bytes == null) return;
     final t = AppLocalizations.of(context)!;
     setState(() => _stage = _Stage.reading);
     try {
-      final sentBytes = _photoBytes?.length ?? 0;
-      final json = await ref.read(apiClientProvider).readNota(photo.path);
+      final sentAt = DateTime.now();
+      final json = await ref.read(apiClientProvider).readNota(bytes);
+      final roundTripMs = DateTime.now().difference(sentAt).inMilliseconds;
       if (!mounted) return;
+      // Where the wait actually goes. `model` is what the server measured around the vision call,
+      // so `roundTrip - model` is everything else: TLS, the uplink, nginx and JSON. `capture`
+      // includes the seconds you spend framing the shot, so read it as an upper bound.
+      final modelMs = (json['latencyMs'] as num?)?.toInt() ?? 0;
+      debugPrint('NOTA_TIMING capture=${_captureMs}ms roundTrip=${roundTripMs}ms '
+          'model=${modelMs}ms network=${roundTripMs - modelMs}ms sent=${bytes.length}B');
       // Logged so a reading can be pulled off the device with `adb logcat -s flutter:V` and
       // compared against the paper. Contains whatever was written on the slip, customer name
       // included — fine while this is being trialled on your own nota, not for a live fleet.
-      debugPrint('NOTA_READ sent=${sentBytes}B maxPx=${kNotaMaxPixels.toInt()} '
+      debugPrint('NOTA_READ sent=${bytes.length}B maxPx=${kNotaMaxPixels.toInt()} '
           'result=${jsonEncode(json)}');
       setState(() {
         _reading = NotaReading.fromJson(json);

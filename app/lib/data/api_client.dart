@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'session.dart';
@@ -238,9 +240,12 @@ class ApiClient {
   /// Reading handwriting is a model call on the server, so this waits far longer than the default
   /// 12s receive timeout — the server allows up to ~60s with its own retry. Nothing is stored and
   /// no sale is created; the response is only what the nota says.
-  Future<Map<String, dynamic>> readNota(String imagePath) async {
+  ///
+  /// Takes the bytes rather than a path because the caller already holds them (it renders the
+  /// preview from memory); re-reading the file here would be a third pass over the same photo.
+  Future<Map<String, dynamic>> readNota(Uint8List bytes) async {
     final form = FormData.fromMap({
-      'file': await MultipartFile.fromFile(imagePath, filename: 'nota.jpg'),
+      'file': MultipartFile.fromBytes(bytes, filename: 'nota.jpg'),
     });
     final res = await _dio.post(
       '/nota/read',
