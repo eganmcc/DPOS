@@ -1,5 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/order_math.dart';
 import '../../data/models.dart';
+
+// Re-exported so existing `import 'cart.dart'` sites keep seeing CartPreview after the arithmetic
+// moved to core/order_math.dart, where the calculator shares it.
+export '../../core/order_math.dart' show CartPreview;
 
 class CartLine {
   final Product product;
@@ -33,17 +38,6 @@ class CartLine {
         modifiers: modifiers,
         note: note,
       );
-}
-
-/// Display-only totals that mirror the backend money engine. The server recomputes on submit
-/// and its figures are authoritative (Constitution III) — these are for the cashier's preview.
-class CartPreview {
-  final int subtotal;
-  final int discountTotal;
-  final int taxTotal;
-  final int serviceChargeTotal;
-  final int grandTotal;
-  const CartPreview(this.subtotal, this.discountTotal, this.taxTotal, this.serviceChargeTotal, this.grandTotal);
 }
 
 class CartState {
@@ -80,12 +74,7 @@ class CartState {
   CartPreview preview(TaxRule? tax) {
     final subtotal = lines.fold(0, (s, l) => s + l.lineTotal);
     final discountTotal = ((subtotal * orderDiscountPercentBps) / 10000).round();
-    final base = subtotal - discountTotal;
-    final taxTotal = tax == null ? 0 : ((base * tax.rateBps) / 10000).round();
-    final serviceChargeTotal =
-        tax?.serviceChargeBps == null ? 0 : ((base * tax!.serviceChargeBps!) / 10000).round();
-    return CartPreview(subtotal, discountTotal, taxTotal, serviceChargeTotal,
-        base + taxTotal + serviceChargeTotal);
+    return previewTotals(subtotal: subtotal, discountTotal: discountTotal, tax: tax);
   }
 }
 

@@ -920,4 +920,74 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get notaStubBanner =>
       'Mode contoh: pembaca AI belum diaktifkan di server, jadi ini hasil contoh tetap — foto Anda TIDAK dibaca. Semua foto akan menampilkan hasil yang sama sampai fitur ini diaktifkan.';
+
+  @override
+  String get calcTitle => 'Input nota';
+
+  @override
+  String calcNotaNumber(int n) {
+    return 'Nota #$n';
+  }
+
+  @override
+  String get calcCurrentValue => 'Nilai saat ini';
+
+  @override
+  String get calcItemCountLabel => 'Jumlah item';
+
+  @override
+  String calcItemCount(int n) {
+    return '$n item';
+  }
+
+  @override
+  String calcItemLine(int n) {
+    return 'Item $n';
+  }
+
+  @override
+  String get calcEmptyList => 'Ketik nilai, lalu tekan ↵';
+
+  @override
+  String get calcTotal => 'TOTAL';
+
+  @override
+  String get calcAmountReceived => 'Uang diterima';
+
+  @override
+  String get calcShort => 'Kurang';
+
+  @override
+  String get calcCancelTitle => 'Batalkan nota ini?';
+
+  @override
+  String get calcCancelBody =>
+      'Semua item akan dihapus. Nomor nota tidak berubah.';
+
+  @override
+  String get calcCancelConfirm => 'Ya, batalkan';
+
+  @override
+  String get calcCancelKeep => 'Tidak';
+
+  @override
+  String get calcBack => 'Kembali';
+
+  @override
+  String get calcFinish => 'Selesai';
+
+  @override
+  String calcPaid(String amount) {
+    return 'Lunas · kembalian $amount';
+  }
+
+  @override
+  String calcTaxLine(String label, String pct) {
+    return '$label $pct%';
+  }
+
+  @override
+  String calcSaveFailed(String code) {
+    return 'Penjualan ini belum tersimpan ($code). Belum ada yang tercatat — periksa koneksi lalu tekan Selesai lagi.';
+  }
 }

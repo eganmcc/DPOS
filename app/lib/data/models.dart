@@ -134,6 +134,13 @@ class Catalog {
   final bool businessSizeKnown;
 
   final String paymentMode; // 'IMMEDIATE' | 'OPEN_BILL'
+
+  /// Sells with no catalog: the cashier keys bare amounts on a keypad (specs/008).
+  final bool calculatorOnly;
+
+  /// The provisioned variant every keyed amount is posted against. Null for every other merchant.
+  final String? openAmountVariantId;
+
   final TaxRule? taxRule;
   final List<Product> products;
   const Catalog(
@@ -144,6 +151,8 @@ class Catalog {
       this.businessSize = 'GENERAL',
       this.businessSizeKnown = false,
       this.paymentMode = 'IMMEDIATE',
+      this.calculatorOnly = false,
+      this.openAmountVariantId,
       required this.taxRule,
       required this.products});
 
@@ -161,6 +170,15 @@ class Catalog {
   /// Restaurant flow: confirm the order now (reserves stock), settle later.
   bool get isOpenBill => paymentMode == 'OPEN_BILL';
 
+  /// Whether the app should open on the calculator instead of the till.
+  ///
+  /// Fails the OPPOSITE way to [businessSizeKnown], deliberately. A stale cache that lands a
+  /// calculator merchant on the normal till is harmless — an empty grid, with Riwayat still one
+  /// tap away. A keypad that cannot finish a sale is not: without [openAmountVariantId] there is no
+  /// variant to post a line against, so a flagged merchant whose cached catalog predates that field
+  /// falls back to the till until the catalog refetches.
+  bool get isCalculatorOnly => calculatorOnly && openAmountVariantId != null;
+
   factory Catalog.fromJson(Map<String, dynamic> j) => Catalog(
         outletId: j['outletId'],
         outletName: j['outletName'],
@@ -173,6 +191,8 @@ class Catalog {
         businessSize: j['businessSize'] ?? 'GENERAL',
         businessSizeKnown: j['businessSize'] != null,
         paymentMode: j['paymentMode'] ?? 'IMMEDIATE',
+        calculatorOnly: j['calculatorOnly'] == true,
+        openAmountVariantId: j['openAmountVariantId'] as String?,
         taxRule: j['taxRule'] != null ? TaxRule.fromJson(j['taxRule']) : null,
         products: ((j['products'] ?? []) as List)
             .map((p) => Product.fromJson(p as Map<String, dynamic>))

@@ -51,23 +51,29 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     // A UMI merchant is one person: no attendance to report, and the report isn't
     // even fetched. Coerce the behaviour, don't just hide the widget.
     final session = ref.watch(sessionProvider);
-    final isUmi = session != null &&
-        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isUmi ?? false);
+    final catalog =
+        session == null ? null : ref.watch(catalogProvider(session.outletId)).valueOrNull;
+    final isUmi = catalog?.isUmi ?? false;
+    // A calculator merchant reaches Reports FROM its keypad and returns with back. It has no
+    // catalog, so the product-grid till and the item manager would both be empty surfaces.
+    final isCalculator = catalog?.isCalculatorOnly ?? false;
     final attendance = isUmi ? null : ref.watch(adminAttendanceProvider(range));
 
     return Scaffold(
       appBar: BrandAppBar(
         title: Text(t.reportsTitle),
         actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PosHome())),
-            style: TextButton.styleFrom(foregroundColor: kBrandGold),
-            child: Text(t.reportsOpenCashier, style: const TextStyle(fontWeight: FontWeight.w700)),
-          ),
+          if (!isCalculator)
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PosHome())),
+              style: TextButton.styleFrom(foregroundColor: kBrandGold),
+              child:
+                  Text(t.reportsOpenCashier, style: const TextStyle(fontWeight: FontWeight.w700)),
+            ),
           // Items & prices — UMI only. A GENERAL merchant manages its catalog in the
           // portal, and an uncapped in-app editor for them would be a second surface.
-          if (isUmi && session.isOwner)
+          if (isUmi && !isCalculator && session!.isOwner)
             IconButton(
               tooltip: t.itemsTitle,
               onPressed: () => Navigator.of(context)

@@ -1807,6 +1807,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Demo mode: the AI reader is not switched on for this server yet, so this is a fixed sample — it did NOT read your photo. Every photo will show the same result until it is enabled.'**
   String get notaStubBanner;
+
+  /// No description provided for @calcTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Input nota'**
+  String get calcTitle;
+
+  /// No description provided for @calcNotaNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota #{n}'**
+  String calcNotaNumber(int n);
+
+  /// No description provided for @calcCurrentValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Current value'**
+  String get calcCurrentValue;
+
+  /// No description provided for @calcItemCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Items'**
+  String get calcItemCountLabel;
+
+  /// No description provided for @calcItemCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} item'**
+  String calcItemCount(int n);
+
+  /// No description provided for @calcItemLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Item {n}'**
+  String calcItemLine(int n);
+
+  /// No description provided for @calcEmptyList.
+  ///
+  /// In en, this message translates to:
+  /// **'Key an amount, then press ↵'**
+  String get calcEmptyList;
+
+  /// No description provided for @calcTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'TOTAL'**
+  String get calcTotal;
+
+  /// No description provided for @calcAmountReceived.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash received'**
+  String get calcAmountReceived;
+
+  /// No description provided for @calcShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Short'**
+  String get calcShort;
+
+  /// No description provided for @calcCancelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel this nota?'**
+  String get calcCancelTitle;
+
+  /// No description provided for @calcCancelBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Every item will be deleted. The nota number stays the same.'**
+  String get calcCancelBody;
+
+  /// No description provided for @calcCancelConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, cancel'**
+  String get calcCancelConfirm;
+
+  /// No description provided for @calcCancelKeep.
+  ///
+  /// In en, this message translates to:
+  /// **'No'**
+  String get calcCancelKeep;
+
+  /// No description provided for @calcBack.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get calcBack;
+
+  /// No description provided for @calcFinish.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get calcFinish;
+
+  /// No description provided for @calcPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Paid · change {amount}'**
+  String calcPaid(String amount);
+
+  /// No description provided for @calcTaxLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{label} {pct}%'**
+  String calcTaxLine(String label, String pct);
+
+  /// No description provided for @calcSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'This sale was not saved ({code}). Nothing was recorded — check the connection and press Done again.'**
+  String calcSaveFailed(String code);
 }
 
 class _AppLocalizationsDelegate

@@ -920,4 +920,74 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get notaStubBanner =>
       'Demo mode: the AI reader is not switched on for this server yet, so this is a fixed sample — it did NOT read your photo. Every photo will show the same result until it is enabled.';
+
+  @override
+  String get calcTitle => 'Input nota';
+
+  @override
+  String calcNotaNumber(int n) {
+    return 'Nota #$n';
+  }
+
+  @override
+  String get calcCurrentValue => 'Current value';
+
+  @override
+  String get calcItemCountLabel => 'Items';
+
+  @override
+  String calcItemCount(int n) {
+    return '$n item';
+  }
+
+  @override
+  String calcItemLine(int n) {
+    return 'Item $n';
+  }
+
+  @override
+  String get calcEmptyList => 'Key an amount, then press ↵';
+
+  @override
+  String get calcTotal => 'TOTAL';
+
+  @override
+  String get calcAmountReceived => 'Cash received';
+
+  @override
+  String get calcShort => 'Short';
+
+  @override
+  String get calcCancelTitle => 'Cancel this nota?';
+
+  @override
+  String get calcCancelBody =>
+      'Every item will be deleted. The nota number stays the same.';
+
+  @override
+  String get calcCancelConfirm => 'Yes, cancel';
+
+  @override
+  String get calcCancelKeep => 'No';
+
+  @override
+  String get calcBack => 'Back';
+
+  @override
+  String get calcFinish => 'Done';
+
+  @override
+  String calcPaid(String amount) {
+    return 'Paid · change $amount';
+  }
+
+  @override
+  String calcTaxLine(String label, String pct) {
+    return '$label $pct%';
+  }
+
+  @override
+  String calcSaveFailed(String code) {
+    return 'This sale was not saved ($code). Nothing was recorded — check the connection and press Done again.';
+  }
 }

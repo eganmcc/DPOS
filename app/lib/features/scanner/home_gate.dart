@@ -4,6 +4,7 @@ import '../../core/attendance_actions.dart';
 import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
+import '../calculator/nota_calculator_screen.dart';
 import '../order/order_screen.dart';
 import '../order/online_orders_controller.dart';
 import '../reports/reports_screen.dart';
@@ -40,16 +41,25 @@ class _HomeGateState extends ConsumerState<HomeGate> {
     final session = ref.watch(sessionProvider)!;
     final catalogAsync = ref.watch(catalogProvider(session.outletId));
 
-    return catalogAsync.maybeWhen(
+    return catalogAsync.when(
       data: (catalog) {
         if (catalog.isFnb) ref.watch(onlineOrdersProvider(session.outletId));
         if (!catalog.isUmi) _maybePromptClockIn();
+        // A merchant with no catalog sells on the keypad — for every role, since the owner of a
+        // one-person kiosk is also its cashier. Checked first so it wins over the owner→Reports
+        // rule below. Reports, Riwayat and Settings stay on its app bar.
+        if (catalog.isCalculatorOnly) return const NotaCalculatorScreen();
         // A UMI operator's next action is always ringing up a customer, so land on
         // the till. Reports stays one tap away via the POS app bar's insights icon.
         if (session.isOwnerOrManager && !catalog.isUmi) return const ReportsScreen();
         return const PosHome();
       },
-      orElse: () => const PosHome(),
+      // Neutral while the catalog resolves. Falling through to PosHome here, as this used to,
+      // flashed an empty product grid at a calculator merchant on every cold start.
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      // No catalog at all — not even the offline cache catalogProvider falls back to. Keep the
+      // old behaviour rather than a spinner that would never end.
+      error: (_, __) => const PosHome(),
     );
   }
 }
