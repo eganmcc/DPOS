@@ -69,6 +69,22 @@ class AppDatabase extends _$AppDatabase {
 
   Future<List<PendingOrder>> pendingToSync() =>
       (select(pendingOrders)..where((o) => o.status.equals('pending'))).get();
+
+  Future<PendingOrder?> orderByClientId(String clientOrderId) =>
+      (select(pendingOrders)..where((o) => o.clientOrderId.equals(clientOrderId)))
+          .getSingleOrNull();
+
+  /// Whether a sale was captured on this device: synced, or queued and still going to sync.
+  ///
+  /// `SyncQueue.submit` enqueues BEFORE it posts, so a row exists even if the app died mid-send —
+  /// and `flush` will replay it under the same `clientOrderId`, which the server dedups. A row the
+  /// server refused (`lastError` "HTTP 4xx") was never recorded, so it does not count.
+  Future<bool> isOrderCaptured(String clientOrderId) async {
+    final row = await orderByClientId(clientOrderId);
+    if (row == null) return false;
+    if (row.status == 'synced') return true;
+    return !(row.lastError?.startsWith('HTTP') ?? false);
+  }
 }
 
 QueryExecutor _open() => driftDatabase(name: 'dpos');

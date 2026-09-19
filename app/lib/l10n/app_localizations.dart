@@ -1933,6 +1933,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Server v{version}'**
   String loginVersionServer(String version);
+
+  /// No description provided for @calcPreviousSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Your previous nota had already been saved — check History.'**
+  String get calcPreviousSaved;
 }
 
 class _AppLocalizationsDelegate

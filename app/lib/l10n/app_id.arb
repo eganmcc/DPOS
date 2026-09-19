@@ -343,5 +343,6 @@
   "calcTaxLine": "{label} {pct}%",
   "calcSaveFailed": "Penjualan ini belum tersimpan ({code}). Belum ada yang tercatat — periksa koneksi lalu tekan Selesai lagi.",
   "loginVersionApp": "Aplikasi v{version} ({build})",
-  "loginVersionServer": "Server v{version}"
+  "loginVersionServer": "Server v{version}",
+  "calcPreviousSaved": "Nota sebelumnya sudah tersimpan — cek Riwayat."
 }

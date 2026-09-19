@@ -67,6 +67,40 @@ class NotaCalculatorState {
       canCommit ? NotaCalculatorState(amounts: [...amounts, currentValue]) : this;
 
   NotaCalculatorState reset() => const NotaCalculatorState();
+
+  Map<String, dynamic> toJson() => {'amounts': amounts, 'entry': entry};
+
+  /// Tolerant on purpose: a draft is a convenience, so anything unreadable restores as empty rather
+  /// than throwing on the screen a cashier needs to sell from.
+  factory NotaCalculatorState.fromJson(Map<String, dynamic> j) {
+    final raw = j['amounts'];
+    final amounts = raw is List ? raw.whereType<int>().where((a) => a > 0).toList() : <int>[];
+    final entry = j['entry'];
+    final digits = entry is String && RegExp(r'^[1-9][0-9]*$').hasMatch(entry) ? entry : '';
+    return NotaCalculatorState(amounts: amounts, entry: digits);
+  }
+}
+
+/// An unfinished nota as saved on the device, so closing the app doesn't lose it.
+class NotaDraft {
+  final NotaCalculatorState state;
+
+  /// Set only while Selesai is sending: the `clientOrderId` of that sale. If the app dies in that
+  /// window, this is how reopening tells "already recorded" from "never sent" — see
+  /// `AppDatabase.isOrderCaptured`. Without it a restored list could be charged twice.
+  final String? pendingClientOrderId;
+
+  const NotaDraft(this.state, {this.pendingClientOrderId});
+
+  Map<String, dynamic> toJson() => {
+        ...state.toJson(),
+        if (pendingClientOrderId != null) 'pendingClientOrderId': pendingClientOrderId,
+      };
+
+  factory NotaDraft.fromJson(Map<String, dynamic> j) => NotaDraft(
+        NotaCalculatorState.fromJson(j),
+        pendingClientOrderId: j['pendingClientOrderId'] as String?,
+      );
 }
 
 /// The `POST /orders` body for a finished nota.

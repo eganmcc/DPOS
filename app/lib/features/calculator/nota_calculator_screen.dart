@@ -20,6 +20,7 @@ import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 import 'nota_calculator.dart';
 import 'nota_counter.dart';
+import 'nota_draft_store.dart';
 import 'nota_payment_sheet.dart';
 
 /// Calculator-only mode's home screen (specs/008-calculator-only).
@@ -40,12 +41,13 @@ class NotaCalculatorScreen extends ConsumerWidget {
         session == null ? null : ref.watch(catalogProvider(session.outletId)).valueOrNull;
     final notaNumber = ref.watch(notaCounterProvider);
 
-    Future<bool> submit(List<int> amounts, int tendered) async {
+    Future<bool> submit(List<int> amounts, int tendered, String clientOrderId) async {
       final variantId = catalog?.openAmountVariantId;
       if (session == null || variantId == null) return false;
       final messenger = ScaffoldMessenger.of(context);
       final payload = buildNotaPayload(
-        clientOrderId: const Uuid().v4(),
+        // Minted by the body and saved in the draft BEFORE this call — see NotaDraft.
+        clientOrderId: clientOrderId,
         outletId: session.outletId,
         deviceId: session.deviceId,
         openAmountVariantId: variantId,
@@ -113,9 +115,15 @@ class NotaCalculatorScreen extends ConsumerWidget {
         child: notaFontScope(
           context,
           NotaCalculatorBody(
+            // A fresh body per outlet, so it restores that outlet's draft and no other.
+            key: ValueKey(session?.outletId),
             notaNumber: notaNumber,
             taxRule: catalog?.taxRule,
             onSubmit: submit,
+            draftStore: session == null
+                ? MemoryNotaDraftStore()
+                : PrefsNotaDraftStore(session.outletId),
+            isCaptured: (id) => ref.read(appDatabaseProvider).isOrderCaptured(id),
           ),
         ),
       ),
@@ -135,9 +143,16 @@ class NotaCalculatorBody extends StatefulWidget {
   /// shows up here with no code change.
   final TaxRule? taxRule;
 
-  /// Posts the nota. Resolves true when it is recorded or safely queued (the keypad resets), false
-  /// when it failed (the nota stays, because nothing was saved).
-  final Future<bool> Function(List<int> amounts, int tendered) onSubmit;
+  /// Posts the nota under [clientOrderId]. Resolves true when it is recorded or safely queued (the
+  /// keypad resets), false when it failed (the nota stays, because nothing was saved).
+  final Future<bool> Function(List<int> amounts, int tendered, String clientOrderId) onSubmit;
+
+  /// Keeps the unfinished nota across app launches.
+  final NotaDraftStore draftStore;
+
+  /// Whether a sale with this `clientOrderId` was already captured on the device. Asked only when
+  /// a restored draft shows the app died while Selesai was sending.
+  final Future<bool> Function(String clientOrderId) isCaptured;
 
   /// Injected so tests get a fixed header; defaults to the real clock.
   final DateTime Function() clock;
@@ -147,6 +162,8 @@ class NotaCalculatorBody extends StatefulWidget {
     required this.notaNumber,
     required this.taxRule,
     required this.onSubmit,
+    required this.draftStore,
+    required this.isCaptured,
     this.clock = DateTime.now,
   });
 
@@ -160,6 +177,9 @@ class _NotaCalculatorBodyState extends State<NotaCalculatorBody> {
   Timer? _tick;
   bool _submitting = false;
 
+  /// The `clientOrderId` of a sale being sent right now; saved with the draft (see [NotaDraft]).
+  String? _pendingId;
+
   @override
   void initState() {
     super.initState();
@@ -167,6 +187,36 @@ class _NotaCalculatorBodyState extends State<NotaCalculatorBody> {
     _tick = Timer.periodic(const Duration(seconds: 30), (_) {
       if (mounted) setState(() {});
     });
+    _restore();
+  }
+
+  /// Brings back the nota that was on screen when the app was closed.
+  ///
+  /// One case needs care: the app died while Selesai was sending. The sale may already be safe in
+  /// the order queue, and restoring the list would invite charging it twice — so ask the queue.
+  /// Captured: drop the draft and say so. Not captured: the send never began, so restore the list
+  /// and forget the id (the next Selesai mints a new one).
+  Future<void> _restore() async {
+    final draft = await widget.draftStore.load();
+    if (!mounted || draft == null) return;
+    final id = draft.pendingClientOrderId;
+    if (id != null && await widget.isCaptured(id)) {
+      await widget.draftStore.clear();
+      if (!mounted) return;
+      ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.calcPreviousSaved)));
+      return;
+    }
+    if (!mounted) return;
+    // Only if the cashier hasn't already started typing in the moment the load took.
+    if (_s.isEmpty) setState(() => _s = draft.state);
+    if (id != null) _persist();
+  }
+
+  /// Saves the current nota, or removes the draft when there is nothing to keep.
+  Future<void> _persist() {
+    if (_s.isEmpty && _pendingId == null) return widget.draftStore.clear();
+    return widget.draftStore.save(NotaDraft(_s, pendingClientOrderId: _pendingId));
   }
 
   @override
@@ -179,6 +229,7 @@ class _NotaCalculatorBodyState extends State<NotaCalculatorBody> {
   void _apply(NotaCalculatorState next) {
     final added = next.count > _s.count;
     setState(() => _s = next);
+    _persist();
     if (added) {
       // Scroll after layout: maxScrollExtent is only meaningful once the new row exists.
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -201,7 +252,10 @@ class _NotaCalculatorBodyState extends State<NotaCalculatorBody> {
       cancelLabel: t.calcCancelKeep,
     );
     // The nota number deliberately does NOT move: a cancelled nota is not a nota.
-    if (yes && mounted) setState(() => _s = _s.reset());
+    if (yes && mounted) {
+      setState(() => _s = _s.reset());
+      _persist();
+    }
   }
 
   Future<void> _finish() async {
@@ -216,15 +270,29 @@ class _NotaCalculatorBodyState extends State<NotaCalculatorBody> {
         return;
       case NotaPaymentAction.cancel:
         setState(() => _s = _s.reset());
+        _persist();
         return;
       case NotaPaymentAction.finish:
-        setState(() => _submitting = true);
-        final ok = await widget.onSubmit(pending, outcome.tendered!);
+        // Mint the id and write it down BEFORE sending. If the app dies mid-send, the next launch
+        // can look this id up in the order queue instead of guessing whether the sale went through.
+        final id = const Uuid().v4();
+        _pendingId = id;
+        await _persist();
         if (!mounted) return;
-        setState(() {
-          _submitting = false;
-          if (ok) _s = _s.reset();
-        });
+        setState(() => _submitting = true);
+        final ok = await widget.onSubmit(pending, outcome.tendered!, id);
+        // Either way the send is over: recorded (clear everything) or refused (nothing was
+        // recorded, so the id has no sale behind it and the next attempt gets a fresh one).
+        _pendingId = null;
+        if (mounted) {
+          setState(() {
+            _submitting = false;
+            if (ok) _s = _s.reset();
+          });
+        } else if (ok) {
+          _s = _s.reset();
+        }
+        await _persist();
     }
   }
 

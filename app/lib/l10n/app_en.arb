@@ -469,5 +469,6 @@
   "loginVersionApp": "App v{version} ({build})",
   "@loginVersionApp": {"placeholders":{"version":{"type":"String"},"build":{"type":"String"}}},
   "loginVersionServer": "Server v{version}",
-  "@loginVersionServer": {"placeholders":{"version":{"type":"String"}}}
+  "@loginVersionServer": {"placeholders":{"version":{"type":"String"}}},
+  "calcPreviousSaved": "Your previous nota had already been saved — check History."
 }

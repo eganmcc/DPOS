@@ -136,4 +136,22 @@ void main() {
       expect(of({'calculatorOnly': true}).isCalculatorOnly, false);
     });
   });
+
+  group('saved draft', () {
+    test('round-trips the list, the typed amount and a pending sale id', () {
+      const d = NotaDraft(NotaCalculatorState(amounts: [25000, 3000], entry: '400'),
+          pendingClientOrderId: 'abc');
+      final back = NotaDraft.fromJson(d.toJson());
+      expect(back.state.amounts, [25000, 3000]);
+      expect(back.state.entry, '400');
+      expect(back.pendingClientOrderId, 'abc');
+    });
+
+    test('anything unreadable restores as empty instead of blocking the till', () {
+      final s = NotaCalculatorState.fromJson({'amounts': ['x', -5, 0, 7000], 'entry': '0012'});
+      expect(s.amounts, [7000]);
+      expect(s.entry, '');
+      expect(NotaCalculatorState.fromJson(const {}).isEmpty, true);
+    });
+  });
 }

@@ -1000,4 +1000,8 @@ class AppLocalizationsId extends AppLocalizations {
   String loginVersionServer(String version) {
     return 'Server v$version';
   }
+
+  @override
+  String get calcPreviousSaved =>
+      'Nota sebelumnya sudah tersimpan — cek Riwayat.';
 }

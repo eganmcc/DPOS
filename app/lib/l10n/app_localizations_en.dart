@@ -1000,4 +1000,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String loginVersionServer(String version) {
     return 'Server v$version';
   }
+
+  @override
+  String get calcPreviousSaved =>
+      'Your previous nota had already been saved — check History.';
 }
