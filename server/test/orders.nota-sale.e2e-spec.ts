@@ -88,6 +88,31 @@ describe('Nota sales (High Human Interactions)', () => {
     expect(open.body.map((o: { id: string }) => o.id)).toContain(res.body.id);
   });
 
+  it('keeps what the paper said but did not charge as the transaction note — never as money', async () => {
+    const note = 'Tidak dihitung: A/J FREE; 31 pc\nKurang jelas: tanggal';
+    const res = await post(hhi, {
+      ...notaSale('2238', [{ label: '1 M BESAR', amount: 130000 }]),
+      note,
+      // A client total alongside it changes nothing: the note is text, the total is the lines.
+      grandTotal: 1,
+    });
+    expect(res.status).toBe(201);
+    expect(res.body.note).toBe(note);
+    expect(res.body.grandTotal).toBe(130000);
+
+    const stored = await ctx.prisma.order.findUnique({ where: { id: res.body.id } });
+    expect(stored!.note).toBe(note);
+    expect(stored!.grandTotal).toBe(130000);
+  });
+
+  it('refuses a note longer than 1000 characters', async () => {
+    const res = await post(hhi, {
+      ...notaSale(null, [{ label: 'Cuci', amount: 10000 }]),
+      note: 'x'.repeat(1001),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it('settles through the existing settle path, and change comes from the server total', async () => {
     const bill = await post(hhi, notaSale('1900', [{ label: '1. M. KECIL', amount: 65000 }]));
     expect(bill.status).toBe(201);

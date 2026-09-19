@@ -411,6 +411,9 @@ model Order {
   onlineStatus     OnlineOrderStatus?
   externalOrderRef String? // platform order code (demo: short number)
   customerName     String?
+  // Free text recorded with the sale — for a nota sale, what the paper said that was not charged
+  // ("A/J FREE", "31 pc") and what the reader could not make out. Never money.
+  note             String?
 
   // Server-authoritative money (integer rupiah)
   subtotal           Int

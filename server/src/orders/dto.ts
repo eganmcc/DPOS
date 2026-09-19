@@ -195,6 +195,15 @@ export class OrderSubmitDto {
   @MaxLength(80)
   customerName?: string;
 
+  /**
+   * Free text kept with the sale. For a nota sale: the lines written without a price and anything
+   * the reader could not make out, so nothing on the paper is silently dropped. Never money.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+
   @IsOptional()
   @ValidateNested()
   @Type(() => DiscountDto)

@@ -404,6 +404,9 @@ class OrderResult {
   final String? onlineStatus;
   final String? externalOrderRef;
   final String? customerName;
+
+  /// Free text kept with the sale — for a nota sale, what the paper said but was not charged.
+  final String? note;
   // Refunds: total money returned + how much of each line has been refunded.
   final int refundedAmount;
   final Map<String, double> refundedQtyByLine;
@@ -427,6 +430,7 @@ class OrderResult {
     this.onlineStatus,
     this.externalOrderRef,
     this.customerName,
+    this.note,
     this.refundedAmount = 0,
     this.refundedQtyByLine = const {},
   });
@@ -463,6 +467,7 @@ class OrderResult {
         onlineStatus: j['onlineStatus'],
         externalOrderRef: j['externalOrderRef'],
         customerName: j['customerName'],
+        note: j['note'] as String?,
         lines: ((j['lines'] ?? []) as List)
             .map((l) => OrderLineResult.fromJson(l as Map<String, dynamic>))
             .toList(),

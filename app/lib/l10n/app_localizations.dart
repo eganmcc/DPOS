@@ -2107,6 +2107,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'High Human Interactions'**
   String get bizTypeHhi;
+
+  /// No description provided for @chatNoteRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Kept as the transaction note:'**
+  String get chatNoteRecorded;
+
+  /// No description provided for @detailCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get detailCustomer;
+
+  /// No description provided for @detailNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Note'**
+  String get detailNote;
 }
 
 class _AppLocalizationsDelegate

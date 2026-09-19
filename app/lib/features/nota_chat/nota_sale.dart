@@ -11,6 +11,7 @@ import '../nota/nota_models.dart';
 const int kNotaLabelMax = 120; // MAX_OPEN_AMOUNT_LABEL in server/src/common/business-size.ts
 const int kNotaNumberMax = 40;
 const int kNotaCustomerMax = 80;
+const int kNotaNoteMax = 1000;
 
 /// One line that will be charged: the words as written, and the price as written.
 class NotaSaleLine {
@@ -33,12 +34,35 @@ class NotaSalePlan {
   /// True when no line carried a price and the sale is the written total as a single line.
   final bool usesWrittenTotal;
 
+  /// When [usesWrittenTotal], the lines as written: they describe what the total paid for.
+  final List<String> describedByTotal;
+
+  /// What the reader flagged as unclear ("tanggal", "jumlah pc").
+  final List<String> unclear;
+
   const NotaSalePlan({
     required this.lines,
     required this.notCharged,
     required this.writtenTotal,
     required this.usesWrittenTotal,
+    this.describedByTotal = const [],
+    this.unclear = const [],
   });
+
+  /// The transaction note: everything on the paper that is NOT a charged line, so none of it is
+  /// silently lost — lines without a price, the lines a written total covers, and whatever the
+  /// reader could not make out. Null when there is nothing to keep.
+  ///
+  /// Written in Indonesian whatever the app's language: it is part of the merchant's record, read
+  /// later in Riwayat and on the portal, not a label in the current UI.
+  String? get note {
+    final parts = [
+      if (notCharged.isNotEmpty) 'Tidak dihitung: ${notCharged.join("; ")}',
+      if (describedByTotal.isNotEmpty) 'Rincian: ${describedByTotal.join("; ")}',
+      if (unclear.isNotEmpty) 'Kurang jelas: ${unclear.join("; ")}',
+    ];
+    return parts.isEmpty ? null : _clip(parts.join('\n'), kNotaNoteMax);
+  }
 
   int get linesTotal => lines.fold(0, (s, l) => s + l.amount);
 
@@ -67,6 +91,7 @@ class NotaSalePlan {
     // Some notas price only the whole: the lines say what was done, the total says what it costs.
     // Then the sale is that total as one line, rather than a nota nobody can charge.
     final total = r.total;
+    final unclear = [for (final u in r.unclear) if (u.trim().isNotEmpty) u.trim()];
     if (lines.isEmpty && total != null && total > 0 && total <= kMaxNotaAmount) {
       final label = r.notaNumber == null ? 'Total nota' : 'Nota #${r.notaNumber}';
       return NotaSalePlan(
@@ -74,6 +99,8 @@ class NotaSalePlan {
         notCharged: const [],
         writtenTotal: total,
         usesWrittenTotal: true,
+        describedByTotal: notCharged,
+        unclear: unclear,
       );
     }
     return NotaSalePlan(
@@ -81,6 +108,7 @@ class NotaSalePlan {
       notCharged: notCharged,
       writtenTotal: total,
       usesWrittenTotal: false,
+      unclear: unclear,
     );
   }
 
@@ -104,6 +132,7 @@ class NotaSalePlan {
       'type': 'RETAIL',
       if (number != null && number.isNotEmpty) 'notaNumber': _clip(number, kNotaNumberMax),
       if (customer != null && customer.isNotEmpty) 'customerName': _clip(customer, kNotaCustomerMax),
+      if (note != null) 'note': note,
       'lines': [
         for (final l in lines)
           {'variantId': openAmountVariantId, 'qty': 1, 'amount': l.amount, 'label': l.label},

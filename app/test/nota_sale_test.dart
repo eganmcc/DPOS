@@ -111,6 +111,58 @@ void main() {
     expect(plan.lines.single.label.length, kNotaLabelMax);
   });
 
+  group('the transaction note — what the paper said but was not charged', () {
+    NotaReading withUnclear(List<Map<String, dynamic>> items, int? total, List<String> unclear) =>
+        NotaReading.fromJson({
+          'notaNumber': '2532',
+          'items': items,
+          'total': total,
+          'unclear': unclear,
+          'confidence': 88,
+          'model': 'claude-opus-5',
+          'latencyMs': 1,
+        });
+
+    test('slip 2532: the three counts are kept, in the order written', () {
+      final plan = NotaSalePlan.from(withUnclear([
+        line('1 M BESAR', lineTotal: 130000),
+        line('sprE = 1'),
+        line('S/B GuliNG = 4'),
+        line('pKn = 46'),
+      ], 130000, []));
+      expect(plan.note, 'Tidak dihitung: sprE = 1; S/B GuliNG = 4; pKn = 46');
+    });
+
+    test('anything the reader could not make out is kept too', () {
+      final plan = NotaSalePlan.from(
+          withUnclear([line('1 M KECIL', lineTotal: 60000), line('31 pc')], 60000, ['tanggal']));
+      expect(plan.note, 'Tidak dihitung: 31 pc\nKurang jelas: tanggal');
+    });
+
+    test('when only the total is priced, its lines are kept as the detail it paid for', () {
+      final plan =
+          NotaSalePlan.from(withUnclear([line('1 M KECIL'), line('31 pc')], 60000, []));
+      expect(plan.note, 'Rincian: 1 M KECIL; 31 pc');
+    });
+
+    test('a nota where every line is priced and clear has no note', () {
+      final plan = NotaSalePlan.from(withUnclear([line('Cuci', lineTotal: 10000)], 10000, []));
+      expect(plan.note, isNull);
+      expect(
+          plan.payload(clientOrderId: 'c', outletId: 'o', openAmountVariantId: 'v')
+              .containsKey('note'),
+          false);
+    });
+
+    test('the note travels in the payload and is never money', () {
+      final plan = NotaSalePlan.from(
+          withUnclear([line('1 M BESAR', lineTotal: 130000), line('A/J FREE')], 130000, []));
+      final body = plan.payload(clientOrderId: 'c', outletId: 'o', openAmountVariantId: 'v');
+      expect(body['note'], 'Tidak dihitung: A/J FREE');
+      expect((body['lines'] as List).single['amount'], 130000);
+    });
+  });
+
   group('Catalog.isNotaReading', () {
     Catalog of(Map<String, dynamic> extra) =>
         Catalog.fromJson({'outletId': 'o', 'products': [], ...extra});

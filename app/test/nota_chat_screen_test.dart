@@ -97,6 +97,9 @@ void main() {
     expect(find.text('tidak dihitung'), findsOneWidget);
     expect(
         tester.widget<Text>(find.byKey(const ValueKey('chat-charge-total'))).data, 'Rp 130.000');
+    // The cashier sees exactly what will be kept as the note before confirming.
+    expect(find.byKey(const ValueKey('chat-note-preview')), findsOneWidget);
+    expect(find.text('Dicatat sebagai catatan transaksi:'), findsOneWidget);
     expect(find.text('Apakah ada yang perlu diperbaiki?'), findsOneWidget);
     expect(posted, isEmpty, reason: 'nothing is recorded before the cashier confirms');
   });
@@ -116,6 +119,8 @@ void main() {
     expect(body['lines'], [
       {'variantId': 'v-open', 'qty': 1, 'amount': 130000, 'label': '1 M BESAR'},
     ]);
+    // What was written but not charged goes with it, as the transaction note.
+    expect(body['note'], 'Tidak dihitung: A/J FREE');
     expect(find.byKey(const ValueKey('chat-created')), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('chat-pay')));

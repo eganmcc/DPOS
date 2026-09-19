@@ -1104,4 +1104,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bizTypeHhi => 'High Human Interactions';
+
+  @override
+  String get chatNoteRecorded => 'Kept as the transaction note:';
+
+  @override
+  String get detailCustomer => 'Customer';
+
+  @override
+  String get detailNote => 'Note';
 }

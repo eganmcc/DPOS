@@ -372,5 +372,8 @@
   "chatCreateFailed": "Transaksi belum dibuat ({code}). Belum ada yang tercatat — coba lagi.",
   "bizTypeFnb": "F&B",
   "bizTypeGrocery": "Grosir",
-  "bizTypeHhi": "High Human Interactions"
+  "bizTypeHhi": "High Human Interactions",
+  "chatNoteRecorded": "Dicatat sebagai catatan transaksi:",
+  "detailCustomer": "Pelanggan",
+  "detailNote": "Catatan"
 }

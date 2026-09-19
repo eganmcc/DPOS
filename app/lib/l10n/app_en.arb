@@ -504,5 +504,8 @@
   "@chatCreateFailed": {"placeholders":{"code":{"type":"String"}}},
   "bizTypeFnb": "F&B",
   "bizTypeGrocery": "Grocery",
-  "bizTypeHhi": "High Human Interactions"
+  "bizTypeHhi": "High Human Interactions",
+  "chatNoteRecorded": "Kept as the transaction note:",
+  "detailCustomer": "Customer",
+  "detailNote": "Note"
 }

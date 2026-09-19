@@ -46,8 +46,11 @@ becomes an open transaction**, paid later through the existing settlement flow.
    (`POST /orders/:id/settle`, every tender the merchant's size allows).
 2. Each **priced** nota line becomes one open-amount line: `qty 1`, `amount` = the line total as
    written, `label` = the line exactly as written ("1 M BESAR"), snapshotted as the line's name.
-3. **Priceless lines** ("A/J FREE", "31 pc") are not charged. The confirmation lists them as not
-   charged, so nothing is dropped silently.
+3. **Priceless lines** ("A/J FREE", "31 pc", "S/B guling = 4") are not charged. They are recorded in
+   the transaction **note** (`Order.note`, text only, never money), together with anything the reader
+   flagged as unclear and — when the sale is the written total — the lines that total covers. The
+   chat shows that note before the cashier confirms, and the transaction detail shows it afterwards,
+   so nothing written on the slip is lost.
 4. If no line carries a price but the total is written, the sale is **one line** labelled with the
    nota number at the written total. If neither exists there is nothing to charge and the chat asks
    for a clearer photo.

@@ -419,6 +419,22 @@ class _NotaChatBodyState extends State<NotaChatBody> {
           if (plan.usesWrittenTotal) _note(context, t.chatTotalOnly),
           if (reading.unclear.isNotEmpty)
             _note(context, t.chatUnclear(reading.unclear.join(', '))),
+          // Nothing on the paper is dropped: what is not charged is kept with the sale, and the
+          // cashier sees exactly that text before confirming.
+          if (plan.canRecord && plan.note != null)
+            Container(
+              key: const ValueKey('chat-note-preview'),
+              margin: const EdgeInsets.only(top: 6),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                  border: Border.all(color: cs.outlineVariant),
+                  borderRadius: BorderRadius.circular(8)),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(t.chatNoteRecorded, style: muted.copyWith(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text(plan.note!, style: const TextStyle(fontSize: 12)),
+              ]),
+            ),
           const SizedBox(height: 10),
           if (!plan.canRecord)
             _note(context, t.chatNothingToCharge, warn: true)

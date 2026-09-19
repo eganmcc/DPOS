@@ -231,6 +231,38 @@ class _Detail extends StatelessWidget {
             StatusChip(status: order.effectiveStatus),
           ],
         ),
+        // A sale read off a paper nota: its own number, who it was for, and what the paper said
+        // that was not charged. Kept with the sale so nothing written on the slip is lost.
+        if (!order.isOnline &&
+            ((order.externalOrderRef?.isNotEmpty ?? false) ||
+                (order.customerName?.isNotEmpty ?? false) ||
+                (order.note?.isNotEmpty ?? false))) ...[
+          const SizedBox(height: 12),
+          Card(
+            key: const ValueKey('detail-nota'),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (order.externalOrderRef?.isNotEmpty ?? false)
+                    Text(t.chatNotaHeader(order.externalOrderRef!),
+                        style: const TextStyle(fontWeight: FontWeight.w700)),
+                  if (order.customerName?.isNotEmpty ?? false)
+                    Text('${t.detailCustomer}: ${order.customerName}'),
+                  if (order.note?.isNotEmpty ?? false) ...[
+                    const SizedBox(height: 8),
+                    Text(t.detailNote,
+                        style: TextStyle(
+                            color: cs.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(order.note!),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 16),
 
         // The sale itself — immutable, shown exactly as it was recorded.

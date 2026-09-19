@@ -1104,4 +1104,13 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get bizTypeHhi => 'High Human Interactions';
+
+  @override
+  String get chatNoteRecorded => 'Dicatat sebagai catatan transaksi:';
+
+  @override
+  String get detailCustomer => 'Pelanggan';
+
+  @override
+  String get detailNote => 'Catatan';
 }

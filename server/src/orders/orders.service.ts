@@ -214,6 +214,7 @@ export class OrdersService {
             // The paper nota's own number and customer, when the sale was read from one. Text only.
             externalOrderRef: notaNumber,
             customerName: dto.customerName?.trim() || null,
+            note: dto.note?.trim() || null,
             status: isOpenBill ? 'AWAITING_PAYMENT' : 'COMPLETED',
             subtotal: computed.subtotal,
             discountTotal: computed.discountTotal,
