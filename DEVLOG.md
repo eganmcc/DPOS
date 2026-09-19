@@ -41,6 +41,11 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 >   (+ `orders.nota-sale.e2e-spec.ts`, 13); disabling the duplicate check fails exactly the two
 >   "already recorded" tests. Dart **64 tests** incl. the chat end to end. Verified live: Kasir Wangi
 >   logs in, catalog is HHI with the variant, slip 2532 reads `1 M BESAR → 130.000` via Opus 5 in 3.9 s.
+> - **Update (same day): uncharged lines are kept as a note.** Priceless lines ("A/J FREE", "31 pc",
+>   "S/B guling = 4"), anything the reader flagged unclear, and — for a total-only nota — the lines the
+>   total covers go into a new **`Order.note`** (text, never money), previewed in the chat and shown in
+>   the transaction detail. **Migration 14 (`20260919200000_order_note`) is applied to RDS.** Server
+>   0.4.1, app 0.3.1, phone build **2094**. 106 server tests, 69 Dart tests.
 > - **BLOCKER before any real merchant:** the photo goes to an AI provider outside Indonesia, and the
 >   server log `NOTA_RESULT` holds customer names. Needs a scoped Constitution VII decision + merchant
 >   consent, and the PII log removed. Also not built: correcting a reading; chat history across
