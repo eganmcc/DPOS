@@ -1,6 +1,6 @@
 {
   "name": "dpos-server",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "DPOS authoritative REST API (NestJS + Prisma over PostgreSQL)",
   "license": "UNLICENSED",
   "scripts": {

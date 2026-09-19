@@ -5,7 +5,7 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
-import { BusinessSize, StaffRole } from '@prisma/client';
+import { BusinessSize, BusinessType, StaffRole } from '@prisma/client';
 
 export interface TestContext {
   app: INestApplication;
@@ -47,7 +47,7 @@ export interface MerchantFixture {
   modifierExtraShotId: string; // +5000
   ownerEmail: string; // unique per fixture — the portal login path
   businessSize: BusinessSize;
-  /** The provisioned open-amount variant; null unless made with `calculatorOnly`. */
+  /** The provisioned open-amount variant; null unless calculator-only or HIGH_HUMAN_INTERACTION. */
   openAmountVariantId: string | null;
 }
 
@@ -61,6 +61,11 @@ export interface MakeMerchantOptions {
    * catalog variant of the same merchant.
    */
   calculatorOnly?: boolean;
+  /**
+   * Defaults to FNB. HIGH_HUMAN_INTERACTION (specs/009) sells from read nota, so it is provisioned
+   * like a calculator merchant: the open-amount product, and no tax rule.
+   */
+  businessType?: BusinessType;
 }
 
 /** Creates an isolated merchant with catalog + tax rule + stock, returns ids and JWTs. */
@@ -71,8 +76,12 @@ export async function makeMerchant(
   const { prisma, jwt } = ctx;
   const businessSize = opts.businessSize ?? BusinessSize.GENERAL;
   const calculatorOnly = opts.calculatorOnly ?? false;
+  const businessType = opts.businessType ?? BusinessType.FNB;
+  // Merchants whose line prices come from the client rather than a catalog (Constitution III).
+  const sellsOpenAmounts =
+    calculatorOnly || businessType === BusinessType.HIGH_HUMAN_INTERACTION;
   const merchant = await prisma.merchant.create({
-    data: { name: `Test ${uuidv4()}`, businessSize, calculatorOnly },
+    data: { name: `Test ${uuidv4()}`, businessSize, businessType, calculatorOnly },
   });
   const outlet = await prisma.outlet.create({
     data: { merchantId: merchant.id, name: 'Test Outlet' },
@@ -107,7 +116,7 @@ export async function makeMerchant(
   });
   // A calculator merchant gets no tax rule: that absence IS the zero-tax mechanism (computeOrder's
   // "no rule" fallback), so the suite reproduces the provisioning rather than assuming it.
-  if (!calculatorOnly) {
+  if (!sellsOpenAmounts) {
     for (const o of [outlet, openBillOutlet]) {
       await prisma.taxRule.create({
         data: {
@@ -127,7 +136,7 @@ export async function makeMerchant(
   // Mirrors prisma/seed-calculator.ts: one hidden product, one untracked variant whose price is a
   // placeholder the keyed amount replaces.
   let openAmountVariantId: string | null = null;
-  if (calculatorOnly) {
+  if (sellsOpenAmounts) {
     const open = await prisma.product.create({
       data: {
         merchantId: merchant.id,

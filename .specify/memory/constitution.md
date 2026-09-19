@@ -1,7 +1,23 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.7.0 → 1.8.0
+Version change: 1.8.0 → 1.9.0
+Bump rationale: MINOR — widen the open-amount exception to a second catalog-free merchant, and let
+  such a line carry a label. A new business TYPE, `HIGH_HUMAN_INTERACTION` (laundries, tailors,
+  repair shops — trades where the sale is written by hand on a nota), sells from its own paper: DPOS
+  reads the photographed nota and the price written on it IS the price, so its lines are open-amount
+  lines exactly as a calculator merchant's are. Condition 1 of the exception now admits
+  `calculatorOnly` OR `businessType = HIGH_HUMAN_INTERACTION`; conditions 2 and 3 (provisioned
+  isOpenAmount variant; positive bounded integer, qty 1, no modifiers or discount) and the rule that
+  any other amount is REJECTED are unchanged. An open-amount line MAY carry a short `label` (the line
+  as written) snapshotted as its name; a label is text, never money, and is refused on catalog lines.
+  Every derived amount stays server-computed. Additive; no stock, idempotency or lifecycle rule
+  changed. OPEN ITEM, not decided here: reading a nota sends the photo to an AI provider outside
+  Indonesia for the seconds the read takes. Nothing is stored there and Principle VII's residency
+  rule governs stored production data, but a real merchant's slips carry customer names — so this
+  needs an explicit decision and merchant consent before any non-demo merchant uses the mode.
+
+Prior — Version change: 1.7.0 → 1.8.0
 Bump rationale: MINOR — admit ONE client-originated monetary value, tightly fenced. A merchant MAY
   be provisioned `Merchant.calculatorOnly`: it sells with no catalog at all (a warung, a street
   vendor), the cashier keys bare rupiah amounts on a keypad, and each finished nota is recorded as a
@@ -197,13 +213,16 @@ data and rules at submit time.
 
 - Client-computed totals are display-only and MUST be discarded server-side.
 - The client MUST NOT be trusted to determine what a customer owes.
-- **Open-amount lines (calculator-only merchants).** A merchant MAY be provisioned
-  `calculatorOnly`: it sells without a catalog, and the cashier keys a bare rupiah amount per line.
-  Such a line carries a client-supplied `amount` as its unit price, because there is no catalog
-  price to recompute from — the amount IS the price, in the same way a cash `tendered` figure is.
+- **Open-amount lines (merchants who sell without a catalog).** Two kinds of merchant sell without
+  a catalog. A merchant provisioned `calculatorOnly` keys a bare rupiah amount per line on a
+  keypad; a merchant of business type `HIGH_HUMAN_INTERACTION` sells from its own handwritten nota,
+  which DPOS reads — the price written on the paper is the price. Such a line carries a
+  client-supplied `amount` as its unit price, because there is no catalog price to recompute from —
+  the amount IS the price, in the same way a cash `tendered` figure is.
   This is the ONLY monetary value a client may originate, and it is admitted only under ALL of the
   following, each decided by the server from the database and never from a flag in the request:
-  1. the merchant row has `calculatorOnly = true`;
+  1. the merchant row has `calculatorOnly = true`, or its `businessType` is
+     `HIGH_HUMAN_INTERACTION`;
   2. the line targets a variant of a product marked `isOpenAmount` — created only by DPOS
      provisioning, settable through no API;
   3. the amount is a positive integer rupiah within a published per-line ceiling, with `qty = 1`,
@@ -215,7 +234,10 @@ data and rules at submit time.
   grand total and change — remains server-computed, and client-sent totals remain discarded.
   Principle IV is met rather than excepted: the line snapshots the keyed amount as its real selling
   price and the provisioned product's name, and `qty` stays 1, so quantity-sold reporting keeps
-  counting sales rather than rupiah.
+  counting sales rather than rupiah. An open-amount line MAY carry a short `label` — the line as
+  written on a nota, e.g. "1 M BESAR" — which is snapshotted as its name instead of the provisioned
+  product's. A label is text, never money, and is refused on any line that is not open-amount, so it
+  can never rename a catalog item's history.
 
 Rationale: Amounts a device sends can be stale, buggy, or tampered with. Deriving money on the
 server guarantees a single, correct, auditable calculation. The open-amount exception does not
@@ -343,11 +365,14 @@ lets the MVP demo convincingly today and go live without re-architecting.
   integer rupiah.
 - **Auth**: JWT issued by the API — owner email/password; staff PIN mapped to a staff account
   under the merchant. Roles gate sensitive actions.
-- **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY`) and drives
-  type-specific behaviour — e.g. the bill-settlement (`Outlet.paymentMode`) setting is surfaced only
-  for F&B; a **barcode-scanner POS mode** is offered only for grocery; **online-delivery order intake**
-  is offered only for F&B. Adding a type is additive; it MUST NOT change money, stock, or lifecycle
-  rules.
+- **Business type is a merchant attribute** (`Merchant.businessType` ∈ `FNB` | `GROCERY` |
+  `HIGH_HUMAN_INTERACTION`) and drives type-specific behaviour — e.g. the bill-settlement
+  (`Outlet.paymentMode`) setting is surfaced only for F&B; a **barcode-scanner POS mode** is offered
+  only for grocery; **online-delivery order intake** is offered only for F&B; the **nota chat** is the
+  home surface only for `HIGH_HUMAN_INTERACTION`, whose sales are read from a photographed nota and
+  recorded as open bills settled later through the ordinary settlement path. Adding a type is
+  additive; it MUST NOT change money, stock, or lifecycle rules — `HIGH_HUMAN_INTERACTION`'s one
+  money difference, open-amount lines, is governed by Principle III, not by its type.
 - **Business size is a merchant attribute** (`Merchant.businessSize` ∈ `GENERAL` | `UMKM` | `UMI`)
   and is **orthogonal to business type** — a UMI merchant is still F&B *or* grocery. `UMI`
   ("Ultra Mikro") denotes a **single-person operation**: there is no second person to approve a
@@ -437,4 +462,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.8.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-19
+**Version**: 1.9.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-19

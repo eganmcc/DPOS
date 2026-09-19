@@ -17,7 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { OrderType, PaymentMethod } from '@prisma/client';
-import { MAX_OPEN_AMOUNT } from '../common/business-size';
+import { MAX_OPEN_AMOUNT, MAX_OPEN_AMOUNT_LABEL } from '../common/business-size';
 
 export class DiscountDto {
   @IsEnum(['PERCENT', 'AMOUNT'])
@@ -57,6 +57,16 @@ export class LineDto {
   @Min(1)
   @Max(MAX_OPEN_AMOUNT)
   amount?: number;
+
+  /**
+   * An open-amount line's name as written on the nota ("1 M BESAR"), snapshotted as the line's
+   * name. Text, never money — but refused on a catalog line, where it would rename that item's
+   * history (Constitution III, v1.9.0).
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_OPEN_AMOUNT_LABEL)
+  label?: string;
 
   @IsOptional()
   @IsString()
@@ -169,6 +179,21 @@ export class OrderSubmitDto {
   @IsOptional()
   @IsString()
   tableLabel?: string;
+
+  /**
+   * The number printed on the merchant's own paper nota, when the sale was read from one
+   * (specs/009). Stored as `externalOrderRef` and used to refuse recording the same nota twice.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  notaNumber?: string;
+
+  /** The customer's name as written on the nota. Display only. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  customerName?: string;
 
   @IsOptional()
   @ValidateNested()

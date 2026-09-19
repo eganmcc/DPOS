@@ -43,6 +43,8 @@ export interface LineInput {
   /** Rupiah keyed by the cashier, used as the unit price for an open-amount variant and refused
    *  for any other. The caller has already checked eligibility; the guards below are backstops. */
   amount?: number | null;
+  /** An open-amount line's name as written on the nota; snapshotted instead of the product name. */
+  label?: string | null;
 }
 
 export interface OrderComputeInput {
@@ -159,10 +161,15 @@ export function computeOrder(
       });
     }
 
+    // A label names an open-amount line as written ("1 M BESAR"). On a catalog line it would rename
+    // that item's history, so it is refused there — a backstop; the service refuses it first.
+    const label = li.label?.trim() || null;
+    if (label && !v.isOpenAmount) throw new Error(`Line ${idx} sent a label for a catalog variant`);
+
     lines.push({
       variantId: v.id,
       qty: li.qty,
-      productNameSnapshot: v.productName,
+      productNameSnapshot: label ?? v.productName,
       skuSnapshot: v.sku ?? null,
       unitPriceSnapshot: unitPrice,
       costPriceSnapshot: v.costPrice ?? null,

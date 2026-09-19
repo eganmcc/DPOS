@@ -1,4 +1,4 @@
-import { BusinessSize } from '@prisma/client';
+import { BusinessSize, BusinessType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -41,19 +41,26 @@ export async function isUmiMerchant(prisma: PrismaService, merchantId: string): 
  */
 export const MAX_OPEN_AMOUNT = 100_000_000;
 
+/** Longest label an open-amount line may carry — a line as written on a nota, not an essay. */
+export const MAX_OPEN_AMOUNT_LABEL = 120;
+
 /**
- * True when this merchant sells without a catalog (specs/008-calculator-only).
+ * True when this merchant sells without a catalog, so a line's price may come from the client
+ * (Constitution III, open-amount lines, v1.9.0). Two kinds qualify:
+ *   - `calculatorOnly` — the cashier keys amounts on a keypad (specs/008);
+ *   - business type `HIGH_HUMAN_INTERACTION` — the price is read off the merchant's own nota
+ *     (specs/009).
  *
  * Read from the database for the same reason as `isUmiMerchant` above: this decides whether a
  * client may originate a price at all, so it must never come from a token or a request field.
  */
-export async function isCalculatorOnlyMerchant(
+export async function acceptsOpenAmountLines(
   prisma: PrismaService,
   merchantId: string,
 ): Promise<boolean> {
   const m = await prisma.merchant.findUnique({
     where: { id: merchantId },
-    select: { calculatorOnly: true },
+    select: { calculatorOnly: true, businessType: true },
   });
-  return m?.calculatorOnly === true;
+  return m?.calculatorOnly === true || m?.businessType === BusinessType.HIGH_HUMAN_INTERACTION;
 }

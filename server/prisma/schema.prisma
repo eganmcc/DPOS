@@ -23,6 +23,9 @@ enum StaffRole {
 enum BusinessType {
   FNB
   GROCERY
+  // Trades whose sale is written by hand on a nota (laundry, tailor, repair). The app opens on the
+  // nota chat: a photographed nota is read and recorded as an open transaction (specs/009).
+  HIGH_HUMAN_INTERACTION
 }
 
 // Merchant business SIZE — operating scale, orthogonal to businessType (a UMI

@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InventoryReason, Prisma, PaymentDirection, PaymentMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { isCalculatorOnlyMerchant, isUmiMerchant } from '../common/business-size';
+import { acceptsOpenAmountLines, isUmiMerchant } from '../common/business-size';
 import { isUmiRestrictedTender } from '../payments/tenders';
 import { PaymentsService } from '../payments/payments.service';
 import {
@@ -84,6 +84,35 @@ export class OrdersService {
       if (clash) throw new ConflictException(`Table ${normTable} already has an open bill`);
     }
 
+    // A sale read off a paper nota carries that nota's own number (specs/009). One nota is one
+    // sale: re-photographing a slip must never bill it twice, whether its first transaction is
+    // still open or already paid. A voided or cancelled one no longer counts, so a corrected slip
+    // can be recorded again. A nota with no readable number simply isn't deduplicated.
+    // Two devices submitting the same nota in the same instant could both pass this check; that
+    // window is accepted, as for the UMI item cap — the normal case is one phone reading one slip.
+    const notaNumber = dto.notaNumber?.trim() || null;
+    if (notaNumber) {
+      const already = await this.prisma.order.findFirst({
+        where: {
+          merchantId: user.merchantId,
+          outletId: dto.outletId,
+          channel: 'POS',
+          externalOrderRef: notaNumber,
+          status: { in: ['AWAITING_PAYMENT', 'COMPLETED'] },
+          voids: { none: {} },
+        },
+        select: { id: true, status: true },
+      });
+      if (already) {
+        throw new ConflictException({
+          code: 'NOTA_ALREADY_RECORDED',
+          message: `Nota ${notaNumber} is already recorded.`,
+          orderId: already.id,
+          status: already.status,
+        });
+      }
+    }
+
     // Load & validate the variants (must belong to this merchant).
     const variantIds = [...new Set(dto.lines.map((l) => l.variantId))];
     const variants = await this.prisma.productVariant.findMany({
@@ -150,6 +179,7 @@ export class OrdersService {
         modifierIds: l.modifierIds,
         lineDiscount: l.lineDiscount ?? null,
         amount: l.amount ?? null,
+        label: l.label ?? null,
       })),
       orderDiscount: dto.orderDiscount ?? null,
     };
@@ -181,6 +211,9 @@ export class OrdersService {
             shiftId: dto.shiftId ?? null,
             type: dto.type,
             tableLabel: normTable,
+            // The paper nota's own number and customer, when the sale was read from one. Text only.
+            externalOrderRef: notaNumber,
+            customerName: dto.customerName?.trim() || null,
             status: isOpenBill ? 'AWAITING_PAYMENT' : 'COMPLETED',
             subtotal: computed.subtotal,
             discountTotal: computed.discountTotal,
@@ -331,11 +364,11 @@ export class OrdersService {
     variants: Map<string, VariantInfo>,
   ): Promise<void> {
     const touchesOpenAmount = lines.some(
-      (l) => l.amount != null || variants.get(l.variantId)?.isOpenAmount,
+      (l) => l.amount != null || l.label != null || variants.get(l.variantId)?.isOpenAmount,
     );
     if (!touchesOpenAmount) return;
 
-    if (!(await isCalculatorOnlyMerchant(this.prisma, user.merchantId))) {
+    if (!(await acceptsOpenAmountLines(this.prisma, user.merchantId))) {
       throw new ForbiddenException({
         code: 'OPEN_AMOUNT_NOT_AVAILABLE',
         message: 'This merchant sells from a catalog; a line price cannot be set by the client.',
@@ -349,6 +382,13 @@ export class OrdersService {
           throw new BadRequestException({
             code: 'AMOUNT_ON_CATALOG_LINE',
             message: `Line ${idx} set an amount on a catalog item, which is priced from the catalog.`,
+          });
+        }
+        // A label would rename a catalog item in this sale's history (Constitution III, v1.9.0).
+        if (l.label != null) {
+          throw new BadRequestException({
+            code: 'LABEL_ON_CATALOG_LINE',
+            message: `Line ${idx} set a label on a catalog item, which is named by the catalog.`,
           });
         }
         return;
@@ -502,7 +542,7 @@ export class OrdersService {
 
     const computed = computeOrder(
       {
-        lines: dto.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, note: l.note, modifierIds: l.modifierIds, lineDiscount: l.lineDiscount ?? null, amount: l.amount ?? null })),
+        lines: dto.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, note: l.note, modifierIds: l.modifierIds, lineDiscount: l.lineDiscount ?? null, amount: l.amount ?? null, label: l.label ?? null })),
         orderDiscount: dto.orderDiscount ?? null,
       },
       variantMap,
