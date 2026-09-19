@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-18._
+_Last updated: 2026-09-19._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -14,6 +14,37 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 - **DB** — AWS RDS for PostgreSQL, Jakarta (`ap-southeast-3`).
 
 ## Current status
+
+> **2026-09-19 — calculator-only mode, live on `main` + EC2 (server 0.3.0, app 0.2.0).** A UMI
+> merchant with no catalog now opens on **Input nota**: key an amount, `↵`, repeat, **Selesai** →
+> cash received → Kembalian. Each finished nota is a **real Order** (one qty-1 line per amount) that
+> shows in Riwayat, can be voided, and feeds Reports. Spec `specs/008-calculator-only/spec.md`;
+> **Constitution v1.8.0** adds the bounded open-amount exception to Principle III.
+>
+> - **How a keyed amount is stored:** `OrderLine.variantId` stays `NOT NULL`. Each calculator merchant
+>   has ONE hidden provisioned product `isOpenAmount` (named "Nota"); a line posts
+>   `{variantId: <its variant>, qty: 1, amount}` and `computeOrder` uses `amount` as the unit price
+>   for that variant only. The gate (`assertOpenAmountLines`, on **checkout AND revise**) is decided
+>   from the DB and **refuses, never ignores**: 403 `OPEN_AMOUNT_NOT_AVAILABLE` for any
+>   non-calculator merchant, 400s for amount-on-catalog-line / missing amount / qty≠1 / modifiers /
+>   discount / out of range. `MAX_OPEN_AMOUNT` (server) must equal `kMaxNotaAmount` (app) = Rp 100 jt.
+> - **Tax is data, not code:** calculator merchants have no `TaxRule`, so tax is 0 through the
+>   engine's normal fallback. **Insert a `TaxRule` for the outlet and tax applies on the server AND
+>   on the keypad total/change — no code change** (both suites assert 40000 → 46000).
+> - **Migration 12 (`20260919120000_calculator_only_mode`) is applied to RDS.** It includes a partial
+>   unique index `products_open_amount_uq` that Prisma can't represent — it lives in SQL only; run
+>   `prisma migrate diff` after schema changes so a drift fix never drops it.
+> - **Demo merchant seeded on RDS: Kios Pak Darto** (`a3e10dfd-…`), UMI + calculator-only, owner
+>   **PIN 2222** in the login picker. `npx ts-node prisma/seed-calculator.ts` is idempotent.
+> - Phone has build **2089** (`dist/DIKASIR-0.2.0-2089.apk`). Suite: **13 suites / 91 tests**
+>   (+ `orders.open-amount.e2e-spec.ts`, 22 tests; disabling the merchant gate fails exactly the 3
+>   that should catch it). Dart: 39 tests incl. `nota_calculator_test.dart` + a keypad→payment widget
+>   test. Plus Jakarta Sans is bundled in `app/google_fonts/` (OFL) and scoped to this screen.
+> - **Not done / follow-ups:** cash only (no QRIS on the keypad); "Nota #N" is a device-local daily
+>   counter, display-only, and a logout (which clears prefs) resets it; a committed line can't be
+>   deleted individually — only Batal clears the nota. `payment_screen.dart` shows
+>   "Gagal masuk (cek koneksi)" (a *sign-in* message) when a sale fails — pre-existing, not touched.
+
 
 > **2026-09-18 (models) — Opus 5 is the only reader that gets the money right. Haiku is not an
 > option.** Compared on all three real laundry slips at 600px and 1200px, through the live
