@@ -47,11 +47,20 @@ export interface MerchantFixture {
   modifierExtraShotId: string; // +5000
   ownerEmail: string; // unique per fixture — the portal login path
   businessSize: BusinessSize;
+  /** The provisioned open-amount variant; null unless made with `calculatorOnly`. */
+  openAmountVariantId: string | null;
 }
 
 export interface MakeMerchantOptions {
   /** Defaults to GENERAL, so every existing suite is unaffected. */
   businessSize?: BusinessSize;
+  /**
+   * A calculator-only merchant (specs/008): flagged, given its open-amount product, and given NO
+   * tax rule — that absence is the zero-tax mechanism, so the suite must reproduce it rather than
+   * assume it. The Kopi Susu catalog is still created, so a test can aim an `amount` at a real
+   * catalog variant of the same merchant.
+   */
+  calculatorOnly?: boolean;
 }
 
 /** Creates an isolated merchant with catalog + tax rule + stock, returns ids and JWTs. */
@@ -61,8 +70,9 @@ export async function makeMerchant(
 ): Promise<MerchantFixture> {
   const { prisma, jwt } = ctx;
   const businessSize = opts.businessSize ?? BusinessSize.GENERAL;
+  const calculatorOnly = opts.calculatorOnly ?? false;
   const merchant = await prisma.merchant.create({
-    data: { name: `Test ${uuidv4()}`, businessSize },
+    data: { name: `Test ${uuidv4()}`, businessSize, calculatorOnly },
   });
   const outlet = await prisma.outlet.create({
     data: { merchantId: merchant.id, name: 'Test Outlet' },
@@ -95,25 +105,48 @@ export async function makeMerchant(
       pinHash: await bcrypt.hash(MANAGER_PIN, 8),
     },
   });
-  for (const o of [outlet, openBillOutlet]) {
-    await prisma.taxRule.create({
+  // A calculator merchant gets no tax rule: that absence IS the zero-tax mechanism (computeOrder's
+  // "no rule" fallback), so the suite reproduces the provisioning rather than assuming it.
+  if (!calculatorOnly) {
+    for (const o of [outlet, openBillOutlet]) {
+      await prisma.taxRule.create({
+        data: {
+          merchantId: merchant.id,
+          outletId: o.id,
+          label: 'PBJT',
+          rateBps: 1000,
+          serviceChargeBps: 500,
+          serviceLabel: 'Service',
+        },
+      });
+    }
+  }
+
+  const category = await prisma.category.create({ data: { merchantId: merchant.id, name: 'Cat' } });
+
+  // Mirrors prisma/seed-calculator.ts: one hidden product, one untracked variant whose price is a
+  // placeholder the keyed amount replaces.
+  let openAmountVariantId: string | null = null;
+  if (calculatorOnly) {
+    const open = await prisma.product.create({
       data: {
         merchantId: merchant.id,
-        outletId: o.id,
-        label: 'PBJT',
-        rateBps: 1000,
-        serviceChargeBps: 500,
-        serviceLabel: 'Service',
+        categoryId: category.id,
+        name: 'Nota',
+        isOpenAmount: true,
+        variants: {
+          create: [{ name: 'Nilai', price: 0, isDefault: true, trackInventory: false }],
+        },
       },
+      include: { variants: true },
     });
+    openAmountVariantId = open.variants[0].id;
   }
 
   const product = await prisma.product.create({
     data: {
       merchantId: merchant.id,
-      categoryId: (
-        await prisma.category.create({ data: { merchantId: merchant.id, name: 'Cat' } })
-      ).id,
+      categoryId: category.id,
       name: 'Kopi Susu',
       variants: {
         create: [
@@ -160,6 +193,7 @@ export async function makeMerchant(
     modifierExtraShotId: extraShot.id,
     ownerEmail,
     businessSize,
+    openAmountVariantId,
   };
 }
 

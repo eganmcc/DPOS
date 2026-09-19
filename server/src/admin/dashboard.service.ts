@@ -20,7 +20,9 @@ export class DashboardService {
       },
       include: {
         voids: { select: { id: true } },
-        lines: true,
+        // `isOpenAmount` rides along so a calculator merchant's lines can be excluded from the
+        // missing-cost warning below — they have no cost by definition, not by omission.
+        lines: { include: { variant: { select: { product: { select: { isOpenAmount: true } } } } } },
         payments: true,
         outlet: { select: { id: true, name: true } },
       },
@@ -71,10 +73,16 @@ export class DashboardService {
       for (const l of o.lines) {
         linesTotal += 1;
         if (l.costPriceSnapshot == null) {
-          // A line with no cost contributes 0 COGS and would silently overstate profit —
-          // so it is counted and named rather than swallowed.
-          linesMissingCost += 1;
-          missingCostItems.add(l.productNameSnapshot);
+          // An open-amount line has no cost because the merchant has no catalog to hold one —
+          // that is the mode working as designed, not a gap the owner can fix. Counting it would
+          // put a permanent "belum ada harga modal" warning on a calculator merchant's Reports
+          // screen naming its one provisioned item. It still counts toward revenue and byItem.
+          if (!l.variant?.product?.isOpenAmount) {
+            // A line with no cost contributes 0 COGS and would silently overstate profit —
+            // so it is counted and named rather than swallowed.
+            linesMissingCost += 1;
+            missingCostItems.add(l.productNameSnapshot);
+          }
         } else {
           // costPriceSnapshot is PER UNIT (written beside unitPriceSnapshot); qty is Decimal.
           cogs += Math.round(l.costPriceSnapshot * Number(l.qty));

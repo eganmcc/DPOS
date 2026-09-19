@@ -17,6 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { OrderType, PaymentMethod } from '@prisma/client';
+import { MAX_OPEN_AMOUNT } from '../common/business-size';
 
 export class DiscountDto {
   @IsEnum(['PERCENT', 'AMOUNT'])
@@ -41,6 +42,21 @@ export class LineDto {
   @IsNumber()
   @Min(0)
   qty!: number;
+
+  /**
+   * Rupiah keyed by the cashier of a calculator-only merchant, used as this line's unit price
+   * because there is no catalog price to recompute from (Constitution III, open-amount lines).
+   *
+   * Declaring it here means `ValidationPipe({ whitelist: true })` stops stripping it for EVERY
+   * merchant — which is exactly why `assertOpenAmountLines` must refuse it loudly wherever it is
+   * not allowed. An ignored amount would price the sale correctly off the catalog and hide the
+   * fact that a client tried to set a price at all.
+   */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(MAX_OPEN_AMOUNT)
+  amount?: number;
 
   @IsOptional()
   @IsString()

@@ -1,7 +1,25 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.6.0 → 1.7.0
+Version change: 1.7.0 → 1.8.0
+Bump rationale: MINOR — admit ONE client-originated monetary value, tightly fenced. A merchant MAY
+  be provisioned `Merchant.calculatorOnly`: it sells with no catalog at all (a warung, a street
+  vendor), the cashier keys bare rupiah amounts on a keypad, and each finished nota is recorded as a
+  real Order so it reaches reporting and the transaction history like any other sale. Because there
+  is no catalog price to recompute from, such a line carries the keyed `amount` as its unit price —
+  the amount IS the price, as a cash `tendered` figure already is. It is admitted only when the
+  server determines, FROM THE DATABASE, that the merchant is `calculatorOnly`, that the line targets
+  a provisioned `Product.isOpenAmount` variant settable through no API, and that the amount is a
+  positive integer rupiah under a published ceiling with `qty = 1`, no modifiers and no line
+  discount. An `amount` anywhere else MUST be REJECTED, never ignored, so this cannot later widen
+  into a general price override. Every derived amount — line totals, discounts, tax, service charge,
+  grand total, change — stays server-computed and client totals stay discarded, so Principle III's
+  substance is unchanged. Principle IV is MET rather than excepted: the line snapshots the keyed
+  amount as its true selling price and `qty` remains 1, so quantity-sold reporting keeps counting
+  sales rather than rupiah. Additive; no stock, idempotency, atomicity or order-lifecycle rule
+  changed, and every existing merchant is `calculatorOnly = false` with byte-identical behaviour.
+
+Prior — Version change: 1.6.0 → 1.7.0
 Bump rationale: MINOR — add business SIZE as a merchant attribute (`Merchant.businessSize` ∈
   `GENERAL` | `UMKM` | `UMI`), orthogonal to business type. `UMI` ("Ultra Mikro") is a single-person
   operation: no second person exists to approve a correction, so the manager/owner-PIN override is
@@ -179,9 +197,30 @@ data and rules at submit time.
 
 - Client-computed totals are display-only and MUST be discarded server-side.
 - The client MUST NOT be trusted to determine what a customer owes.
+- **Open-amount lines (calculator-only merchants).** A merchant MAY be provisioned
+  `calculatorOnly`: it sells without a catalog, and the cashier keys a bare rupiah amount per line.
+  Such a line carries a client-supplied `amount` as its unit price, because there is no catalog
+  price to recompute from — the amount IS the price, in the same way a cash `tendered` figure is.
+  This is the ONLY monetary value a client may originate, and it is admitted only under ALL of the
+  following, each decided by the server from the database and never from a flag in the request:
+  1. the merchant row has `calculatorOnly = true`;
+  2. the line targets a variant of a product marked `isOpenAmount` — created only by DPOS
+     provisioning, settable through no API;
+  3. the amount is a positive integer rupiah within a published per-line ceiling, with `qty = 1`,
+     no modifiers and no line discount.
+
+  An `amount` on any other line, or from any other merchant, MUST be **REJECTED — never silently
+  ignored** — so that a later refactor cannot quietly widen it into a general price override.
+  Everything downstream of the line's unit price — line totals, discounts, tax, service charge,
+  grand total and change — remains server-computed, and client-sent totals remain discarded.
+  Principle IV is met rather than excepted: the line snapshots the keyed amount as its real selling
+  price and the provisioned product's name, and `qty` stays 1, so quantity-sold reporting keeps
+  counting sales rather than rupiah.
 
 Rationale: Amounts a device sends can be stale, buggy, or tampered with. Deriving money on the
-server guarantees a single, correct, auditable calculation.
+server guarantees a single, correct, auditable calculation. The open-amount exception does not
+weaken that: it names the one case where no derivation exists — a merchant with no catalog — and
+fences it so narrowly that the server, not the request, decides whether it applies at all.
 
 ### IV. Immutable Financial History
 
@@ -398,4 +437,4 @@ lets the MVP demo convincingly today and go live without re-architecting.
   with the relevant principles. Complexity that appears to violate a principle MUST be justified
   in writing or removed.
 
-**Version**: 1.7.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-08
+**Version**: 1.8.0 | **Ratified**: 2026-08-21 | **Last Amended**: 2026-09-19

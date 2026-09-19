@@ -11,13 +11,15 @@ export class CatalogService {
     if (!outlet) throw new NotFoundException('Outlet not found in this merchant');
     const merchant = await this.prisma.merchant.findUnique({
       where: { id: merchantId },
-      select: { name: true, businessType: true, businessSize: true },
+      select: { name: true, businessType: true, businessSize: true, calculatorOnly: true },
     });
 
-    const [taxRule, products, productOutlets, stockRows] = await Promise.all([
+    const [taxRule, products, productOutlets, stockRows, openAmountProduct] = await Promise.all([
       this.prisma.taxRule.findFirst({ where: { merchantId, outletId, isActive: true } }),
       this.prisma.product.findMany({
-        where: { merchantId },
+        // The open-amount product is plumbing, not merchandise: it must never appear in a grid,
+        // a search or an item count. It reaches the app only as `openAmountVariantId` below.
+        where: { merchantId, isOpenAmount: false },
         include: {
           category: true,
           variants: true,
@@ -27,6 +29,10 @@ export class CatalogService {
       }),
       this.prisma.productOutlet.findMany({ where: { merchantId, outletId } }),
       this.prisma.inventoryStock.findMany({ where: { merchantId, outletId } }),
+      this.prisma.product.findFirst({
+        where: { merchantId, isOpenAmount: true },
+        include: { variants: { orderBy: { isDefault: 'desc' } } },
+      }),
     ]);
 
     const overrideByProduct = new Map(productOutlets.map((po) => [po.productId, po]));
@@ -42,6 +48,13 @@ export class CatalogService {
       businessType: merchant?.businessType ?? 'FNB',
       // Drives UMI-only UI (no approver PIN, in-app items, no attendance).
       businessSize: merchant?.businessSize ?? 'GENERAL',
+      // Sells with no catalog: the app lands on the keypad instead of the till.
+      calculatorOnly: merchant?.calculatorOnly ?? false,
+      // The variant every keyed amount is posted against. Published because the app cannot build
+      // a line without it, and null for everyone else — so the app can treat "flagged but no
+      // variant" as not-yet-provisioned and fall back to the normal till rather than showing a
+      // keypad that cannot finish a sale.
+      openAmountVariantId: openAmountProduct?.variants[0]?.id ?? null,
       // Drives the app's checkout vs confirm-order behaviour (per-outlet setting).
       paymentMode: outlet.paymentMode,
       taxRule: taxRule

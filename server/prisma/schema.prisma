@@ -155,6 +155,10 @@ model Merchant {
   name         String // company / legal name
   businessType BusinessType @default(FNB)
   businessSize BusinessSize @default(GENERAL)
+  // Sells without a catalog: the cashier keys bare rupiah amounts on a keypad and each nota is
+  // still recorded as a real Order. Only meaningful alongside businessSize UMI. Set by DPOS
+  // provisioning; published read-only on /catalog, accepted by no endpoint.
+  calculatorOnly Boolean @default(false)
   logoUrl      String?
   createdAt    DateTime     @default(now())
 
@@ -280,6 +284,17 @@ model Product {
   imageUrl    String?
   isAvailable Boolean     @default(true)
   type        ProductType @default(FNB)
+
+  /// The one provisioned product of a calculator-only merchant. Its variant carries no meaningful
+  /// price: the cashier's keyed `amount` is the unit price instead (Constitution III, open-amount
+  /// lines). Created by provisioning only — it is declared in no admin DTO, so ValidationPipe
+  /// ({ whitelist: true }) strips it from any request that tries to set it.
+  ///
+  /// NOTE: a partial unique index `products_open_amount_uq ON products(merchantId) WHERE
+  /// "isOpenAmount"` enforces one-per-merchant. Prisma cannot express a partial index, so it lives
+  /// in the migration SQL ONLY — check `prisma migrate diff` after any schema change, because a
+  /// drift reconciliation will otherwise drop it silently.
+  isOpenAmount Boolean @default(false)
 
   merchant       Merchant         @relation(fields: [merchantId], references: [id])
   category       Category         @relation(fields: [categoryId], references: [id])

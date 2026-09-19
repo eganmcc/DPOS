@@ -12,7 +12,9 @@ export class ProductsService {
   /** Products with their variants (prices live on the variant). */
   async list(merchantId: string) {
     const products = await this.prisma.product.findMany({
-      where: { merchantId },
+      // A calculator merchant's open-amount product is provisioning, not an item the owner owns.
+      // Showing it would offer a rename/price edit on something the money path depends on.
+      where: { merchantId, isOpenAmount: false },
       include: { category: true, variants: { orderBy: { name: 'asc' } } },
       orderBy: { name: 'asc' },
     });
@@ -51,7 +53,9 @@ export class ProductsService {
     // since no money, stock, or lifecycle rule is involved.
     if (merchant.businessSize === BusinessSize.UMI) {
       const items = await this.prisma.product.count({
-        where: { merchantId: user.merchantId, isAvailable: true },
+        // The open-amount product is provisioning, so it must not eat one of the 30 slots the
+        // merchant paid for.
+        where: { merchantId: user.merchantId, isAvailable: true, isOpenAmount: false },
       });
       if (items >= UMI_PRODUCT_LIMIT) {
         throw new BadRequestException({

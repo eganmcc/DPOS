@@ -27,3 +27,33 @@ export async function isUmiMerchant(prisma: PrismaService, merchantId: string): 
   });
   return m?.businessSize === BusinessSize.UMI;
 }
+
+/**
+ * Ceiling on a single keyed amount, in rupiah.
+ *
+ * A bound is required by Constitution III so the one client-originated monetary value cannot be
+ * unbounded. Rp 100.000.000 is far above any warung line and far below anything that would
+ * overflow an Int column, so it catches a stuck key or a misplaced `000` rather than constraining
+ * a real sale.
+ *
+ * MUST stay equal to `kMaxNotaAmount` in `app/lib/features/calculator/nota_calculator.dart`. If
+ * they diverge, the app accepts a nota the server refuses — after the cash is already counted.
+ */
+export const MAX_OPEN_AMOUNT = 100_000_000;
+
+/**
+ * True when this merchant sells without a catalog (specs/008-calculator-only).
+ *
+ * Read from the database for the same reason as `isUmiMerchant` above: this decides whether a
+ * client may originate a price at all, so it must never come from a token or a request field.
+ */
+export async function isCalculatorOnlyMerchant(
+  prisma: PrismaService,
+  merchantId: string,
+): Promise<boolean> {
+  const m = await prisma.merchant.findUnique({
+    where: { id: merchantId },
+    select: { calculatorOnly: true },
+  });
+  return m?.calculatorOnly === true;
+}

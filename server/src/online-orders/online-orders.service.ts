@@ -281,11 +281,13 @@ export class OnlineOrdersService {
     const outlet = await this.prisma.outlet.findFirst({ where: { id: outletId, merchantId } });
     if (!outlet) throw new NotFoundException('Outlet not found in this merchant');
 
-    // Available variants for the merchant, with this outlet's stock.
+    // Available variants for the merchant, with this outlet's stock. The open-amount variant is
+    // excluded: it is priced by a cashier keying an amount, so the simulator has no price to use
+    // and would generate Rp 0 "orders".
     const variants = await this.prisma.productVariant.findMany({
       where: {
         isAvailable: true,
-        product: { merchantId, isAvailable: true },
+        product: { merchantId, isAvailable: true, isOpenAmount: false },
       },
       include: { stock: { where: { outletId } } },
     });

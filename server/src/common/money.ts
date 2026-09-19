@@ -23,6 +23,9 @@ export interface VariantInfo {
   price: number; // rupiah
   costPrice?: number | null;
   trackInventory: boolean;
+  /** True for a calculator-only merchant's provisioned variant: `price` is meaningless and the
+   *  line's keyed `amount` is the unit price instead. See Constitution III, open-amount lines. */
+  isOpenAmount?: boolean;
 }
 
 export interface ModifierInfo {
@@ -37,6 +40,9 @@ export interface LineInput {
   note?: string | null;
   modifierIds?: string[];
   lineDiscount?: DiscountInput | null;
+  /** Rupiah keyed by the cashier, used as the unit price for an open-amount variant and refused
+   *  for any other. The caller has already checked eligibility; the guards below are backstops. */
+  amount?: number | null;
 }
 
 export interface OrderComputeInput {
@@ -117,7 +123,26 @@ export function computeOrder(
       return { id: m.id, name: m.name, priceDelta: m.priceDelta };
     });
     const modifierDelta = selectedModifiers.reduce((s, m) => s + m.priceDelta, 0);
-    const unitPrice = v.price + modifierDelta;
+
+    // An open-amount line has no catalog price to recompute from — the cashier's keyed amount IS
+    // the price (Constitution III). Eligibility is decided by the service, from the database,
+    // before we get here; these throws are backstops so a future caller that forgets the gate
+    // fails loudly rather than pricing a sale off a placeholder.
+    let unitPrice: number;
+    if (v.isOpenAmount) {
+      if (li.amount == null) throw new Error(`Open-amount line ${idx} has no amount`);
+      if (!Number.isInteger(li.amount) || li.amount <= 0) {
+        throw new Error(`Open-amount line ${idx} must be a positive integer rupiah`);
+      }
+      if (li.qty !== 1) throw new Error(`Open-amount line ${idx} must have qty 1`);
+      if (modifierDelta !== 0) throw new Error(`Open-amount line ${idx} cannot carry modifiers`);
+      unitPrice = li.amount;
+    } else {
+      if (li.amount != null) {
+        throw new Error(`Line ${idx} sent an amount for a catalog variant`);
+      }
+      unitPrice = v.price + modifierDelta;
+    }
     const lineGross = Math.round(unitPrice * li.qty);
 
     let lineDiscount = 0;

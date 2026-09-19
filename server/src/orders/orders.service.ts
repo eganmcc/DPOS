@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { InventoryReason, Prisma, PaymentDirection, PaymentMethod } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { isUmiMerchant } from '../common/business-size';
+import { isCalculatorOnlyMerchant, isUmiMerchant } from '../common/business-size';
 import { isUmiRestrictedTender } from '../payments/tenders';
 import { PaymentsService } from '../payments/payments.service';
 import {
@@ -20,6 +20,7 @@ import {
 } from '../common/money';
 import { AuthUser } from '../auth/auth.types';
 import {
+  LineDto,
   OrderSubmitDto,
   OrderHistoryQuery,
   OrderReviseDto,
@@ -102,9 +103,11 @@ export class OrdersService {
           price: v.price,
           costPrice: v.costPrice,
           trackInventory: v.trackInventory,
+          isOpenAmount: v.product.isOpenAmount,
         },
       ]),
     );
+    await this.assertOpenAmountLines(user, dto.lines, variantMap);
 
     // Load modifiers referenced by the lines, with their group + product so the
     // selection can be validated rather than merely priced.
@@ -146,6 +149,7 @@ export class OrdersService {
         note: l.note,
         modifierIds: l.modifierIds,
         lineDiscount: l.lineDiscount ?? null,
+        amount: l.amount ?? null,
       })),
       orderDiscount: dto.orderDiscount ?? null,
     };
@@ -311,6 +315,74 @@ export class OrdersService {
     }
   }
 
+  /**
+   * The gate on the one monetary value a client may originate (Constitution III, open-amount
+   * lines, v1.8.0). Applied to BOTH order entry points — `checkout` and `revise` take the same
+   * `LineDto[]` into the same `computeOrder`, so gating only one leaves the other as a back door.
+   *
+   * Every condition is decided here, from the database, never from a field in the request. And
+   * every violation THROWS: an ignored `amount` would still price the sale correctly off the
+   * catalog, which looks like success while hiding that a client tried to set a price at all —
+   * and silence is how a narrow exception quietly becomes a general price override.
+   */
+  private async assertOpenAmountLines(
+    user: AuthUser,
+    lines: LineDto[],
+    variants: Map<string, VariantInfo>,
+  ): Promise<void> {
+    const touchesOpenAmount = lines.some(
+      (l) => l.amount != null || variants.get(l.variantId)?.isOpenAmount,
+    );
+    if (!touchesOpenAmount) return;
+
+    if (!(await isCalculatorOnlyMerchant(this.prisma, user.merchantId))) {
+      throw new ForbiddenException({
+        code: 'OPEN_AMOUNT_NOT_AVAILABLE',
+        message: 'This merchant sells from a catalog; a line price cannot be set by the client.',
+      });
+    }
+
+    lines.forEach((l, idx) => {
+      const v = variants.get(l.variantId);
+      if (!v?.isOpenAmount) {
+        if (l.amount != null) {
+          throw new BadRequestException({
+            code: 'AMOUNT_ON_CATALOG_LINE',
+            message: `Line ${idx} set an amount on a catalog item, which is priced from the catalog.`,
+          });
+        }
+        return;
+      }
+      // An open-amount line with no amount would otherwise price off the placeholder and sell for
+      // Rp 0 — the one failure here that loses money silently rather than loudly.
+      if (l.amount == null) {
+        throw new BadRequestException({
+          code: 'OPEN_AMOUNT_REQUIRED',
+          message: `Line ${idx} needs an amount.`,
+        });
+      }
+      if (l.qty !== 1) {
+        throw new BadRequestException({
+          code: 'OPEN_AMOUNT_QTY_INVALID',
+          message: `Line ${idx} must have qty 1; the keyed amount is the whole line.`,
+        });
+      }
+      if (l.modifierIds?.length) {
+        throw new BadRequestException({
+          code: 'OPEN_AMOUNT_MODIFIERS_INVALID',
+          message: `Line ${idx} cannot carry modifiers.`,
+        });
+      }
+      // The cashier keys the net amount, so a discount on top would be counted twice.
+      if (l.lineDiscount) {
+        throw new BadRequestException({
+          code: 'OPEN_AMOUNT_DISCOUNT_INVALID',
+          message: `Line ${idx} cannot carry a discount; key the net amount.`,
+        });
+      }
+    });
+  }
+
   async findById(merchantId: string, id: string) {
     return this.prisma.order.findFirst({ where: { id, merchantId }, include: ORDER_INCLUDE });
   }
@@ -400,9 +472,12 @@ export class OrdersService {
     const variantMap = new Map<string, VariantInfo>(
       variants.map((v) => [
         v.id,
-        { id: v.id, productName: v.product.name, sku: v.sku, price: v.price, costPrice: v.costPrice, trackInventory: v.trackInventory },
+        { id: v.id, productName: v.product.name, sku: v.sku, price: v.price, costPrice: v.costPrice, trackInventory: v.trackInventory, isOpenAmount: v.product.isOpenAmount },
       ]),
     );
+    // Revise is the second door into computeOrder with client-supplied lines. Without this, a
+    // catalog merchant refused an `amount` at checkout could simply send it here instead.
+    await this.assertOpenAmountLines(user, dto.lines, variantMap);
     const modifierIds = [...new Set(dto.lines.flatMap((l) => l.modifierIds ?? []))];
     const modifiers = modifierIds.length
       ? await this.prisma.modifier.findMany({
@@ -427,7 +502,7 @@ export class OrdersService {
 
     const computed = computeOrder(
       {
-        lines: dto.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, note: l.note, modifierIds: l.modifierIds, lineDiscount: l.lineDiscount ?? null })),
+        lines: dto.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, note: l.note, modifierIds: l.modifierIds, lineDiscount: l.lineDiscount ?? null, amount: l.amount ?? null })),
         orderDiscount: dto.orderDiscount ?? null,
       },
       variantMap,
