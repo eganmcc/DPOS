@@ -119,6 +119,25 @@ void main() {
     expect(textOf(tester, 'nota-item-count'), '0 item');
   });
 
+  testWidgets('Uang pas fills the exact amount due, so the sale completes with no change',
+      (tester) async {
+    await pump(tester);
+    await keys(tester, ['2', '5', '000', 'enter', '1', '2', '000', 'enter']);
+    await tester.tap(find.byKey(const ValueKey('nota-selesai')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('nota-pay-exact')));
+    await tester.pump();
+    final field = tester.widget<TextField>(find.byKey(const ValueKey('nota-tender-field')));
+    expect(field.controller!.text, '37.000');
+    expect(find.text('Kembalian'), findsOneWidget);
+    expect(find.text('Rp 0'), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('nota-pay-finish')));
+    await tester.pumpAndSettle();
+    expect(submitted.single.tendered, 37000);
+  });
+
   testWidgets('an amount typed but never entered is still charged', (tester) async {
     await pump(tester);
     await keys(tester, ['2', '000', 'enter', '5', '000']);

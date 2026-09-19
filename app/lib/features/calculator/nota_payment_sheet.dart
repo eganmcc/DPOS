@@ -96,6 +96,15 @@ class _NotaPaymentDialogState extends State<_NotaPaymentDialog> {
     }
   }
 
+  /// Fills "Uang diterima" with the amount due, formatted exactly as if it had been typed.
+  /// Uses the grand total — the tax-inclusive figure — for the same reason the change readout does.
+  void _payExact() {
+    setState(() {
+      _tender.value = ThousandsTextInputFormatter()
+          .formatEditUpdate(const TextEditingValue(), TextEditingValue(text: _total.toString()));
+    });
+  }
+
   void _finish() {
     if (!_enough) return;
     Navigator.of(context).pop(NotaPaymentOutcome(NotaPaymentAction.finish, _tendered));
@@ -135,12 +144,27 @@ class _NotaPaymentDialogState extends State<_NotaPaymentDialog> {
                     color: cs.primary,
                     fontFeatures: tabular)),
             const SizedBox(height: 16),
-            Text(t.calcAmountReceived,
-                style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.6,
-                    color: cs.onSurfaceVariant)),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(t.calcAmountReceived,
+                      style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 0.6,
+                          color: cs.onSurfaceVariant)),
+                ),
+                // The commonest payment at a warung is the exact amount — one tap instead of
+                // retyping the total the cashier is already looking at.
+                ActionChip(
+                  key: const ValueKey('nota-pay-exact'),
+                  label: Text(t.tenderExact),
+                  avatar: const Icon(Icons.payments_outlined, size: 16),
+                  visualDensity: VisualDensity.compact,
+                  onPressed: _payExact,
+                ),
+              ],
+            ),
             const SizedBox(height: 6),
             TextField(
               key: const ValueKey('nota-tender-field'),
