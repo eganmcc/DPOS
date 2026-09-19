@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/pin_field.dart';
 import '../../core/settings_actions.dart';
 import '../../data/api_client.dart';
+import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -333,6 +334,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Text(t.loginFooter,
                           textAlign: TextAlign.center,
                           style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
+                      const SizedBox(height: 10),
+                      const _VersionLine(),
                     ],
                   ),
                 ),
@@ -341,6 +344,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// "Aplikasi v0.2.0 (2089) · Server v0.3.0", under the login footer.
+///
+/// Both halves are read, never hardcoded (Constitution: version discipline) — the app's from its
+/// own bundle, the server's from the public `GET /version`. Shown before sign-in so anyone holding
+/// the phone can tell which build it is without an account. Offline, or on a server too old to
+/// answer, the server half is simply left off rather than showing an error on the login screen.
+class _VersionLine extends ConsumerWidget {
+  const _VersionLine();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final app = ref.watch(appVersionProvider).valueOrNull;
+    final server = ref.watch(serverVersionProvider).valueOrNull;
+    final parts = <String>[
+      if (app != null)
+        // appVersionProvider yields "0.2.0+2089": version name, then build number.
+        t.loginVersionApp(app.split('+').first, app.contains('+') ? app.split('+').last : '-'),
+      if (server != null && server != 'unknown') t.loginVersionServer(server),
+    ];
+    if (parts.isEmpty) return const SizedBox.shrink();
+    return Text(
+      parts.join('  ·  '),
+      key: const ValueKey('login-version'),
+      textAlign: TextAlign.center,
+      style: TextStyle(color: muted, fontSize: 11, fontFeatures: const [FontFeature.tabularFigures()]),
     );
   }
 }

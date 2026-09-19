@@ -1921,6 +1921,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This sale was not saved ({code}). Nothing was recorded — check the connection and press Done again.'**
   String calcSaveFailed(String code);
+
+  /// No description provided for @loginVersionApp.
+  ///
+  /// In en, this message translates to:
+  /// **'App v{version} ({build})'**
+  String loginVersionApp(String version, String build);
+
+  /// No description provided for @loginVersionServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Server v{version}'**
+  String loginVersionServer(String version);
 }
 
 class _AppLocalizationsDelegate

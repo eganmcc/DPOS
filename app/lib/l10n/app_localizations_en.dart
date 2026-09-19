@@ -990,4 +990,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String calcSaveFailed(String code) {
     return 'This sale was not saved ($code). Nothing was recorded — check the connection and press Done again.';
   }
+
+  @override
+  String loginVersionApp(String version, String build) {
+    return 'App v$version ($build)';
+  }
+
+  @override
+  String loginVersionServer(String version) {
+    return 'Server v$version';
+  }
 }

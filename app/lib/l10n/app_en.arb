@@ -465,5 +465,9 @@
   "calcTaxLine": "{label} {pct}%",
   "@calcTaxLine": {"placeholders":{"label":{"type":"String"},"pct":{"type":"String"}}},
   "calcSaveFailed": "This sale was not saved ({code}). Nothing was recorded — check the connection and press Done again.",
-  "@calcSaveFailed": {"placeholders":{"code":{"type":"String"}}}
+  "@calcSaveFailed": {"placeholders":{"code":{"type":"String"}}},
+  "loginVersionApp": "App v{version} ({build})",
+  "@loginVersionApp": {"placeholders":{"version":{"type":"String"},"build":{"type":"String"}}},
+  "loginVersionServer": "Server v{version}",
+  "@loginVersionServer": {"placeholders":{"version":{"type":"String"}}}
 }

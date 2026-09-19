@@ -990,4 +990,14 @@ class AppLocalizationsId extends AppLocalizations {
   String calcSaveFailed(String code) {
     return 'Penjualan ini belum tersimpan ($code). Belum ada yang tercatat — periksa koneksi lalu tekan Selesai lagi.';
   }
+
+  @override
+  String loginVersionApp(String version, String build) {
+    return 'Aplikasi v$version ($build)';
+  }
+
+  @override
+  String loginVersionServer(String version) {
+    return 'Server v$version';
+  }
 }

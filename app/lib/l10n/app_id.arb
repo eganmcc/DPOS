@@ -341,5 +341,7 @@
   "calcFinish": "Selesai",
   "calcPaid": "Lunas · kembalian {amount}",
   "calcTaxLine": "{label} {pct}%",
-  "calcSaveFailed": "Penjualan ini belum tersimpan ({code}). Belum ada yang tercatat — periksa koneksi lalu tekan Selesai lagi."
+  "calcSaveFailed": "Penjualan ini belum tersimpan ({code}). Belum ada yang tercatat — periksa koneksi lalu tekan Selesai lagi.",
+  "loginVersionApp": "Aplikasi v{version} ({build})",
+  "loginVersionServer": "Server v{version}"
 }
