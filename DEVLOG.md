@@ -15,6 +15,38 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> **2026-09-19 (later) — nota reading mode, live on `main` + EC2 (server 0.4.0, app 0.3.0, portal
+> 0.3.0).** New business TYPE `HIGH_HUMAN_INTERACTION` ("High Human Interactions") for trades whose
+> sale is handwritten on a nota. The app opens on the **nota chat** for every role: send a photo →
+> the reply is the reading line by line → "Apakah ada yang perlu diperbaiki?" **Ya** records nothing
+> (corrections not built yet). **Tidak** posts it with **no payment**, so it is an **open
+> transaction** (`AWAITING_PAYMENT`) settled through the existing settle flow ("Bayar sekarang", or
+> tap it in the open bills list). Spec `specs/009-nota-reading-mode/spec.md`; Constitution v1.9.0.
+>
+> - **Recording:** each priced line → an open-amount line at the price written on the paper,
+>   **named as written** (new line `label`, refused on catalog lines). Priceless lines ("A/J FREE",
+>   "31 pc") are shown as not charged. A nota priced only as a whole → one line at the written total.
+>   Paper total ≠ sum of lines → flagged in the chat; the lines are what gets charged. The
+>   open-amount gate is now `acceptsOpenAmountLines` = `calculatorOnly` OR this business type.
+> - **One nota, one sale:** nota number → `externalOrderRef`, customer → `customerName`. A number
+>   already on an open or paid, un-voided order at the outlet → `409 NOTA_ALREADY_RECORDED`; the chat
+>   links to the existing transaction. Cancelled ones can be re-recorded.
+> - **Migration 13 (`20260919180000_business_type_high_human_interaction`) is applied to RDS.**
+>   Deploy order matters: migrate → deploy a server that knows the enum → only then create a merchant
+>   of this type. A server without it can't decode that row and `/demo/directory` fails for everyone.
+> - **Demo seeded on RDS: Laundry Wangi Demo** (`7175c186-…`), GENERAL size, OPEN_BILL outlet, no tax.
+>   Owner **Bu Wangi PIN 3333**, cashier **Kasir Wangi PIN 4444**. `npx ts-node prisma/seed-nota.ts` is
+>   idempotent. Name is invented on purpose — the real slips belong to a real laundry.
+> - Phone has build **2093** (`dist/DIKASIR-0.3.0-2093.apk`). Server suite **14 suites / 104 tests**
+>   (+ `orders.nota-sale.e2e-spec.ts`, 13); disabling the duplicate check fails exactly the two
+>   "already recorded" tests. Dart **64 tests** incl. the chat end to end. Verified live: Kasir Wangi
+>   logs in, catalog is HHI with the variant, slip 2532 reads `1 M BESAR → 130.000` via Opus 5 in 3.9 s.
+> - **BLOCKER before any real merchant:** the photo goes to an AI provider outside Indonesia, and the
+>   server log `NOTA_RESULT` holds customer names. Needs a scoped Constitution VII decision + merchant
+>   consent, and the PII log removed. Also not built: correcting a reading; chat history across
+>   launches (the transactions themselves are on the server).
+
+
 > **2026-09-19 — calculator-only mode, live on `main` + EC2 (server 0.3.0, app 0.2.0).** A UMI
 > merchant with no catalog now opens on **Input nota**: key an amount, `↵`, repeat, **Selesai** →
 > cash received → Kembalian. Each finished nota is a **real Order** (one qty-1 line per amount) that
