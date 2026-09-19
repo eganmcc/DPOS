@@ -1,7 +1,18 @@
 import { defineStore } from 'pinia';
 import { api, TOKEN_KEY } from '../api';
 
-export type BusinessType = 'FNB' | 'GROCERY';
+export type BusinessType = 'FNB' | 'GROCERY' | 'HIGH_HUMAN_INTERACTION';
+
+/** How a business type reads to a person. The enum is for the API, not for a badge. */
+export const BUSINESS_TYPE_LABELS: Record<BusinessType, string> = {
+  FNB: 'F&B',
+  GROCERY: 'Grocery',
+  HIGH_HUMAN_INTERACTION: 'High Human Interactions',
+};
+
+export function businessTypeLabel(t: string | undefined | null): string {
+  return (t && BUSINESS_TYPE_LABELS[t as BusinessType]) || t || '';
+}
 
 /** Operating scale, orthogonal to business type. Read-only — set by DPOS provisioning. */
 export type BusinessSize = 'GENERAL' | 'UMKM' | 'UMI';

@@ -35,7 +35,10 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final outletId = ref.watch(sessionProvider)!.outletId;
-    final isFnb = ref.watch(catalogProvider(outletId)).valueOrNull?.isFnb ?? false;
+    final catalog = ref.watch(catalogProvider(outletId)).valueOrNull;
+    final isFnb = catalog?.isFnb ?? false;
+    // A catalog-free merchant's bill has no catalog items to rebuild into a cart, so no Edit.
+    final canEdit = !(catalog?.sellsWithoutCatalog ?? false);
     final online =
         isFnb ? ref.watch(onlineOrdersProvider(outletId)) : const OnlineOrdersState(loading: false);
     final billsAsync = ref.watch(openBillsProvider(outletId));
@@ -62,7 +65,8 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
           final filteredBills = _q.isEmpty
               ? bills
               : bills
-                  .where((b) => (b.tableLabel ?? '').toUpperCase().contains(_q.toUpperCase()))
+                  .where((b) => [b.tableLabel, b.externalOrderRef, b.customerName]
+                      .any((f) => (f ?? '').toUpperCase().contains(_q.toUpperCase())))
                   .toList();
           final showBillsHeader = onlineOrders.isNotEmpty && bills.isNotEmpty;
           return RefreshIndicator(
@@ -92,7 +96,7 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
                       onChanged: (v) => setState(() => _q = v),
                     ),
                   ),
-                  for (final b in filteredBills) _billTile(b, t, cs),
+                  for (final b in filteredBills) _billTile(b, t, cs, canEdit: canEdit),
                 ],
               ],
             ),
@@ -148,20 +152,27 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
     );
   }
 
-  Widget _billTile(OrderResult b, AppLocalizations t, ColorScheme cs) {
+  Widget _billTile(OrderResult b, AppLocalizations t, ColorScheme cs, {bool canEdit = true}) {
     final count = b.lines.fold<int>(0, (s, l) => s + (num.tryParse(l.qty)?.toInt() ?? 0));
+    // A bill read off a paper nota is known by that nota's number and customer, not by a table.
+    final nota = !b.isOnline && (b.externalOrderRef?.isNotEmpty ?? false) ? b.externalOrderRef : null;
+    final customer = (b.customerName?.isNotEmpty ?? false) ? ' · ${b.customerName}' : '';
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: cs.primary,
-        child: Text(
-          b.tableLabel?.isNotEmpty == true ? b.tableLabel! : 'TA',
-          style: TextStyle(color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 13),
-        ),
+        child: nota != null
+            ? Icon(Icons.receipt_outlined, color: cs.onPrimary, size: 20)
+            : Text(
+                b.tableLabel?.isNotEmpty == true ? b.tableLabel! : 'TA',
+                style: TextStyle(color: cs.onPrimary, fontWeight: FontWeight.w700, fontSize: 13),
+              ),
       ),
       title: Text(
-        b.tableLabel != null && b.tableLabel!.isNotEmpty
-            ? t.tableLabelShort(b.tableLabel!)
-            : t.typeTakeaway,
+        nota != null
+            ? '${t.chatNotaHeader(nota)}$customer'
+            : b.tableLabel != null && b.tableLabel!.isNotEmpty
+                ? t.tableLabelShort(b.tableLabel!)
+                : t.typeTakeaway,
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
       subtitle: Text('${t.itemsLabel(count)} · ${DateFormat('HH:mm').format(b.createdAt)}'),
@@ -170,11 +181,12 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
         children: [
           Text(formatRupiah(b.grandTotal),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-          IconButton(
-            tooltip: 'Edit',
-            icon: const Icon(Icons.edit_outlined, size: 20),
-            onPressed: () => _editBill(b),
-          ),
+          if (canEdit)
+            IconButton(
+              tooltip: 'Edit',
+              icon: const Icon(Icons.edit_outlined, size: 20),
+              onPressed: () => _editBill(b),
+            ),
           IconButton(
             tooltip: t.actionCancelBill,
             icon: Icon(Icons.cancel_outlined, size: 20, color: cs.error),

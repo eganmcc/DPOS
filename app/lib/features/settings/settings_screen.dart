@@ -26,6 +26,8 @@ class SettingsScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final isGrocery = session != null &&
         (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isGrocery ?? false);
+    final isNota = session != null &&
+        (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isNotaReading ?? false);
     final isFnb = session != null &&
         (ref.watch(catalogProvider(session.outletId)).valueOrNull?.isFnb ?? false);
     final scannerMode = ref.watch(scannerModeSettingProvider);
@@ -91,7 +93,7 @@ class SettingsScreen extends ConsumerWidget {
           ],
           // Printer selection + test — relevant to both grocery (scan-to-sell) and
           // F&B (Rongta receipt/drawer), so it lives outside the grocery-only block.
-          if (isGrocery || isFnb) ...[
+          if (isGrocery || isFnb || isNota) ...[
             const SizedBox(height: 24),
             _sectionHeader(context, t.printerSection),
             _card(cs, [

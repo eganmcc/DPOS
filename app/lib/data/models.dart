@@ -123,7 +123,7 @@ class Catalog {
   final String outletId;
   final String? outletName;
   final String? merchantName; // company name (receipt header)
-  final String businessType; // 'FNB' | 'GROCERY'
+  final String businessType; // 'FNB' | 'GROCERY' | 'HIGH_HUMAN_INTERACTION'
   final String businessSize; // 'GENERAL' | 'UMKM' | 'UMI'
 
   /// Whether the catalog actually CARRIED `businessSize`, as opposed to defaulting to GENERAL.
@@ -178,6 +178,16 @@ class Catalog {
   /// variant to post a line against, so a flagged merchant whose cached catalog predates that field
   /// falls back to the till until the catalog refetches.
   bool get isCalculatorOnly => calculatorOnly && openAmountVariantId != null;
+
+  /// High Human Interactions (specs/009): the sale is written by hand on a nota, and the app opens
+  /// on the nota chat. Like [isCalculatorOnly], it also needs [openAmountVariantId] — without it a
+  /// confirmed nota has no variant to post against — so a stale cache falls back to the till.
+  bool get isNotaReading =>
+      businessType == 'HIGH_HUMAN_INTERACTION' && openAmountVariantId != null;
+
+  /// The merchant has no product catalog to sell from, so catalog surfaces (the product-grid till,
+  /// the item manager, editing an open bill back into a cart) have nothing to show it.
+  bool get sellsWithoutCatalog => isCalculatorOnly || isNotaReading;
 
   factory Catalog.fromJson(Map<String, dynamic> j) => Catalog(
         outletId: j['outletId'],

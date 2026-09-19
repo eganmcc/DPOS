@@ -1004,4 +1004,104 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get calcPreviousSaved =>
       'Your previous nota had already been saved — check History.';
+
+  @override
+  String get chatTitle => 'Nota';
+
+  @override
+  String get chatWelcome =>
+      'Send a photo of a nota. I will read it, and you check it before the transaction is created.';
+
+  @override
+  String get chatCamera => 'Camera';
+
+  @override
+  String get chatGallery => 'Gallery';
+
+  @override
+  String get chatReading => 'Reading the nota…';
+
+  @override
+  String chatReadFailed(String code) {
+    return 'The nota could not be read ($code). Try another photo.';
+  }
+
+  @override
+  String chatNotaHeader(String number) {
+    return 'Nota #$number';
+  }
+
+  @override
+  String get chatNoNumber => 'Nota number not readable';
+
+  @override
+  String get chatNotCharged => 'not charged';
+
+  @override
+  String get chatWrittenTotal => 'Total on the nota';
+
+  @override
+  String get chatLinesTotal => 'To be charged';
+
+  @override
+  String chatTotalsDisagree(String amount) {
+    return 'The total written on the nota differs from its lines. The transaction uses the lines: $amount.';
+  }
+
+  @override
+  String get chatTotalOnly =>
+      'No line has its own price, so the transaction is the total written on the nota.';
+
+  @override
+  String get chatNothingToCharge =>
+      'No price could be read, so there is nothing to charge yet. Try a clearer photo.';
+
+  @override
+  String chatUnclear(String items) {
+    return 'Unclear: $items';
+  }
+
+  @override
+  String get chatAskFix => 'Does anything need fixing?';
+
+  @override
+  String get chatFixYes => 'Yes, fix it';
+
+  @override
+  String get chatFixNo => 'No, create it';
+
+  @override
+  String get chatFixNotYet =>
+      'Fixing a reading is not available yet. This nota was NOT recorded — retake the photo if something was misread.';
+
+  @override
+  String get chatCreating => 'Creating the transaction…';
+
+  @override
+  String get chatCreated => 'Transaction created — waiting for payment.';
+
+  @override
+  String get chatPayNow => 'Pay now';
+
+  @override
+  String chatAlreadyRecorded(String number) {
+    return 'Nota #$number is already recorded, so it was not created twice.';
+  }
+
+  @override
+  String get chatViewTransaction => 'View transaction';
+
+  @override
+  String chatCreateFailed(String code) {
+    return 'The transaction was not created ($code). Nothing was recorded — try again.';
+  }
+
+  @override
+  String get bizTypeFnb => 'F&B';
+
+  @override
+  String get bizTypeGrocery => 'Grocery';
+
+  @override
+  String get bizTypeHhi => 'High Human Interactions';
 }

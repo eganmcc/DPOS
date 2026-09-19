@@ -56,7 +56,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final isUmi = catalog?.isUmi ?? false;
     // A calculator merchant reaches Reports FROM its keypad and returns with back. It has no
     // catalog, so the product-grid till and the item manager would both be empty surfaces.
-    final isCalculator = catalog?.isCalculatorOnly ?? false;
+    final isCalculator = catalog?.sellsWithoutCatalog ?? false;
     final attendance = isUmi ? null : ref.watch(adminAttendanceProvider(range));
 
     return Scaffold(

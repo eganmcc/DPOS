@@ -5,6 +5,7 @@ import '../../core/settings.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../calculator/nota_calculator_screen.dart';
+import '../nota_chat/nota_chat_screen.dart';
 import '../order/order_screen.dart';
 import '../order/online_orders_controller.dart';
 import '../reports/reports_screen.dart';
@@ -49,6 +50,8 @@ class _HomeGateState extends ConsumerState<HomeGate> {
         // one-person kiosk is also its cashier. Checked first so it wins over the owner→Reports
         // rule below. Reports, Riwayat and Settings stay on its app bar.
         if (catalog.isCalculatorOnly) return const NotaCalculatorScreen();
+        // High Human Interactions sells from its own nota: the chat is home, for every role.
+        if (catalog.isNotaReading) return const NotaChatScreen();
         // A UMI operator's next action is always ringing up a customer, so land on
         // the till. Reports stays one tap away via the POS app bar's insights icon.
         if (session.isOwnerOrManager && !catalog.isUmi) return const ReportsScreen();

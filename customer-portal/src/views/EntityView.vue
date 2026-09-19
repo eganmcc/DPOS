@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue';
 import { api } from '../api';
-import { useAuth } from '../stores/auth';
+import { useAuth, businessTypeLabel, type BusinessType } from '../stores/auth';
 import Modal from '../components/Modal.vue';
 
 interface Merchant {
   id: string; name: string;
-  businessType: 'FNB' | 'GROCERY';
+  businessType: BusinessType;
   businessSize: 'GENERAL' | 'UMKM' | 'UMI';
   logoUrl: string | null;
 }
@@ -122,7 +122,7 @@ function settlementLabel(pm: string) {
       <div class="field">
         <label>Business type</label>
         <div class="ro">
-          <span class="badge" :class="auth.isFnb ? 'badge-gold' : 'badge-navy'">{{ merchant.businessType }}</span>
+          <span class="badge" :class="auth.isFnb ? 'badge-gold' : 'badge-navy'">{{ businessTypeLabel(merchant.businessType) }}</span>
           <span class="badge badge-navy">{{ merchant.businessSize }}</span>
           <span class="muted small">set by DPOS admin</span>
         </div>

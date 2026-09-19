@@ -1939,6 +1939,174 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your previous nota had already been saved — check History.'**
   String get calcPreviousSaved;
+
+  /// No description provided for @chatTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota'**
+  String get chatTitle;
+
+  /// No description provided for @chatWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a photo of a nota. I will read it, and you check it before the transaction is created.'**
+  String get chatWelcome;
+
+  /// No description provided for @chatCamera.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera'**
+  String get chatCamera;
+
+  /// No description provided for @chatGallery.
+  ///
+  /// In en, this message translates to:
+  /// **'Gallery'**
+  String get chatGallery;
+
+  /// No description provided for @chatReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading the nota…'**
+  String get chatReading;
+
+  /// No description provided for @chatReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The nota could not be read ({code}). Try another photo.'**
+  String chatReadFailed(String code);
+
+  /// No description provided for @chatNotaHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota #{number}'**
+  String chatNotaHeader(String number);
+
+  /// No description provided for @chatNoNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota number not readable'**
+  String get chatNoNumber;
+
+  /// No description provided for @chatNotCharged.
+  ///
+  /// In en, this message translates to:
+  /// **'not charged'**
+  String get chatNotCharged;
+
+  /// No description provided for @chatWrittenTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total on the nota'**
+  String get chatWrittenTotal;
+
+  /// No description provided for @chatLinesTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'To be charged'**
+  String get chatLinesTotal;
+
+  /// No description provided for @chatTotalsDisagree.
+  ///
+  /// In en, this message translates to:
+  /// **'The total written on the nota differs from its lines. The transaction uses the lines: {amount}.'**
+  String chatTotalsDisagree(String amount);
+
+  /// No description provided for @chatTotalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'No line has its own price, so the transaction is the total written on the nota.'**
+  String get chatTotalOnly;
+
+  /// No description provided for @chatNothingToCharge.
+  ///
+  /// In en, this message translates to:
+  /// **'No price could be read, so there is nothing to charge yet. Try a clearer photo.'**
+  String get chatNothingToCharge;
+
+  /// No description provided for @chatUnclear.
+  ///
+  /// In en, this message translates to:
+  /// **'Unclear: {items}'**
+  String chatUnclear(String items);
+
+  /// No description provided for @chatAskFix.
+  ///
+  /// In en, this message translates to:
+  /// **'Does anything need fixing?'**
+  String get chatAskFix;
+
+  /// No description provided for @chatFixYes.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes, fix it'**
+  String get chatFixYes;
+
+  /// No description provided for @chatFixNo.
+  ///
+  /// In en, this message translates to:
+  /// **'No, create it'**
+  String get chatFixNo;
+
+  /// No description provided for @chatFixNotYet.
+  ///
+  /// In en, this message translates to:
+  /// **'Fixing a reading is not available yet. This nota was NOT recorded — retake the photo if something was misread.'**
+  String get chatFixNotYet;
+
+  /// No description provided for @chatCreating.
+  ///
+  /// In en, this message translates to:
+  /// **'Creating the transaction…'**
+  String get chatCreating;
+
+  /// No description provided for @chatCreated.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction created — waiting for payment.'**
+  String get chatCreated;
+
+  /// No description provided for @chatPayNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Pay now'**
+  String get chatPayNow;
+
+  /// No description provided for @chatAlreadyRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota #{number} is already recorded, so it was not created twice.'**
+  String chatAlreadyRecorded(String number);
+
+  /// No description provided for @chatViewTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'View transaction'**
+  String get chatViewTransaction;
+
+  /// No description provided for @chatCreateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The transaction was not created ({code}). Nothing was recorded — try again.'**
+  String chatCreateFailed(String code);
+
+  /// No description provided for @bizTypeFnb.
+  ///
+  /// In en, this message translates to:
+  /// **'F&B'**
+  String get bizTypeFnb;
+
+  /// No description provided for @bizTypeGrocery.
+  ///
+  /// In en, this message translates to:
+  /// **'Grocery'**
+  String get bizTypeGrocery;
+
+  /// No description provided for @bizTypeHhi.
+  ///
+  /// In en, this message translates to:
+  /// **'High Human Interactions'**
+  String get bizTypeHhi;
 }
 
 class _AppLocalizationsDelegate

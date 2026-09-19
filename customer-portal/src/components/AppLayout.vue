@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { RouterView, useRouter } from 'vue-router';
-import { useAuth } from '../stores/auth';
+import { useAuth, businessTypeLabel } from '../stores/auth';
 import { APP_VERSION, fetchServerVersion } from '../version';
 import logoUrl from '../assets/logo.png';
 
@@ -61,7 +61,7 @@ function logout() {
         <div class="company">
           <b>{{ auth.companyName }}</b>
           <span class="badge" :class="auth.isFnb ? 'badge-gold' : 'badge-navy'">
-            {{ auth.merchant?.businessType }}
+            {{ businessTypeLabel(auth.merchant?.businessType) }}
           </span>
         </div>
         <button class="btn btn-ghost btn-sm logout-btn" @click="logout">

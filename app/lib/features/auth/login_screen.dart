@@ -13,6 +13,14 @@ import '../../l10n/app_localizations.dart';
 const _demoMerchantId = 'cad63409-136c-4d01-92d2-26e493dc64ce';
 const _demoOutletId = '91298a41-b8ed-4b1a-a5c9-2e4aaad036b3';
 
+/// How a business type reads to a person; the enum is for the API.
+String _typeLabel(AppLocalizations t, String type) => switch (type) {
+      'FNB' => t.bizTypeFnb,
+      'GROCERY' => t.bizTypeGrocery,
+      'HIGH_HUMAN_INTERACTION' => t.bizTypeHhi,
+      _ => type,
+    };
+
 /// Friendly label for a staff role string (OWNER → Owner, …).
 String _roleLabel(String role) {
   if (role.isEmpty) return role;
@@ -231,7 +239,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             for (final m in _directory)
                               DropdownMenuItem(
                                 value: m.merchantId,
-                                child: Text('${m.name} · ${m.businessType}',
+                                child: Text('${m.name} · ${_typeLabel(t, m.businessType)}',
                                     overflow: TextOverflow.ellipsis),
                               ),
                           ],

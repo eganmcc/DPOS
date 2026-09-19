@@ -1004,4 +1004,104 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get calcPreviousSaved =>
       'Nota sebelumnya sudah tersimpan — cek Riwayat.';
+
+  @override
+  String get chatTitle => 'Nota';
+
+  @override
+  String get chatWelcome =>
+      'Kirim foto nota. Saya bacakan isinya, lalu Anda periksa sebelum transaksi dibuat.';
+
+  @override
+  String get chatCamera => 'Kamera';
+
+  @override
+  String get chatGallery => 'Galeri';
+
+  @override
+  String get chatReading => 'Membaca nota…';
+
+  @override
+  String chatReadFailed(String code) {
+    return 'Nota tidak bisa dibaca ($code). Coba foto lain.';
+  }
+
+  @override
+  String chatNotaHeader(String number) {
+    return 'Nota #$number';
+  }
+
+  @override
+  String get chatNoNumber => 'Nomor nota tidak terbaca';
+
+  @override
+  String get chatNotCharged => 'tidak dihitung';
+
+  @override
+  String get chatWrittenTotal => 'Total di nota';
+
+  @override
+  String get chatLinesTotal => 'Akan ditagih';
+
+  @override
+  String chatTotalsDisagree(String amount) {
+    return 'Total yang ditulis di nota berbeda dengan barisnya. Transaksi memakai jumlah baris: $amount.';
+  }
+
+  @override
+  String get chatTotalOnly =>
+      'Tidak ada baris yang berharga sendiri, jadi transaksi memakai total di nota.';
+
+  @override
+  String get chatNothingToCharge =>
+      'Tidak ada harga yang terbaca, jadi belum ada yang bisa ditagih. Coba foto yang lebih jelas.';
+
+  @override
+  String chatUnclear(String items) {
+    return 'Kurang jelas: $items';
+  }
+
+  @override
+  String get chatAskFix => 'Apakah ada yang perlu diperbaiki?';
+
+  @override
+  String get chatFixYes => 'Ya, perbaiki';
+
+  @override
+  String get chatFixNo => 'Tidak, buat transaksi';
+
+  @override
+  String get chatFixNotYet =>
+      'Perbaikan belum tersedia. Nota ini BELUM dicatat — foto ulang bila ada yang salah baca.';
+
+  @override
+  String get chatCreating => 'Membuat transaksi…';
+
+  @override
+  String get chatCreated => 'Transaksi dibuat — menunggu pembayaran.';
+
+  @override
+  String get chatPayNow => 'Bayar sekarang';
+
+  @override
+  String chatAlreadyRecorded(String number) {
+    return 'Nota #$number sudah tercatat, jadi tidak dibuat dua kali.';
+  }
+
+  @override
+  String get chatViewTransaction => 'Lihat transaksi';
+
+  @override
+  String chatCreateFailed(String code) {
+    return 'Transaksi belum dibuat ($code). Belum ada yang tercatat — coba lagi.';
+  }
+
+  @override
+  String get bizTypeFnb => 'F&B';
+
+  @override
+  String get bizTypeGrocery => 'Grosir';
+
+  @override
+  String get bizTypeHhi => 'High Human Interactions';
 }
