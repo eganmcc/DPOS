@@ -1,0 +1,723 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../core/app_dialog.dart';
+import '../../core/brand.dart';
+import '../../core/money.dart';
+import '../../core/order_math.dart';
+
+import '../../data/models.dart';
+import '../../data/providers.dart';
+import '../../data/session.dart';
+import '../../l10n/app_localizations.dart';
+import '../calculator/nota_counter.dart';
+import '../calculator/nota_payment_sheet.dart';
+import '../order/cart.dart';
+import '../order/order_screen.dart';
+import '../payment/payment_screen.dart';
+import 'stt_commands.dart';
+import 'stt_engine.dart';
+import 'stt_lab_screen.dart' show sttEngineProvider;
+import 'stt_options.dart';
+import 'stt_stock_check.dart';
+import 'stt_transcript.dart';
+import 'voice_order_parse.dart';
+
+/// How a spoken line is read.
+enum VoiceOrderMode {
+  /// Against the catalogue: the words name an item and how many, the price comes from the shop.
+  catalogue,
+
+  /// Open amounts: the words name an item and what it costs, because there is no catalogue.
+  openPrice,
+}
+
+/// Taking an order by voice.
+///
+/// Deliberately a separate surface from the till rather than a mode of it: a cashier speaking an
+/// order needs to SEE what was heard before it becomes money, and that review list is the whole
+/// point. Lines stage here, and only Selesai (or Tambah ke keranjang) commits them.
+class VoiceOrderScreen extends ConsumerWidget {
+  const VoiceOrderScreen({super.key, this.mode});
+
+  /// Forced mode; normally null, and the merchant decides it.
+  final VoiceOrderMode? mode;
+
+  /// Whether to offer voice at all on this build.
+  static bool get isAvailable => sttSupported;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final t = AppLocalizations.of(context)!;
+    final session = ref.watch(sessionProvider);
+    final catalog = session == null
+        ? null
+        : ref.watch(catalogProvider(session.outletId)).valueOrNull;
+    // A merchant with no catalogue can only speak prices; one with a catalogue should be checked
+    // against it. The radio exists for the rare shop that does both.
+    final initial = mode ??
+        ((catalog?.isCalculatorOnly ?? false) || (catalog?.isNotaReading ?? false)
+            ? VoiceOrderMode.openPrice
+            : VoiceOrderMode.catalogue);
+
+    return Scaffold(
+      appBar: BrandAppBar(title: Text(t.voiceOrderTitle)),
+      body: SafeArea(
+        child: VoiceOrderBody(
+          engine: ref.watch(sttEngineProvider),
+          options: ref.watch(sttOptionsProvider),
+          catalog: catalog?.products ?? const [],
+          taxRule: catalog?.taxRule,
+          initialMode: initial,
+          requestMicPermission: () async => (await Permission.microphone.request()).isGranted,
+          openSettings: openAppSettings,
+          onAddToCart: (checks) => _addToCart(ref, checks),
+          onFinish: (mode, checks, priced) =>
+              _finish(context, ref, mode: mode, checks: checks, priced: priced),
+        ),
+      ),
+    );
+  }
+
+  /// Spoken catalogue lines go into the SAME cart as tapped ones, so an order can be half spoken
+  /// and half tapped and still be one bill.
+  static void _addToCart(WidgetRef ref, List<SttStockCheck> checks) {
+    final cart = ref.read(cartProvider.notifier);
+    for (final c in checks) {
+      final p = c.product;
+      final v = c.variant;
+      if (p == null || v == null) continue;
+      cart.addItem(p, v, const [], qty: c.qty);
+    }
+  }
+
+  /// Selesai. What it means depends on the mode, because the two sell differently: an open-price
+  /// sale is a counter sale paid now, a catalogue order is usually served before it is paid.
+  static Future<bool> _finish(
+    BuildContext context,
+    WidgetRef ref, {
+    required VoiceOrderMode mode,
+    required List<SttStockCheck> checks,
+    required List<PricedLine> priced,
+  }) async {
+    if (mode == VoiceOrderMode.catalogue) {
+      _addToCart(ref, checks);
+      final session = ref.read(sessionProvider)!;
+      final catalog = ref.read(catalogProvider(session.outletId)).valueOrNull;
+      if (catalog?.isOpenBill ?? false) {
+        // The existing open-bill path — one money path, whoever called it.
+        return confirmOpenBill(context, ref);
+      }
+      final preview = ref.read(cartProvider).preview(catalog?.taxRule);
+      if (!context.mounted) return false;
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => PaymentScreen(grandTotalPreview: preview.grandTotal)),
+      );
+      return true;
+    }
+    return _finishOpenPrice(context, ref, priced);
+  }
+
+  static Future<bool> _finishOpenPrice(
+    BuildContext context,
+    WidgetRef ref,
+    List<PricedLine> priced,
+  ) async {
+    final t = AppLocalizations.of(context)!;
+    final session = ref.read(sessionProvider);
+    final catalog =
+        session == null ? null : ref.read(catalogProvider(session.outletId)).valueOrNull;
+    final variantId = catalog?.openAmountVariantId;
+    if (session == null || variantId == null) return false;
+
+    final usable = priced.where((l) => !l.isIncomplete).toList();
+    if (usable.isEmpty) return false;
+
+    final preview = previewTotals(
+      subtotal: usable.fold(0, (a, l) => a + l.total),
+      tax: catalog?.taxRule,
+    );
+    final messenger = ScaffoldMessenger.of(context);
+    final outcome = await showNotaPaymentDialog(context, preview: preview);
+    if (outcome.action != NotaPaymentAction.finish) return false;
+
+    final payload = buildVoiceSalePayload(
+      clientOrderId: const Uuid().v4(),
+      outletId: session.outletId,
+      deviceId: session.deviceId,
+      openAmountVariantId: variantId,
+      lines: usable,
+      tendered: outcome.tendered!,
+    );
+    final result = await ref.read(syncQueueProvider).submit(payload);
+    await ref.read(notaCounterProvider.notifier).finished();
+    if (result == null) {
+      messenger.showSnackBar(SnackBar(content: Text(t.msgQueuedOffline)));
+      return true;
+    }
+    // Change from the SERVER's grand total — the figure the customer was actually charged.
+    messenger.showSnackBar(SnackBar(
+      content: Text(t.calcPaid(formatRupiah(outcome.tendered! - result.grandTotal))),
+      duration: const Duration(seconds: 4),
+    ));
+    return true;
+  }
+}
+
+/// The screen's body, with every dependency injected so a widget test can speak a whole order
+/// without a microphone — the convention of `NotaChatBody` and `SttLabBody`.
+class VoiceOrderBody extends StatefulWidget {
+  final SttEngine engine;
+  final SttOptions options;
+  final List<Product> catalog;
+  final TaxRule? taxRule;
+  final VoiceOrderMode initialMode;
+  final Future<bool> Function() requestMicPermission;
+  final Future<void> Function() openSettings;
+  final void Function(List<SttStockCheck>) onAddToCart;
+  final Future<bool> Function(
+    VoiceOrderMode mode,
+    List<SttStockCheck> checks,
+    List<PricedLine> priced,
+  ) onFinish;
+  final Duration restartDelay;
+
+  const VoiceOrderBody({
+    super.key,
+    required this.engine,
+    required this.options,
+    required this.catalog,
+    required this.taxRule,
+    required this.initialMode,
+    required this.requestMicPermission,
+    required this.openSettings,
+    required this.onAddToCart,
+    required this.onFinish,
+    this.restartDelay = const Duration(milliseconds: 300),
+  });
+
+  @override
+  State<VoiceOrderBody> createState() => _VoiceOrderBodyState();
+}
+
+class _VoiceOrderBodyState extends State<VoiceOrderBody> {
+  late final SttTranscript _transcript = SttTranscript();
+
+  /// Tabular figures keep the price column from dancing as amounts change.
+  static const List<FontFeature> tabular = [FontFeature.tabularFigures()];
+  late VoiceOrderMode _mode = widget.initialMode;
+
+  /// The staged bill. Only one of these is in play at a time — the mode cannot change once there
+  /// is anything to lose.
+  final List<SttStockCheck> _checks = [];
+  final List<PricedLine> _priced = [];
+
+  bool _ready = false;
+  bool _listening = false;
+  bool _wantListening = false;
+  bool _submitting = false;
+
+  double _level = 0;
+  Timer? _restartTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  @override
+  void dispose() {
+    _restartTimer?.cancel();
+    if (_wantListening) widget.engine.cancel();
+    super.dispose();
+  }
+
+  bool get _isEmpty => _mode == VoiceOrderMode.catalogue ? _checks.isEmpty : _priced.isEmpty;
+
+  /// A line nobody can be charged for. Selesai waits until these are gone: an order that silently
+  /// drops what it could not understand is how a customer is charged for the wrong thing.
+  int get _blocking => _mode == VoiceOrderMode.catalogue
+      ? _checks.where((c) => c.status == SttStockStatus.notFound).length
+      : _priced.where((l) => l.isIncomplete).length;
+
+  int get _subtotal => _mode == VoiceOrderMode.catalogue
+      ? _checks.fold(0, (a, c) => a + _unitPrice(c) * c.qty)
+      : _priced.fold(0, (a, l) => a + l.total);
+
+  int _unitPrice(SttStockCheck c) => c.variant?.price ?? 0;
+
+  Future<void> _init() async {
+    if (!widget.engine.isSupported) return;
+    final ok = await widget.engine.initialize(
+      options: widget.options,
+      onStatus: (s) {
+        if (!mounted) return;
+        setState(() {
+
+          if (s == 'done' || s == 'notListening') {
+            _transcript.commit();
+            _listening = false;
+            _level = 0;
+            if (!widget.options.continuous) _wantListening = false;
+          }
+        });
+        _maybeRestart();
+      },
+      onError: (f) {
+        if (!mounted) return;
+        setState(() {
+          _transcript.commit();
+          _listening = false;
+
+          if (f.permanent) _wantListening = false;
+        });
+        _maybeRestart();
+      },
+    );
+    if (mounted) setState(() => _ready = ok);
+  }
+
+  void _maybeRestart() {
+    if (!mounted || !_wantListening || !widget.options.continuous) return;
+    _restartTimer?.cancel();
+    _restartTimer = Timer(widget.restartDelay, () {
+      if (mounted && _wantListening) _listen();
+    });
+  }
+
+  Future<void> _toggle() async {
+    if (_wantListening) {
+      _wantListening = false;
+      _restartTimer?.cancel();
+      await widget.engine.stop();
+      if (!mounted) return;
+      setState(() {
+        _transcript.commit();
+        _listening = false;
+        _level = 0;
+      });
+      return;
+    }
+    if (!await widget.requestMicPermission()) {
+      if (!mounted) return;
+      final t = AppLocalizations.of(context)!;
+      final open = await showAppDialog(
+        context,
+        kind: AppDialogKind.warning,
+        title: t.sttMicDeniedTitle,
+        message: t.sttMicDeniedBody,
+        confirmLabel: t.sttOpenSettings,
+        cancelLabel: t.actionCancel,
+      );
+      if (open) await widget.openSettings();
+      return;
+    }
+    setState(() => _wantListening = true);
+    await _listen();
+  }
+
+  Future<void> _listen() async {
+    setState(() {
+      _transcript.startSession();
+      _listening = true;
+    });
+    final started = await widget.engine.listen(
+      options: widget.options,
+      onResult: (text, confidence, isFinal) {
+        if (!mounted) return;
+        final cmd = readStopPhrase(text);
+        final before = _transcript.results.length;
+        setState(() {
+          _transcript.onResult(cmd.text, confidence, isFinal: isFinal || cmd.stop);
+          // Every newly committed utterance becomes lines. Reading the transcript rather than the
+          // raw callback means the bench's hard-won rules — buffer resets, late finals, stragglers
+          // — apply here unchanged.
+          for (var i = _transcript.results.length - before; i > 0; i--) {
+            _take(_transcript.results[i - 1].text);
+          }
+        });
+        if (cmd.stop) _stopByPhrase();
+      },
+      onSoundLevel: (l) {
+        if (mounted) setState(() => _level = l);
+      },
+    );
+    if (mounted && !started) {
+      setState(() {
+        _listening = false;
+        _wantListening = false;
+      });
+    }
+  }
+
+  Future<void> _stopByPhrase() async {
+    _wantListening = false;
+    _restartTimer?.cancel();
+    await widget.engine.stop();
+    if (!mounted) return;
+    setState(() {
+      _transcript.commit();
+      _listening = false;
+      _level = 0;
+    });
+  }
+
+  /// One finished utterance becomes one or more staged lines.
+  void _take(String utterance) {
+    if (utterance.trim().isEmpty) return;
+    if (_mode == VoiceOrderMode.catalogue) {
+      _checks.addAll(checkUtterance(utterance, widget.catalog));
+    } else {
+      _priced.addAll(parsePricedLines(utterance));
+    }
+  }
+
+  void _removeAt(int i) => setState(() {
+        if (_mode == VoiceOrderMode.catalogue) {
+          _checks.removeAt(i);
+        } else {
+          _priced.removeAt(i);
+        }
+      });
+
+  Future<void> _finish() async {
+    if (_isEmpty || _blocking > 0 || _submitting) return;
+    setState(() => _submitting = true);
+    final ok = await widget.onFinish(_mode, List.of(_checks), List.of(_priced));
+    if (!mounted) return;
+    setState(() {
+      _submitting = false;
+      if (ok) {
+        _checks.clear();
+        _priced.clear();
+      }
+    });
+    if (ok && mounted) Navigator.of(context).maybePop();
+  }
+
+  void _addToCart() {
+    widget.onAddToCart(List.of(_checks));
+    setState(_checks.clear);
+    if (mounted) Navigator.of(context).maybePop();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+
+    if (!widget.engine.isSupported) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(t.sttAndroidOnly, textAlign: TextAlign.center),
+        ),
+      );
+    }
+
+    final preview = previewTotals(subtotal: _subtotal, tax: widget.taxRule);
+    final rows = _mode == VoiceOrderMode.catalogue ? _checks.length : _priced.length;
+
+    return Column(
+      children: [
+        // ---- what is being heard ------------------------------------------------------------
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: cs.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  _transcript.live.isNotEmpty
+                      ? _transcript.live
+                      : (_wantListening && !_listening ? t.sttRestarting : t.sttSaySomething),
+                  key: const ValueKey('voice-live'),
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontStyle: _transcript.live.isEmpty ? FontStyle.italic : FontStyle.normal,
+                    color: _transcript.live.isEmpty ? cs.onSurfaceVariant : cs.onSurface,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              LinearProgressIndicator(
+                value: (_level.abs() / 10).clamp(0.0, 1.0),
+                minHeight: 4,
+                backgroundColor: cs.surfaceContainerHighest,
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 48,
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: const ValueKey('voice-mic'),
+                  onPressed: _ready ? _toggle : null,
+                  style: _wantListening
+                      ? FilledButton.styleFrom(
+                          backgroundColor: cs.error, foregroundColor: cs.onError)
+                      : null,
+                  icon: Icon(_wantListening ? Icons.stop : Icons.mic),
+                  label: Text(_wantListening
+                      ? t.sttStop
+                      : (widget.options.continuous ? t.sttListenContinuous : t.sttListen)),
+                ),
+              ),
+              if (!_ready)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(t.sttNoRecognizer,
+                      style: TextStyle(color: cs.error, fontSize: 12)),
+                ),
+              if (_wantListening)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(t.sttStopPhraseHint(kStopPhrases.first),
+                      style: TextStyle(color: cs.onSurfaceVariant, fontSize: 11)),
+                ),
+            ],
+          ),
+        ),
+
+        // ---- mode -----------------------------------------------------------------------------
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: SegmentedButton<VoiceOrderMode>(
+            key: const ValueKey('voice-mode'),
+            segments: [
+              ButtonSegment(value: VoiceOrderMode.catalogue, label: Text(t.voiceModeCatalogue)),
+              ButtonSegment(value: VoiceOrderMode.openPrice, label: Text(t.voiceModeOpenPrice)),
+            ],
+            selected: {_mode},
+            // Locked once there are lines: switching would leave a staged bill nobody can see.
+            onSelectionChanged: (_checks.isEmpty && _priced.isEmpty)
+                ? (s) => setState(() => _mode = s.first)
+                : null,
+          ),
+        ),
+
+        // ---- the bill --------------------------------------------------------------------------
+        const SizedBox(height: 10),
+        _headerRow(context),
+        Expanded(
+          child: rows == 0
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(t.voiceEmpty,
+                        key: const ValueKey('voice-empty'),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: cs.onSurfaceVariant)),
+                  ),
+                )
+              : ListView.builder(
+                  key: const ValueKey('voice-lines'),
+                  itemCount: rows,
+                  itemBuilder: (context, i) => _mode == VoiceOrderMode.catalogue
+                      ? _catalogueRow(context, i)
+                      : _pricedRow(context, i),
+                ),
+        ),
+
+        // ---- totals and actions ------------------------------------------------------------
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: cs.outlineVariant, width: 1.5)),
+          ),
+          child: Column(
+            children: [
+              if (preview.taxTotal > 0 || preview.serviceChargeTotal > 0)
+                Row(children: [
+                  Text(t.labelTax, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                  const Spacer(),
+                  Text(formatRupiah(preview.taxTotal + preview.serviceChargeTotal),
+                      style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+                ]),
+              Row(children: [
+                Text(t.labelTotal,
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                Text(formatRupiah(preview.grandTotal),
+                    key: const ValueKey('voice-total'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              ]),
+              if (_blocking > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(t.voiceFixLines(_blocking),
+                      key: const ValueKey('voice-blocked'),
+                      style: TextStyle(fontSize: 12, color: cs.error)),
+                ),
+              const SizedBox(height: 8),
+              Row(children: [
+                if (_mode == VoiceOrderMode.catalogue)
+                  Expanded(
+                    child: SizedBox(
+                      height: 48,
+                      child: OutlinedButton(
+                        key: const ValueKey('voice-add-to-cart'),
+                        onPressed: _isEmpty || _blocking > 0 || _submitting ? null : _addToCart,
+                        child: Text(t.voiceAddToCart, textAlign: TextAlign.center),
+                      ),
+                    ),
+                  ),
+                if (_mode == VoiceOrderMode.catalogue) const SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 48,
+                    child: FilledButton(
+                      key: const ValueKey('voice-selesai'),
+                      onPressed: _isEmpty || _blocking > 0 || _submitting ? null : _finish,
+                      child: _submitting
+                          ? const SizedBox(
+                              width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : Text(t.calcFinish,
+                              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                    ),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _headerRow(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final style =
+        TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: cs.onSurfaceVariant);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+      child: Row(children: [
+        Expanded(flex: 5, child: Text(t.voiceColItem, style: style)),
+        Expanded(flex: 2, child: Text(t.voiceColQty, style: style, textAlign: TextAlign.center)),
+        Expanded(flex: 3, child: Text(t.voiceColPrice, style: style, textAlign: TextAlign.right)),
+        Expanded(flex: 3, child: Text(t.voiceColTotal, style: style, textAlign: TextAlign.right)),
+        const SizedBox(width: 36),
+      ]),
+    );
+  }
+
+  Widget _catalogueRow(BuildContext context, int i) {
+    final c = _checks[i];
+    final problem = c.status != SttStockStatus.ok ? _problemText(context, c) : null;
+    return _row(
+      context,
+      index: i,
+      name: c.displayName,
+      qty: c.qty,
+      price: _unitPrice(c),
+      problem: problem,
+      fatal: c.status == SttStockStatus.notFound,
+    );
+  }
+
+  Widget _pricedRow(BuildContext context, int i) {
+    final t = AppLocalizations.of(context)!;
+    final l = _priced[i];
+    return _row(
+      context,
+      index: i,
+      name: l.label,
+      qty: l.qty,
+      price: l.price,
+      problem: l.isIncomplete ? t.voiceNeedsPrice : null,
+      fatal: l.isIncomplete,
+    );
+  }
+
+  String _problemText(BuildContext context, SttStockCheck c) {
+    final t = AppLocalizations.of(context)!;
+    final left = c.remaining ?? 0;
+    return switch (c.status) {
+      SttStockStatus.notFound => t.sttStockNotFound,
+      SttStockStatus.unavailable => t.sttStockUnavailable(c.displayName),
+      SttStockStatus.outOfStock => t.sttStockOut(c.displayName),
+      SttStockStatus.insufficient => t.sttStockShort(c.displayName, left, c.qty),
+      SttStockStatus.ok => '',
+    };
+  }
+
+  Widget _row(
+    BuildContext context, {
+    required int index,
+    required String name,
+    required int qty,
+    required int price,
+    required String? problem,
+    required bool fatal,
+  }) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      color: index.isOdd ? cs.surfaceContainerHighest.withValues(alpha: 0.4) : null,
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            flex: 5,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(name.isEmpty ? '—' : name,
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                if (problem != null)
+                  Text(problem,
+                      key: ValueKey('voice-problem-$index'),
+                      style: TextStyle(
+                          fontSize: 11,
+                          // Short stock is a number to work with; the others stop the order.
+                          color: fatal ? cs.error : const Color(0xFF7A5A00))),
+              ],
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text('$qty',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 14, fontFeatures: tabular)),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(formatRupiah(price),
+                textAlign: TextAlign.right,
+                style: const TextStyle(fontSize: 13, fontFeatures: tabular)),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(formatRupiah(price * qty),
+                textAlign: TextAlign.right,
+                style: const TextStyle(
+                    fontSize: 14, fontWeight: FontWeight.w700, fontFeatures: tabular)),
+          ),
+          SizedBox(
+            width: 36,
+            child: IconButton(
+              key: ValueKey('voice-remove-$index'),
+              tooltip: t.removeItem,
+              visualDensity: VisualDensity.compact,
+              onPressed: () => _removeAt(index),
+              icon: Icon(Icons.close, size: 18, color: cs.onSurfaceVariant),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

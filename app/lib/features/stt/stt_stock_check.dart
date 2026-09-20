@@ -142,6 +142,32 @@ int? spokenNumber(List<String> words) {
   return total + tens + pending;
 }
 
+/// Lowercase, punctuation out, single spaces. Shared with the voice order parser, which has to
+/// see exactly the same words this does.
+String normaliseSpoken(String s) => _normalise(s);
+
+/// Every maximal run of number words in [words], as `[start, endExclusive)`.
+///
+/// A run, not a word, because "dua puluh lima" is one number. Shared: splitting an order into
+/// items and splitting one into a price both turn on where the numbers are.
+List<List<int>> numberRuns(List<String> words) {
+  final runs = <List<int>>[];
+  var i = 0;
+  while (i < words.length) {
+    if (spokenNumber([words[i]]) == null) {
+      i++;
+      continue;
+    }
+    var j = i + 1;
+    while (j < words.length && spokenNumber(words.sublist(i, j + 1)) != null) {
+      j++;
+    }
+    runs.add([i, j]);
+    i = j;
+  }
+  return runs;
+}
+
 String _normalise(String s) =>
     s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9\s]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
 
@@ -181,22 +207,7 @@ List<({int qty, String item})> splitUtterance(String text) {
   final words = _normalise(text).split(' ').where((w) => w.isNotEmpty).toList();
   if (words.isEmpty) return const [];
 
-  // Every maximal run of number words, as [start, endExclusive). A run, not a word, because
-  // "dua puluh lima" is one quantity.
-  final runs = <List<int>>[];
-  var i = 0;
-  while (i < words.length) {
-    if (spokenNumber([words[i]]) == null) {
-      i++;
-      continue;
-    }
-    var j = i + 1;
-    while (j < words.length && spokenNumber(words.sublist(i, j + 1)) != null) {
-      j++;
-    }
-    runs.add([i, j]);
-    i = j;
-  }
+  final runs = numberRuns(words);
 
   // No number at all means nothing to split on, and the single-item rules still apply. ONE number
   // is not enough to stay out of here, though: "air mineral 2 ayam bakar" is two items.

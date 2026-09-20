@@ -193,3 +193,7 @@ class RealSttEngine implements SttEngine {
 /// `Platform` throws on web; this app has no web target, but the guard keeps `isSupported` honest
 /// if one is ever added.
 const bool kIsWebLike = bool.fromEnvironment('dart.library.js_util');
+
+/// Whether this build can do speech at all, without building an engine to ask. Android only, by
+/// decision — a Windows till showing a microphone that cannot work is worse than no microphone.
+bool get sttSupported => !kIsWebLike && Platform.isAndroid;

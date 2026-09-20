@@ -1266,6 +1266,47 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get voiceOrderTitle => 'Voice order';
+
+  @override
+  String get voiceModeCatalogue => 'From catalogue';
+
+  @override
+  String get voiceModeOpenPrice => 'Spoken price';
+
+  @override
+  String get voiceEmpty => 'Press the microphone, then read the order out.';
+
+  @override
+  String get voiceColItem => 'Item';
+
+  @override
+  String get voiceColQty => 'Qty';
+
+  @override
+  String get voiceColPrice => 'Price';
+
+  @override
+  String get voiceColTotal => 'Total';
+
+  @override
+  String get voiceAddToCart => 'Add to cart';
+
+  @override
+  String get voiceNeedsPrice => 'No price said';
+
+  @override
+  String voiceFixLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fix $count marked lines first.',
+      one: 'Fix 1 marked line first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get sttStockNoCatalog =>
       'This account has no catalogue to check against.';
 

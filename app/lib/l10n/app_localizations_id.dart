@@ -1268,6 +1268,47 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get voiceOrderTitle => 'Pesan dengan suara';
+
+  @override
+  String get voiceModeCatalogue => 'Dari katalog';
+
+  @override
+  String get voiceModeOpenPrice => 'Harga diucapkan';
+
+  @override
+  String get voiceEmpty => 'Tekan mikrofon, lalu sebutkan pesanannya.';
+
+  @override
+  String get voiceColItem => 'Item';
+
+  @override
+  String get voiceColQty => 'Jml';
+
+  @override
+  String get voiceColPrice => 'Harga';
+
+  @override
+  String get voiceColTotal => 'Jumlah';
+
+  @override
+  String get voiceAddToCart => 'Tambah ke keranjang';
+
+  @override
+  String get voiceNeedsPrice => 'Harga belum disebut';
+
+  @override
+  String voiceFixLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Perbaiki $count baris bertanda dulu.',
+      one: 'Perbaiki 1 baris bertanda dulu.',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get sttStockNoCatalog => 'Akun ini tidak punya katalog untuk dicek.';
 
   @override

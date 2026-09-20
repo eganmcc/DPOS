@@ -17,6 +17,7 @@ import '../payment/payment_screen.dart';
 import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
+import '../stt/voice_order_screen.dart';
 import 'cart.dart';
 import 'online_orders_controller.dart';
 import 'open_bills_screen.dart';
@@ -81,15 +82,6 @@ class OrderScreen extends ConsumerWidget {
                 ),
               ),
             ),
-          // Icon, not a label: this app bar already carries the table chip, Pesanan and Riwayat,
-          // and one more word overflows on a phone.
-          IconButton(
-            tooltip: t.notaTitle,
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const NotaReaderScreen()),
-            ),
-            icon: const Icon(Icons.document_scanner_outlined),
-          ),
           TextButton(
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const TransactionsScreen()),
@@ -97,6 +89,34 @@ class OrderScreen extends ConsumerWidget {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          // Words first, then icons — mic first among them, because it is the one reached for
+          // mid-service with both hands full.
+          //
+          // All four icons carry compact density. At 407dp (the test handset) the title, Pesanan,
+          // Riwayat and four full-size icons come to ~421dp, which overflows for an owner at an
+          // F&B outlet — the one account that shows every control at once. Compact saves ~8dp
+          // each and keeps the tap targets above 40dp; nothing has to be hidden to fit.
+          if (VoiceOrderScreen.isAvailable)
+            IconButton(
+              tooltip: t.voiceOrderTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const VoiceOrderScreen()),
+              ),
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.mic_none_outlined),
+            ),
+          // Icon, not a label: this app bar already carries the table chip, Pesanan and Riwayat,
+          // and one more word overflows on a phone. Shown only where a paper nota is actually
+          // taken — a grocery till has no use for it, and the room is needed.
+          if (isFnb || (catalog?.isNotaReading ?? false))
+            IconButton(
+              tooltip: t.notaTitle,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const NotaReaderScreen()),
+              ),
+              visualDensity: VisualDensity.compact,
+              icon: const Icon(Icons.document_scanner_outlined),
+            ),
           Consumer(builder: (context, ref, _) {
             final s = ref.watch(sessionProvider);
             if (s == null || !s.isOwnerOrManager) return const SizedBox.shrink();
@@ -105,6 +125,7 @@ class OrderScreen extends ConsumerWidget {
               onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const ReportsScreen()),
               ),
+              visualDensity: VisualDensity.compact,
               icon: const Icon(Icons.insights_outlined),
             );
           }),
@@ -113,6 +134,7 @@ class OrderScreen extends ConsumerWidget {
             onPressed: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SettingsScreen()),
             ),
+            visualDensity: VisualDensity.compact,
             icon: const Icon(Icons.settings_outlined),
           ),
           const SizedBox(width: 4),
@@ -942,7 +964,7 @@ class _StepBtn extends StatelessWidget {
 /// Open-bill confirm: save the order server-side (no payment) so stock is
 /// reserved now and the bill is settled later. Bypasses the offline queue.
 /// Returns true on a successful submit (the caller then closes the cart).
-Future<bool> _confirmOpenBill(BuildContext context, WidgetRef ref) async {
+Future<bool> confirmOpenBill(BuildContext context, WidgetRef ref) async {
   final t = AppLocalizations.of(context)!;
   final messenger = ScaffoldMessenger.of(context);
   final session = ref.read(sessionProvider)!;
@@ -1060,7 +1082,7 @@ class _TotalsBar extends ConsumerWidget {
                   : () async {
                       if (openBill) {
                         final nav = Navigator.of(context);
-                        final ok = await _confirmOpenBill(context, ref);
+                        final ok = await confirmOpenBill(context, ref);
                         // On mobile the cart is a bottom sheet — close it so the
                         // cashier lands back on the menu for the next order.
                         if (ok && !floating) nav.pop();

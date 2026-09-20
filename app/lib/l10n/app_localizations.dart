@@ -2384,6 +2384,72 @@ abstract class AppLocalizations {
   /// **'{name} ×{asked} — stock not tracked'**
   String sttStockOkUntracked(String name, int asked);
 
+  /// No description provided for @voiceOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice order'**
+  String get voiceOrderTitle;
+
+  /// No description provided for @voiceModeCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'From catalogue'**
+  String get voiceModeCatalogue;
+
+  /// No description provided for @voiceModeOpenPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoken price'**
+  String get voiceModeOpenPrice;
+
+  /// No description provided for @voiceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Press the microphone, then read the order out.'**
+  String get voiceEmpty;
+
+  /// No description provided for @voiceColItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get voiceColItem;
+
+  /// No description provided for @voiceColQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get voiceColQty;
+
+  /// No description provided for @voiceColPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get voiceColPrice;
+
+  /// No description provided for @voiceColTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get voiceColTotal;
+
+  /// No description provided for @voiceAddToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to cart'**
+  String get voiceAddToCart;
+
+  /// No description provided for @voiceNeedsPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'No price said'**
+  String get voiceNeedsPrice;
+
+  /// No description provided for @voiceFixLines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Fix 1 marked line first.} other{Fix {count} marked lines first.}}'**
+  String voiceFixLines(int count);
+
   /// No description provided for @sttStockNoCatalog.
   ///
   /// In en, this message translates to:
