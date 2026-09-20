@@ -1223,4 +1223,45 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sttRestarting => 'Still listening — starting the next stretch…';
+
+  @override
+  String get sttModeLabel => 'What to do with what it hears';
+
+  @override
+  String get sttModePlain => 'Text only';
+
+  @override
+  String get sttModeStock => 'Check against stock';
+
+  @override
+  String get sttStockNotFound => 'Not in the catalogue';
+
+  @override
+  String sttStockUnavailable(String name) {
+    return '$name is switched off';
+  }
+
+  @override
+  String sttStockOut(String name) {
+    return '$name — out of stock (0 left)';
+  }
+
+  @override
+  String sttStockShort(String name, int left, int asked) {
+    return '$name — only $left left, $asked asked for';
+  }
+
+  @override
+  String sttStockOk(String name, int asked, int left) {
+    return '$name ×$asked — $left left';
+  }
+
+  @override
+  String sttStockOkUntracked(String name, int asked) {
+    return '$name ×$asked — stock not tracked';
+  }
+
+  @override
+  String get sttStockNoCatalog =>
+      'This account has no catalogue to check against.';
 }

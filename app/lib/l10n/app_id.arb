@@ -408,5 +408,15 @@
   "sttLog": "Catatan kejadian",
   "sttListenContinuous": "Dengarkan (terus)",
   "sttContinuousHint": "Terus mendengarkan sampai Anda menekan berhenti. Tiap jeda mengakhiri satu ucapan dan sesi berikutnya dimulai sendiri — pengenal suara tidak punya mode terus-menerus.",
-  "sttRestarting": "Masih mendengarkan — menyiapkan sesi berikutnya…"
+  "sttRestarting": "Masih mendengarkan — menyiapkan sesi berikutnya…",
+  "sttModeLabel": "Apa yang dilakukan dengan hasilnya",
+  "sttModePlain": "Teks saja",
+  "sttModeStock": "Cek ke stok",
+  "sttStockNotFound": "Tidak ada di katalog",
+  "sttStockUnavailable": "{name} sedang dinonaktifkan",
+  "sttStockOut": "{name} — stok habis (sisa 0)",
+  "sttStockShort": "{name} — sisa {left}, diminta {asked}",
+  "sttStockOk": "{name} ×{asked} — sisa {left}",
+  "sttStockOkUntracked": "{name} ×{asked} — stok tidak dilacak",
+  "sttStockNoCatalog": "Akun ini tidak punya katalog untuk dicek."
 }

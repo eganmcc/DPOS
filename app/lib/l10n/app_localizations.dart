@@ -2323,6 +2323,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Still listening — starting the next stretch…'**
   String get sttRestarting;
+
+  /// No description provided for @sttModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What to do with what it hears'**
+  String get sttModeLabel;
+
+  /// No description provided for @sttModePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get sttModePlain;
+
+  /// No description provided for @sttModeStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Check against stock'**
+  String get sttModeStock;
+
+  /// No description provided for @sttStockNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the catalogue'**
+  String get sttStockNotFound;
+
+  /// No description provided for @sttStockUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is switched off'**
+  String sttStockUnavailable(String name);
+
+  /// No description provided for @sttStockOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — out of stock (0 left)'**
+  String sttStockOut(String name);
+
+  /// No description provided for @sttStockShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — only {left} left, {asked} asked for'**
+  String sttStockShort(String name, int left, int asked);
+
+  /// No description provided for @sttStockOk.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ×{asked} — {left} left'**
+  String sttStockOk(String name, int asked, int left);
+
+  /// No description provided for @sttStockOkUntracked.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ×{asked} — stock not tracked'**
+  String sttStockOkUntracked(String name, int asked);
+
+  /// No description provided for @sttStockNoCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no catalogue to check against.'**
+  String get sttStockNoCatalog;
 }
 
 class _AppLocalizationsDelegate

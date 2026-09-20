@@ -6,9 +6,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../core/app_dialog.dart';
 import '../../core/brand.dart';
+import '../../core/theme.dart';
+import '../../data/models.dart';
+import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import 'stt_engine.dart';
 import 'stt_options.dart';
+import 'stt_stock_check.dart';
 import 'stt_transcript.dart';
 
 /// The speech-to-text tuning bench — Settings → "Uji coba suara". ANDROID ONLY.
@@ -23,6 +28,7 @@ class SttLabScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final t = AppLocalizations.of(context)!;
+    final session = ref.watch(sessionProvider);
     return Scaffold(
       appBar: BrandAppBar(title: Text(t.sttLabTitle)),
       body: SafeArea(
@@ -32,6 +38,11 @@ class SttLabScreen extends ConsumerWidget {
           onOptions: (o) => ref.read(sttOptionsProvider.notifier).set(o),
           requestMicPermission: () async => (await Permission.microphone.request()).isGranted,
           openSettings: openAppSettings,
+          // The live catalog, so a spoken line can be checked against real stock. Empty for a
+          // merchant that sells without one (a calculator or nota account).
+          catalog: session == null
+              ? const []
+              : ref.watch(catalogProvider(session.outletId)).valueOrNull?.products ?? const [],
         ),
       ),
     );
@@ -56,6 +67,9 @@ class SttLabBody extends StatefulWidget {
   /// does not have to wait it out.
   final Duration restartDelay;
 
+  /// What the catalogue says exists and how much is left.
+  final List<Product> catalog;
+
   const SttLabBody({
     super.key,
     required this.engine,
@@ -65,6 +79,7 @@ class SttLabBody extends StatefulWidget {
     required this.openSettings,
     this.clock = DateTime.now,
     this.restartDelay = const Duration(milliseconds: 300),
+    this.catalog = const [],
   });
 
   @override
@@ -92,6 +107,9 @@ class _SttLabBodyState extends State<SttLabBody> {
 
   /// Whether the stretch now ending produced anything at all.
   bool _heardThisSession = false;
+
+  /// Check each heard line against the catalogue instead of just showing the words.
+  bool _checkStock = false;
   Timer? _restartTimer;
 
   /// Enough consecutive empty sessions to conclude the microphone is not working, rather than that
@@ -443,6 +461,35 @@ class _SttLabBodyState extends State<SttLabBody> {
             _chip(context, 'restarts: $_restarts', key: const ValueKey('stt-restarts')),
         ]),
 
+        // ---- what to do with what it hears ---------------------------------------------------
+        const SizedBox(height: 14),
+        _header(context, t.sttModeLabel),
+        RadioGroup<bool>(
+          groupValue: _checkStock,
+          onChanged: (v) => setState(() => _checkStock = v ?? false),
+          child: Column(children: [
+            RadioListTile<bool>(
+              key: const ValueKey('stt-mode-plain'),
+              value: false,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.sttModePlain),
+            ),
+            RadioListTile<bool>(
+              key: const ValueKey('stt-mode-stock'),
+              value: true,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(t.sttModeStock),
+            ),
+          ]),
+        ),
+        if (_checkStock && widget.catalog.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(t.sttStockNoCatalog, style: TextStyle(color: cs.error, fontSize: 12)),
+          ),
+
         // ---- results ------------------------------------------------------------------------
         const SizedBox(height: 14),
         _header(context, t.sttResultsLabel),
@@ -466,6 +513,9 @@ class _SttLabBodyState extends State<SttLabBody> {
                     'conf ${r.confidence!.toStringAsFixed(2)}',
                   if (r.spoken != null) '${r.spoken!.inMilliseconds} ms',
                 ].join('  ·  ')),
+                // In stock mode every heard line gets a verdict, and a problem is stated in full:
+                // a cashier needs the number that is actually left, not just "no".
+                trailing: !_checkStock ? null : _verdict(context, r.text),
                 onLongPress: () async {
                   await Clipboard.setData(ClipboardData(text: r.text));
                   if (context.mounted) {
@@ -555,6 +605,47 @@ class _SttLabBodyState extends State<SttLabBody> {
           ),
         ),
       ],
+    );
+  }
+
+  /// The catalogue's answer for one heard line, as a coloured badge.
+  Widget _verdict(BuildContext context, String utterance) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final ext = brandColors(context);
+    final c = checkAgainstCatalog(utterance, widget.catalog);
+    final name = c.product?.name ?? c.spokenItem;
+    final left = c.remaining ?? 0;
+
+    final (String label, Color bg, Color fg) = switch (c.status) {
+      SttStockStatus.notFound => (t.sttStockNotFound, cs.errorContainer, cs.onErrorContainer),
+      SttStockStatus.unavailable =>
+        (t.sttStockUnavailable(name), cs.errorContainer, cs.onErrorContainer),
+      SttStockStatus.outOfStock => (t.sttStockOut(name), cs.errorContainer, cs.onErrorContainer),
+      // Short stock is not an error, it is a number the cashier has to work with.
+      SttStockStatus.insufficient => (
+          t.sttStockShort(name, left, c.qty),
+          const Color(0xFFFFF1CC),
+          const Color(0xFF7A5A00),
+        ),
+      SttStockStatus.ok => (
+          c.remaining == null
+              ? t.sttStockOkUntracked(name, c.qty)
+              : t.sttStockOk(name, c.qty, left),
+          ext.successContainer,
+          ext.onSuccessContainer,
+        ),
+    };
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 190),
+      child: Container(
+        key: ValueKey('stt-verdict-${c.status.name}'),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+        child: Text(label,
+            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: fg)),
+      ),
     );
   }
 

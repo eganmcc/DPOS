@@ -1225,4 +1225,44 @@ class AppLocalizationsId extends AppLocalizations {
   @override
   String get sttRestarting =>
       'Masih mendengarkan — menyiapkan sesi berikutnya…';
+
+  @override
+  String get sttModeLabel => 'Apa yang dilakukan dengan hasilnya';
+
+  @override
+  String get sttModePlain => 'Teks saja';
+
+  @override
+  String get sttModeStock => 'Cek ke stok';
+
+  @override
+  String get sttStockNotFound => 'Tidak ada di katalog';
+
+  @override
+  String sttStockUnavailable(String name) {
+    return '$name sedang dinonaktifkan';
+  }
+
+  @override
+  String sttStockOut(String name) {
+    return '$name — stok habis (sisa 0)';
+  }
+
+  @override
+  String sttStockShort(String name, int left, int asked) {
+    return '$name — sisa $left, diminta $asked';
+  }
+
+  @override
+  String sttStockOk(String name, int asked, int left) {
+    return '$name ×$asked — sisa $left';
+  }
+
+  @override
+  String sttStockOkUntracked(String name, int asked) {
+    return '$name ×$asked — stok tidak dilacak';
+  }
+
+  @override
+  String get sttStockNoCatalog => 'Akun ini tidak punya katalog untuk dicek.';
 }

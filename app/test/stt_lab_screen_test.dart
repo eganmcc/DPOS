@@ -1,4 +1,5 @@
 import 'package:dpos/core/theme.dart';
+import 'package:dpos/data/models.dart';
 import 'package:dpos/features/stt/stt_engine.dart';
 import 'package:dpos/features/stt/stt_lab_screen.dart';
 import 'package:dpos/features/stt/stt_options.dart';
@@ -71,6 +72,7 @@ void main() {
   late FakeSttEngine engine;
   late SttOptions options;
   late bool micGranted;
+  late List<Product> catalog;
   late int settingsOpened;
 
   Future<void> pump(WidgetTester tester) async {
@@ -93,6 +95,7 @@ void main() {
             openSettings: () async => settingsOpened++,
             clock: () => DateTime(2026, 9, 20, 10, 0, 0),
             restartDelay: Duration.zero,
+            catalog: catalog,
           ),
         ),
       ),
@@ -112,6 +115,16 @@ void main() {
     engine = FakeSttEngine(offered: const [SttLocale('in_ID', 'Indonesia'), SttLocale('en_US', 'English')]);
     options = const SttOptions();
     micGranted = true;
+    // A small shop: one item with stock, one sold out, one untracked.
+    Variant v(String n, {bool tracked = true, int? stock}) => Variant(
+        id: 'v-$n', name: n, price: 10000, sku: null,
+        isAvailable: true, trackInventory: tracked, stock: stock);
+    catalog = [
+      Product(id: 'p1', name: 'Nasi Goreng', categoryName: 'Makanan', isAvailable: true,
+          variants: [v('Porsi', stock: 5)], modifierGroups: const []),
+      Product(id: 'p2', name: 'Es Teh Manis', categoryName: 'Minuman', isAvailable: true,
+          variants: [v('Gelas', stock: 0)], modifierGroups: const []),
+    ];
   });
 
   testWidgets('on a device that is not Android it says so instead of pretending', (tester) async {
@@ -343,6 +356,69 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pump(const Duration(milliseconds: 50));
       expect(engine.cancelCount, 1);
+    });
+  });
+
+  group('checking what was heard against stock', () {
+    /// Turn on the stock radio, then hear one line.
+    Future<void> hear(WidgetTester tester, String said) async {
+      await scrollTo(tester, 'stt-mode-stock');
+      await tester.tap(find.byKey(const ValueKey('stt-mode-stock')));
+      await tester.pumpAndSettle();
+      await scrollTo(tester, 'stt-mic', delta: -250);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+      engine.emitResult!(said, 0.9, true);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('an item in stock is shown as sellable, with what is left', (tester) async {
+      await pump(tester);
+      await hear(tester, 'nasi goreng dua');
+      expect(find.byKey(const ValueKey('stt-verdict-ok')), findsOneWidget);
+      expect(find.text('Nasi Goreng ×2 — sisa 5'), findsOneWidget);
+    });
+
+    testWidgets('an item nobody sells is called out', (tester) async {
+      await pump(tester);
+      await hear(tester, 'bakso urat satu');
+      expect(find.byKey(const ValueKey('stt-verdict-notFound')), findsOneWidget);
+      expect(find.text('Tidak ada di katalog'), findsOneWidget);
+    });
+
+    testWidgets('a sold-out item says so, with the real number', (tester) async {
+      await pump(tester);
+      await hear(tester, 'es teh manis satu');
+      expect(find.byKey(const ValueKey('stt-verdict-outOfStock')), findsOneWidget);
+      expect(find.textContaining('sisa 0'), findsOneWidget);
+    });
+
+    testWidgets('asking for more than is left shows how many there actually are', (tester) async {
+      await pump(tester);
+      await hear(tester, 'nasi goreng sepuluh');
+      expect(find.byKey(const ValueKey('stt-verdict-insufficient')), findsOneWidget);
+      expect(find.text('Nasi Goreng — sisa 5, diminta 10'), findsOneWidget);
+    });
+
+    testWidgets('text-only mode passes no judgement', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+      engine.emitResult!('bakso urat satu', null, true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('bakso urat satu'), findsOneWidget);
+      expect(find.byKey(const ValueKey('stt-verdict-notFound')), findsNothing);
+    });
+
+    testWidgets('an account with no catalogue says so instead of marking everything missing',
+        (tester) async {
+      catalog = const [];
+      await pump(tester);
+      await scrollTo(tester, 'stt-mode-stock');
+      await tester.tap(find.byKey(const ValueKey('stt-mode-stock')));
+      await tester.pumpAndSettle();
+      expect(find.text('Akun ini tidak punya katalog untuk dicek.'), findsOneWidget);
     });
   });
 

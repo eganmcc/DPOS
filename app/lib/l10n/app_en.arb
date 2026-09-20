@@ -541,5 +541,20 @@
   "sttLog": "Event log",
   "sttListenContinuous": "Listen (keeps going)",
   "sttContinuousHint": "Keep listening until you press stop. Each pause ends one utterance and the next session starts by itself — the recognizer has no continuous mode of its own.",
-  "sttRestarting": "Still listening — starting the next stretch…"
+  "sttRestarting": "Still listening — starting the next stretch…",
+  "sttModeLabel": "What to do with what it hears",
+  "sttModePlain": "Text only",
+  "sttModeStock": "Check against stock",
+  "sttStockNotFound": "Not in the catalogue",
+  "sttStockUnavailable": "{name} is switched off",
+  "@sttStockUnavailable": {"placeholders":{"name":{"type":"String"}}},
+  "sttStockOut": "{name} — out of stock (0 left)",
+  "@sttStockOut": {"placeholders":{"name":{"type":"String"}}},
+  "sttStockShort": "{name} — only {left} left, {asked} asked for",
+  "@sttStockShort": {"placeholders":{"name":{"type":"String"},"left":{"type":"int"},"asked":{"type":"int"}}},
+  "sttStockOk": "{name} ×{asked} — {left} left",
+  "@sttStockOk": {"placeholders":{"name":{"type":"String"},"asked":{"type":"int"},"left":{"type":"int"}}},
+  "sttStockOkUntracked": "{name} ×{asked} — stock not tracked",
+  "@sttStockOkUntracked": {"placeholders":{"name":{"type":"String"},"asked":{"type":"int"}}},
+  "sttStockNoCatalog": "This account has no catalogue to check against."
 }
