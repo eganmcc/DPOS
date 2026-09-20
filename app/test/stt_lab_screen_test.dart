@@ -491,6 +491,15 @@ void main() {
       expect(find.text('Nasi Goreng ×2 — sisa 5'), findsOneWidget);
     });
 
+    testWidgets('two items said in one breath get a verdict each', (tester) async {
+      // Exactly what the device run produced as a single line on 20 Sep.
+      await pump(tester);
+      await hear(tester, 'nasi goreng 2 es teh manis 1');
+      expect(find.byKey(const ValueKey('stt-verdict-ok')), findsOneWidget);
+      expect(find.byKey(const ValueKey('stt-verdict-outOfStock')), findsOneWidget);
+      expect(find.text('Nasi Goreng ×2 — sisa 5'), findsOneWidget);
+    });
+
     testWidgets('an item nobody sells is called out', (tester) async {
       await pump(tester);
       await hear(tester, 'bakso urat satu');

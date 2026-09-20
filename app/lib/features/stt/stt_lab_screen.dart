@@ -620,27 +620,43 @@ class _SttLabBodyState extends State<SttLabBody> {
                   final r = _transcript.results[i];
                   return Card(
                     margin: const EdgeInsets.fromLTRB(6, 3, 6, 3),
-                    child: ListTile(
-                      dense: true,
-                      title: Text(r.text),
-                      subtitle: Text([
-                        '${r.at.hour.toString().padLeft(2, '0')}:'
-                            '${r.at.minute.toString().padLeft(2, '0')}:'
-                            '${r.at.second.toString().padLeft(2, '0')}',
-                        if (r.confidence != null && r.confidence! > 0)
-                          'conf ${r.confidence!.toStringAsFixed(2)}',
-                        if (r.spoken != null) '${r.spoken!.inMilliseconds} ms',
-                      ].join('  ·  ')),
-                      // In stock mode every heard line gets a verdict, and a problem is stated in
-                      // full: a cashier needs the number that is actually left, not just "no".
-                      trailing: !_checkStock ? null : _verdict(context, r.text),
-                      onLongPress: () async {
-                        await Clipboard.setData(ClipboardData(text: r.text));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(SnackBar(content: Text(t.sttCopied)));
-                        }
-                      },
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ListTile(
+                          dense: true,
+                          title: Text(r.text),
+                          subtitle: Text([
+                            '${r.at.hour.toString().padLeft(2, '0')}:'
+                                '${r.at.minute.toString().padLeft(2, '0')}:'
+                                '${r.at.second.toString().padLeft(2, '0')}',
+                            if (r.confidence != null && r.confidence! > 0)
+                              'conf ${r.confidence!.toStringAsFixed(2)}',
+                            if (r.spoken != null) '${r.spoken!.inMilliseconds} ms',
+                          ].join('  ·  ')),
+                          onLongPress: () async {
+                            await Clipboard.setData(ClipboardData(text: r.text));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context)
+                                  .showSnackBar(SnackBar(content: Text(t.sttCopied)));
+                            }
+                          },
+                        ),
+                        // One badge PER ITEM: a cashier says several in a breath, and each one
+                        // needs its own answer — with the number actually left, not just "no".
+                        if (_checkStock)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                            child: Wrap(
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: [
+                                for (final c in checkUtterance(r.text, widget.catalog))
+                                  _verdict(context, c),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   );
                 },
@@ -733,12 +749,11 @@ class _SttLabBodyState extends State<SttLabBody> {
     );
   }
 
-  /// The catalogue's answer for one heard line, as a coloured badge.
-  Widget _verdict(BuildContext context, String utterance) {
+  /// The catalogue's answer for one item, as a coloured badge.
+  Widget _verdict(BuildContext context, SttStockCheck c) {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final ext = brandColors(context);
-    final c = checkAgainstCatalog(utterance, widget.catalog);
     final name = c.product?.name ?? c.spokenItem;
     final left = c.remaining ?? 0;
 

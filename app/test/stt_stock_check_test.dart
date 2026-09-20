@@ -67,6 +67,62 @@ void main() {
     });
   });
 
+  group('several items said in one breath', () {
+    // The phrase from the 20 Sep device run that arrived as a single nonsense item.
+    test('a number closes each item', () {
+      expect(splitUtterance('air mineral 1 ayam bakar 2'), [
+        (qty: 1, item: 'air mineral'),
+        (qty: 2, item: 'ayam bakar'),
+      ]);
+    });
+
+    test('a number opens each item, when that is how it was said', () {
+      expect(splitUtterance('2 nasi goreng 1 es teh'), [
+        (qty: 2, item: 'nasi goreng'),
+        (qty: 1, item: 'es teh'),
+      ]);
+    });
+
+    test('spelled-out numbers split the same way', () {
+      expect(splitUtterance('air mineral satu ayam bakar dua'), [
+        (qty: 1, item: 'air mineral'),
+        (qty: 2, item: 'ayam bakar'),
+      ]);
+    });
+
+    test('a last item with no number said is one of it', () {
+      expect(splitUtterance('air mineral 2 ayam bakar'), [
+        (qty: 2, item: 'air mineral'),
+        (qty: 1, item: 'ayam bakar'),
+      ]);
+    });
+
+    test('one item stays one item', () {
+      expect(splitUtterance('es teh manis dua puluh lima'), [
+        (qty: 25, item: 'es teh manis'),
+      ]);
+      expect(splitUtterance('nasi goreng'), [(qty: 1, item: 'nasi goreng')]);
+    });
+
+    test('each item gets its own verdict', () {
+      final checks = checkUtterance('nasi goreng 2 es teh manis 1', catalog);
+      expect(checks.length, 2);
+      expect(checks[0].product!.name, 'Nasi Goreng');
+      expect(checks[0].status, SttStockStatus.ok);
+      expect(checks[1].product!.name, 'Es Teh Manis');
+      expect(checks[1].status, SttStockStatus.outOfStock, reason: 'sold out, said in the same breath');
+    });
+
+    test('the catalog decides when the split is ambiguous', () {
+      // "kopi 3 in 1" reads as two items by the rule, but neither half is anything the shop
+      // sells and the whole line is — so a product name that happens to contain numbers survives.
+      final withBrand = [...catalog, p('Kopi 3 in 1', [v('Sachet', tracked: false)])];
+      final checks = checkUtterance('kopi 3 in 1', withBrand);
+      expect(checks.length, 1);
+      expect(checks.single.product!.name, 'Kopi 3 in 1');
+    });
+  });
+
   group('matching what was said to the catalog', () {
     test('finds the item however it was cased or punctuated', () {
       expect(matchProduct('NASI, GORENG', catalog)?.name, 'Nasi Goreng');

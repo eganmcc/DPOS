@@ -162,6 +162,67 @@ String _normalise(String s) =>
   return (qty: 1, item: words.join(' '));
 }
 
+/// Splits one spoken line into the several items it may hold.
+///
+/// A cashier does not pause between items: "air mineral 1 ayam bakar 2" arrives from the
+/// recognizer as ONE utterance, and read as one it becomes a nonsense item called "air mineral 1
+/// ayam bakar". The quantities are the punctuation — each number closes an item (or opens one,
+/// when the speaker puts the number first), so they are what this splits on.
+List<({int qty, String item})> splitUtterance(String text) {
+  final words = _normalise(text).split(' ').where((w) => w.isNotEmpty).toList();
+  if (words.isEmpty) return const [];
+
+  // Every maximal run of number words, as [start, endExclusive). A run, not a word, because
+  // "dua puluh lima" is one quantity.
+  final runs = <List<int>>[];
+  var i = 0;
+  while (i < words.length) {
+    if (spokenNumber([words[i]]) == null) {
+      i++;
+      continue;
+    }
+    var j = i + 1;
+    while (j < words.length && spokenNumber(words.sublist(i, j + 1)) != null) {
+      j++;
+    }
+    runs.add([i, j]);
+    i = j;
+  }
+
+  // No number at all means nothing to split on, and the single-item rules still apply. ONE number
+  // is not enough to stay out of here, though: "air mineral 2 ayam bakar" is two items.
+  if (runs.isEmpty) {
+    final one = splitQuantity(text);
+    return one.item.isEmpty ? const [] : [one];
+  }
+
+  final out = <({int qty, String item})>[];
+  int qtyOf(List<int> r) {
+    final n = spokenNumber(words.sublist(r[0], r[1])) ?? 1;
+    return n < 1 ? 1 : n; // "nol nasi goreng" is not an order for none of it
+  }
+
+  if (runs.first[0] == 0) {
+    // "dua nasi goreng satu es teh" — the number opens each item.
+    for (var k = 0; k < runs.length; k++) {
+      final end = k + 1 < runs.length ? runs[k + 1][0] : words.length;
+      final item = words.sublist(runs[k][1], end);
+      if (item.isNotEmpty) out.add((qty: qtyOf(runs[k]), item: item.join(' ')));
+    }
+  } else {
+    // "air mineral satu ayam bakar dua" — the number closes each item.
+    var start = 0;
+    for (final r in runs) {
+      final item = words.sublist(start, r[0]);
+      if (item.isNotEmpty) out.add((qty: qtyOf(r), item: item.join(' ')));
+      start = r[1];
+    }
+    // A trailing item with no number said is one of it.
+    if (start < words.length) out.add((qty: 1, item: words.sublist(start).join(' ')));
+  }
+  return out.isEmpty ? [splitQuantity(text)] : out;
+}
+
 /// The best catalog match for some spoken words, or null.
 ///
 /// Exact first, then one containing the other, then the item sharing the most words. The threshold
@@ -182,8 +243,13 @@ Product? matchProduct(String spokenItem, List<Product> products) {
     final nameWords = name.split(' ').toSet();
     final shared = nameWords.intersection(spokenWords).length;
     var score = shared / nameWords.length;
-    // A containment either way is strong evidence, whatever the word counts say.
-    if (spoken.contains(name) || name.contains(spoken)) score = score < 0.9 ? 0.9 : score;
+    // A containment either way is strong evidence, whatever the word counts say — but only when
+    // the contained side is substantial. "in" sits inside "Kopi 3 in 1" and means nothing by it.
+    final shorter = name.length <= spoken.length ? name : spoken;
+    final contained = spoken.contains(name) || name.contains(spoken);
+    if (contained && (shorter.contains(' ') || shorter.length >= 5)) {
+      score = score < 0.9 ? 0.9 : score;
+    }
     if (score > bestScore) {
       bestScore = score;
       best = p;
@@ -201,9 +267,38 @@ Variant? sellableVariant(Product p) {
   return p.variants.isEmpty ? null : p.variants.first;
 }
 
-/// Check one spoken line against the catalog.
+/// Check a whole spoken line, which may hold several items, against the catalog.
+///
+/// Where the split is ambiguous the CATALOG decides, because it is the only evidence available.
+/// "kopi 3 in 1" reads as two items by the rule above, but neither half is anything the shop
+/// sells while the whole line is — so the whole line wins. Two real items, on the other hand,
+/// beat one imaginary one.
+List<SttStockCheck> checkUtterance(String utterance, List<Product> products) {
+  final single = checkAgainstCatalog(utterance, products);
+  final parts = splitUtterance(utterance);
+  if (parts.length < 2) return [single];
+
+  final multi = [
+    for (final p in parts) _check(qty: p.qty, item: p.item, products: products),
+  ];
+  final matched = multi.where((c) => c.status != SttStockStatus.notFound).length;
+  if (matched >= 2) return multi;
+  return single.status == SttStockStatus.notFound ? multi : [single];
+}
+
+/// Check one spoken line, read as a single item, against the catalog.
 SttStockCheck checkAgainstCatalog(String utterance, List<Product> products) {
   final split = splitQuantity(utterance);
+  return _check(qty: split.qty, item: split.item, products: products);
+}
+
+/// One item and one quantity, already separated, against the catalog.
+SttStockCheck _check({
+  required int qty,
+  required String item,
+  required List<Product> products,
+}) {
+  final split = (qty: qty, item: item);
   final product = matchProduct(split.item, products);
   if (product == null) {
     return SttStockCheck(
