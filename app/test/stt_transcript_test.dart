@@ -3,7 +3,44 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// The three speech-recognition behaviours that only show up on real hardware, pinned here so a
 /// later tidy-up cannot quietly undo them. Every case is named for the failure it prevents.
+/// Bug 4, from the device run of 20 Sep: an item was spoken, the session ended, its words arrived
+/// a moment later, and the next session cleared them before anything could record them.
+void _lateWordsGroup() {
+  test('words that land after the session ended are carried over, not dropped', () {
+    final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 19, 55));
+    t.startSession();
+    t.onResult('nasi goreng satu', null, isFinal: true); // the session's own words, committed
+    t.onResult('cappucino iced', null, isFinal: false); // ...then a straggler, after the stop
+    t.startSession(); // the next session begins
+
+    expect(t.results.first.text, 'cappucino iced',
+        reason: 'it was said; it must appear somewhere');
+    expect(t.lateResults, 1, reason: 'and be countable, so the bench can show it happened');
+  });
+
+  test('a straggling fragment of what was already kept is still a duplicate', () {
+    final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 19, 55));
+    t.startSession();
+    t.onResult('air mineral satu', null, isFinal: true);
+    t.onResult('air mineral', null, isFinal: false); // a late partial of the same words
+    t.startSession();
+
+    expect(t.results.length, 1, reason: 'half an item is not a second item');
+    expect(t.duplicatesSuppressed, 1);
+  });
+
+  test('a session with nothing left over counts no late words', () {
+    final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 19, 55));
+    t.startSession();
+    t.onResult('nasi goreng', null, isFinal: true);
+    t.startSession();
+    expect(t.lateResults, 0);
+  });
+}
+
 void main() {
+  group('late words', _lateWordsGroup);
+
   late DateTime now;
   SttTranscript make() => SttTranscript(clock: () => now);
 

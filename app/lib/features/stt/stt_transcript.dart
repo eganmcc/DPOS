@@ -14,6 +14,10 @@
 ///  3. **A session can end four different ways** (final result, status done/notListening, error, or
 ///     the user tapping stop) and it is not guaranteed which fires, or that only one does. So the
 ///     commit must be idempotent and called from all four.
+///  4. **Words arrive after the session that produced them has ended.** The device log for 20 Sep
+///     shows three result callbacks landing 20-180 ms AFTER "Stop listening", with the next session
+///     starting 300 ms later. Anything still live at that point belongs to the session just gone,
+///     so a new session commits before it clears — an item vanished without trace this way.
 library;
 
 /// One finished utterance.
@@ -70,7 +74,19 @@ class SttTranscript {
 
   bool get hasLive => live.trim().isNotEmpty;
 
+  /// Words that arrived after their session had already ended, and were carried over rather than
+  /// thrown away (bug 4).
+  int lateResults = 0;
+
   void startSession() {
+    // Results keep arriving AFTER a session ends — the recognizer's last words land while the
+    // next session is already being asked for. Whatever is still live belongs to the session that
+    // just finished, and clearing it without committing loses it with no trace anywhere: not in
+    // the results, not in a counter, not in the log. Commit FIRST, then reset.
+    if (hasLive) {
+      lateResults++;
+      commit();
+    }
     _sessionStartedAt = _clock();
     _firstPartialAt = null;
     live = '';
@@ -108,10 +124,13 @@ class SttTranscript {
     }
     final now = _clock();
 
-    // Bug 2: the same text again, moments after we already kept it, is the late final of it.
-    final isDuplicate = text == _lastCommittedText &&
+    // Bug 2: the same text again, moments after we already kept it, is the late final of it —
+    // and so is a FRAGMENT of it, because a straggling partial from the session just ended is a
+    // prefix of what was already committed, not a second order for half the item.
+    final isDuplicate = _lastCommittedText != null &&
         _lastCommittedAt != null &&
-        now.difference(_lastCommittedAt!) < dedupeWindow;
+        now.difference(_lastCommittedAt!) < dedupeWindow &&
+        _lastCommittedText!.toLowerCase().startsWith(text.toLowerCase());
     if (isDuplicate) {
       duplicatesSuppressed++;
     } else {
@@ -141,5 +160,6 @@ class SttTranscript {
     _lastCommittedAt = null;
     bufferResets = 0;
     duplicatesSuppressed = 0;
+    lateResults = 0;
   }
 }

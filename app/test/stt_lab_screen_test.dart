@@ -460,6 +460,21 @@ void main() {
       expect(engine.listenCount, 2, reason: 'one ending, one restart');
     });
 
+    testWidgets('an item heard after the session ended still reaches the list', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      // The device log's shape: the session is closed, and its last words arrive afterwards.
+      engine.emitStatus!('done');
+      engine.emitResult!('cappucino iced', null, false);
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('cappucino iced'), findsOneWidget,
+          reason: 'the next session must not wipe it on its way in');
+      expect(find.text('late: 1'), findsOneWidget);
+    });
+
     testWidgets('saying the stop phrase ends the run and keeps the order', (tester) async {
       await pump(tester);
       await tester.tap(find.byKey(const ValueKey('stt-mic')));

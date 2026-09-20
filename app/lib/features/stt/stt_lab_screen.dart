@@ -447,6 +447,7 @@ class _SttLabBodyState extends State<SttLabBody> {
       ..writeln(widget.options.describe())
       ..writeln('counters: bufferResets=${_transcript.bufferResets} '
           'duplicatesSuppressed=${_transcript.duplicatesSuppressed} '
+          'lateResults=${_transcript.lateResults} '
           'timeToFirstPartial=${_transcript.timeToFirstPartial?.inMilliseconds ?? "-"}ms')
       ..writeln('')
       ..writeln('results (newest first):');
@@ -581,6 +582,7 @@ class _SttLabBodyState extends State<SttLabBody> {
               key: const ValueKey('stt-resets')),
           _chip(context, 'duplicates: ${_transcript.duplicatesSuppressed}',
               key: const ValueKey('stt-dupes')),
+          _chip(context, 'late: ${_transcript.lateResults}', key: const ValueKey('stt-late')),
           if (widget.options.continuous)
             _chip(context, 'restarts: $_restarts', key: const ValueKey('stt-restarts')),
         ]),
