@@ -33,6 +33,12 @@ abstract class SttEngine {
   /// True only where this feature is supported. Android-only by decision, not by accident.
   bool get isSupported;
 
+  /// Whether the microphone is open RIGHT NOW, as the platform itself reports it.
+  ///
+  /// The caller needs this because a session can die without saying so (see [listen]), and a
+  /// screen that trusts only its own flags then keeps claiming to listen long after it stopped.
+  bool get isListening;
+
   /// Starts the plugin. Safe to call repeatedly; pass [restart] after changing an option that
   /// belongs to initialize() rather than listen().
   Future<bool> initialize({
@@ -44,7 +50,12 @@ abstract class SttEngine {
 
   Future<List<SttLocale>> locales();
 
-  Future<void> listen({
+  /// Starts one session. Returns false when the session did **not** start — no status or error
+  /// callback will follow, so the caller must not sit waiting for one.
+  ///
+  /// True is not a promise either: the plugin ignores a platform that refuses to start, so the
+  /// caller still has to watch [isListening].
+  Future<bool> listen({
     required SttOptions options,
     required void Function(String text, double? confidence, bool isFinal) onResult,
     required void Function(double level) onSoundLevel,
@@ -68,6 +79,9 @@ class RealSttEngine implements SttEngine {
   /// does ship a federated Windows package, but nothing here is built or tested against it.
   @override
   bool get isSupported => !kIsWebLike && Platform.isAndroid;
+
+  @override
+  bool get isListening => _ready && _speech.isListening;
 
   @override
   Future<bool> initialize({
@@ -113,13 +127,19 @@ class RealSttEngine implements SttEngine {
     }
   }
 
+  /// What 7.4.0 actually does on a refused start, which is the whole reason for the bool: it asks
+  /// the platform, and if the platform answers false it simply returns — no timers armed, no
+  /// status, no error, `isListening` still false. Android refuses like that routinely when the
+  /// previous recognizer has not let go yet, which is precisely what continuous mode provokes
+  /// every few seconds. So: false here for the throwing case, and the caller's watchdog on
+  /// [isListening] for the silent one.
   @override
-  Future<void> listen({
+  Future<bool> listen({
     required SttOptions options,
     required void Function(String text, double? confidence, bool isFinal) onResult,
     required void Function(double level) onSoundLevel,
   }) async {
-    if (!_ready) return;
+    if (!_ready) return false;
     try {
       await _speech.listen(
         onResult: (SpeechRecognitionResult r) =>
@@ -136,8 +156,12 @@ class RealSttEngine implements SttEngine {
           // 7.4.0, so they are deliberately left at their defaults here.
         ),
       );
+      return true;
     } catch (_) {
-      /* the status/error callbacks report it */
+      // ListenFailedException, or not initialised. Nothing else reports this, so it is reported
+      // here — the old code swallowed it and left the screen waiting for a callback that on this
+      // path never comes.
+      return false;
     }
   }
 

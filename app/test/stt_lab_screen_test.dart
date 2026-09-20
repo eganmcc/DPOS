@@ -17,6 +17,15 @@ class FakeSttEngine implements SttEngine {
   bool initialises;
   List<SttLocale> offered;
 
+  /// What `listen()` answers. False is the refusal the plugin tells us about.
+  bool startsOk = true;
+
+  /// Whether the microphone actually opens after a listen that reported success. False is the
+  /// SILENT refusal: Android says no, the plugin returns anyway, and no callback ever arrives.
+  bool liveAfterStart = true;
+
+  bool engineListening = false;
+
   int initCount = 0;
   int restartCount = 0;
   int listenCount = 0;
@@ -31,6 +40,9 @@ class FakeSttEngine implements SttEngine {
 
   @override
   bool get isSupported => supported;
+
+  @override
+  bool get isListening => engineListening;
 
   @override
   Future<bool> initialize({
@@ -50,7 +62,7 @@ class FakeSttEngine implements SttEngine {
   Future<List<SttLocale>> locales() async => offered;
 
   @override
-  Future<void> listen({
+  Future<bool> listen({
     required SttOptions options,
     required void Function(String text, double? confidence, bool isFinal) onResult,
     required void Function(double level) onSoundLevel,
@@ -59,13 +71,21 @@ class FakeSttEngine implements SttEngine {
     lastListenOptions = options;
     emitResult = onResult;
     emitLevel = onSoundLevel;
+    engineListening = startsOk && liveAfterStart;
+    return startsOk;
   }
 
   @override
-  Future<void> stop() async => stopCount++;
+  Future<void> stop() async {
+    stopCount++;
+    engineListening = false;
+  }
 
   @override
-  Future<void> cancel() async => cancelCount++;
+  Future<void> cancel() async {
+    cancelCount++;
+    engineListening = false;
+  }
 }
 
 void main() {
@@ -95,6 +115,7 @@ void main() {
             openSettings: () async => settingsOpened++,
             clock: () => DateTime(2026, 9, 20, 10, 0, 0),
             restartDelay: Duration.zero,
+            watchdogPeriod: const Duration(milliseconds: 20),
             catalog: catalog,
           ),
         ),
@@ -243,6 +264,30 @@ void main() {
     expect(engine.listenCount, 0);
   });
 
+  testWidgets('a listen the plugin refuses ends the session instead of pretending', (tester) async {
+    await pump(tester);
+    engine.startsOk = false;
+    await tester.tap(find.byKey(const ValueKey('stt-mic')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dengarkan'), findsOneWidget, reason: 'the button is back to start');
+    expect(find.textContaining('stopped'), findsOneWidget, reason: 'and the status says so too');
+  });
+
+  testWidgets('a microphone that closes without a callback is caught by the watchdog',
+      (tester) async {
+    await pump(tester);
+    // listen() reports success, but the platform never actually opens the microphone — the
+    // failure that used to leave the button stuck on "Berhenti" forever.
+    engine.liveAfterStart = false;
+    await tester.tap(find.byKey(const ValueKey('stt-mic')));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 120));
+
+    expect(find.text('Dengarkan'), findsOneWidget);
+    expect(find.text('Berhenti'), findsNothing);
+  });
+
   group('continuous mode — keep listening until stop is pressed', () {
     setUp(() => options = const SttOptions(continuous: true));
 
@@ -346,6 +391,46 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       expect(find.text('Berhenti'), findsOneWidget, reason: 'still listening');
+    });
+
+    testWidgets('a session that dies in silence is noticed and the run continues', (tester) async {
+      // The reported bug: Android refuses the restart, the plugin returns without arming
+      // anything, and NO callback ever arrives. Nothing used to notice.
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+      expect(engine.listenCount, 1);
+
+      engine.engineListening = false; // the microphone quietly closed
+      await tester.pump(const Duration(milliseconds: 120));
+
+      expect(engine.listenCount, greaterThan(1), reason: 'the watchdog restarted it');
+    });
+
+    testWidgets('a listen the plugin refuses does not leave the button offering to stop',
+        (tester) async {
+      await pump(tester);
+      engine.startsOk = false;
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      // It retries, then gives up — and what it must never do is keep saying "Berhenti" while
+      // the microphone is shut.
+      expect(find.text('Dengarkan (terus)'), findsOneWidget);
+      expect(find.text('Berhenti'), findsNothing);
+    });
+
+    testWidgets('an error and a status for the SAME ending count as one, not two', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      // Android routinely delivers both for one silence. Two restarts would mean two recognizers.
+      engine.emitError!(const SttFailure('error_no_match'));
+      engine.emitStatus!('done');
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.listenCount, 2, reason: 'one ending, one restart');
     });
 
     testWidgets('leaving the screen mid-run releases the microphone', (tester) async {

@@ -67,6 +67,9 @@ class SttLabBody extends StatefulWidget {
   /// does not have to wait it out.
   final Duration restartDelay;
 
+  /// How often to check that the microphone is really open. Injected for the same reason.
+  final Duration watchdogPeriod;
+
   /// What the catalogue says exists and how much is left.
   final List<Product> catalog;
 
@@ -79,6 +82,7 @@ class SttLabBody extends StatefulWidget {
     required this.openSettings,
     this.clock = DateTime.now,
     this.restartDelay = const Duration(milliseconds: 300),
+    this.watchdogPeriod = const Duration(seconds: 1),
     this.catalog = const [],
   });
 
@@ -112,9 +116,18 @@ class _SttLabBodyState extends State<SttLabBody> {
   bool _checkStock = false;
   Timer? _restartTimer;
 
+  /// Watches the ENGINE, not our own flags — see [_armWatchdog].
+  Timer? _watchdog;
+  int _watchdogTicks = 0;
+  bool _sawEngineListening = false;
+
   /// Enough consecutive empty sessions to conclude the microphone is not working, rather than that
   /// the shop is quiet.
   static const int _maxEmptyRuns = 12;
+
+  /// Ticks allowed for the platform to report "listening" after a session is asked for, before we
+  /// conclude it never started. Android takes a moment to answer; two ticks is generous.
+  static const int _startGraceTicks = 2;
 
   @override
   void initState() {
@@ -125,6 +138,7 @@ class _SttLabBodyState extends State<SttLabBody> {
   @override
   void dispose() {
     _restartTimer?.cancel();
+    _watchdog?.cancel();
     // Leaving a live recognizer behind would hold the microphone after the screen is gone.
     if (_wantListening) widget.engine.cancel();
     super.dispose();
@@ -187,7 +201,13 @@ class _SttLabBodyState extends State<SttLabBody> {
   }
 
   /// One listening session just ended, however it ended. Flush first — always.
+  ///
+  /// Once per session and no more: Android routinely delivers an error AND a status for the same
+  /// ending, which used to count two empty runs for one silence and trip the give-up counter at
+  /// half the sessions it claims.
   void _endOfSession() {
+    if (!_listening) return;
+    _watchdog?.cancel();
     _transcript.commit();
     _listening = false;
     _level = 0;
@@ -219,12 +239,52 @@ class _SttLabBodyState extends State<SttLabBody> {
     }
     _restartTimer?.cancel();
     // A beat before restarting: Android does not reliably accept a new session in the same frame
-    // the old one ended.
-    _restartTimer = Timer(widget.restartDelay, () {
+    // the old one ended. And when sessions keep coming back empty — which is what a recognizer
+    // that refuses to start looks like — back off, rather than hammering it twelve times a second.
+    final delay = widget.restartDelay * (1 + _emptyRuns.clamp(0, 5));
+    _restartTimer = Timer(delay, () {
       if (!mounted || !_wantListening) return;
       _restarts++;
       _note('restart #$_restarts (continuous)');
       _startSession();
+    });
+  }
+
+  /// Watch the engine, because a session can die in silence.
+  ///
+  /// This is the fix for a button that said "Berhenti" while the phone had long stopped listening.
+  /// Every end-of-session path used to arrive through a status or error callback — but the most
+  /// common continuous-mode failure delivers neither: `listen()` asks Android, Android refuses
+  /// (usually because the previous recognizer has not released the microphone), and the plugin
+  /// returns without arming anything. No callback, so no restart, so the screen believed it was
+  /// still listening forever. Polling `engine.isListening` is the only honest answer to "is the
+  /// microphone open", so the screen now asks it instead of trusting its own flag.
+  void _armWatchdog() {
+    _watchdog?.cancel();
+    _watchdogTicks = 0;
+    _sawEngineListening = false;
+    _watchdog = Timer.periodic(widget.watchdogPeriod, (timer) {
+      if (!mounted || !_listening) {
+        timer.cancel();
+        return;
+      }
+      _watchdogTicks++;
+      if (widget.engine.isListening) {
+        _sawEngineListening = true;
+        return;
+      }
+      // Not listening. Either it never started (still inside the grace) or it has ended without
+      // telling us. Only the second is conclusive while the grace is running.
+      if (!_sawEngineListening && _watchdogTicks < _startGraceTicks) return;
+      timer.cancel();
+      setState(() {
+        _note(_sawEngineListening
+            ? 'session ended without a callback — recovered by watchdog'
+            : 'session never started (engine not listening) — recovered by watchdog');
+        _endOfSession();
+        if (!_wantListening) _status = 'stopped';
+      });
+      _maybeRestart();
     });
   }
 
@@ -245,6 +305,7 @@ class _SttLabBodyState extends State<SttLabBody> {
       // mode that callback would otherwise start the very session the user just ended.
       _wantListening = false;
       _restartTimer?.cancel();
+      _watchdog?.cancel();
       await widget.engine.stop();
       if (!mounted) return;
       setState(() {
@@ -293,7 +354,7 @@ class _SttLabBodyState extends State<SttLabBody> {
           'continuous=${widget.options.continuous})');
     });
 
-    await widget.engine.listen(
+    final started = await widget.engine.listen(
       options: widget.options.copyWith(localeId: _effectiveLocale),
       onResult: (text, confidence, isFinal) {
         if (!mounted) return;
@@ -308,6 +369,19 @@ class _SttLabBodyState extends State<SttLabBody> {
         if (mounted) setState(() => _level = l);
       },
     );
+    if (!mounted) return;
+    if (!started) {
+      // A refusal we were told about. No callback follows, so the session ends here and now —
+      // otherwise the mic button would promise to stop something that is not running.
+      setState(() {
+        _note('listen() refused — session did not start');
+        _endOfSession();
+        if (!_wantListening) _status = 'stopped';
+      });
+      _maybeRestart();
+      return;
+    }
+    _armWatchdog();
   }
 
   Future<void> _apply(SttOptions next, {bool restart = false}) async {
