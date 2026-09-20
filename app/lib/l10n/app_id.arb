@@ -404,6 +404,7 @@
   "sttOnDeviceHint": "Memaksa pengenalan offline; sesi gagal bila perangkat tidak mampu.",
   "sttNoBluetoothHint": "Abaikan jalur audio Bluetooth. Layak diuji saat printer termal terhubung.",
   "sttIntentLookupHint": "Solusi untuk Android yang tidak mendeklarasikan pengenal suara dengan benar.",
+  "sttDebugLoggingHint": "Menulis jejak plugin ke logcat (tag SpeechToText).",
   "sttIosOnlyNote": "listenMode, sampleRate, autoPunctuation dan haptic hanya berlaku di iOS pada versi plugin ini, jadi tidak ditampilkan.",
   "sttLog": "Catatan kejadian",
   "sttListenContinuous": "Dengarkan (terus)",

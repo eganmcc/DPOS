@@ -2294,6 +2294,12 @@ abstract class AppLocalizations {
   /// **'Workaround for Android builds that do not declare a recognizer properly.'**
   String get sttIntentLookupHint;
 
+  /// No description provided for @sttDebugLoggingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Writes the plugin\'s own trace to logcat (tag SpeechToText).'**
+  String get sttDebugLoggingHint;
+
   /// No description provided for @sttIosOnlyNote.
   ///
   /// In en, this message translates to:

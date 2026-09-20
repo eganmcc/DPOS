@@ -420,6 +420,33 @@ void main() {
       expect(find.text('Berhenti'), findsNothing);
     });
 
+    testWidgets('a busy recognizer is rebuilt before the next session, not merely retried',
+        (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+      expect(engine.restartCount, 0);
+
+      // error_busy means the recognizer object itself is no good; asking it again fails the same
+      // way. error_no_match, by contrast, is just a quiet shop.
+      engine.emitError!(const SttFailure('error_busy'));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.restartCount, 1, reason: 'the engine was rebuilt');
+      expect(engine.listenCount, 2);
+    });
+
+    testWidgets('silence does NOT rebuild the engine', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitError!(const SttFailure('error_no_match'));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.restartCount, 0, reason: 'nobody spoke; nothing is broken');
+    });
+
     testWidgets('an error and a status for the SAME ending count as one, not two', (tester) async {
       await pump(tester);
       await tester.tap(find.byKey(const ValueKey('stt-mic')));

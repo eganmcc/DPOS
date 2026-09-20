@@ -70,9 +70,12 @@ abstract class SttEngine {
 /// Built like `core/tts.dart`: one instance, lazily started, and it **never throws** — a handset
 /// with no recognizer must produce a clear message on screen, not a crash in a POS.
 class RealSttEngine implements SttEngine {
-  RealSttEngine([SpeechToText? speech]) : _speech = speech ?? SpeechToText();
+  RealSttEngine({SpeechToText Function()? create}) : _create = create ?? SpeechToText.new;
 
-  final SpeechToText _speech;
+  /// A FACTORY, not an instance, because a restart has to throw the old one away — see [initialize].
+  final SpeechToText Function() _create;
+
+  late SpeechToText _speech = _create();
   bool _ready = false;
 
   /// Android only, for now. On anything else the lab says so rather than half-working: the plugin
@@ -96,11 +99,18 @@ class RealSttEngine implements SttEngine {
       if (restart) {
         await _speech.cancel();
         await _speech.stop();
+        // A FRESH instance. `SpeechToText.initialize()` returns early the moment it has once
+        // succeeded (`if (_initWorked) return`), so calling it again on the same object silently
+        // ignores every initialize-level option — finalTimeout, the android* flags, logging. The
+        // bench's re-init toggles were doing nothing at all until this.
+        _speech = _create();
+        _ready = false;
       }
       _ready = await _speech.initialize(
         onStatus: onStatus,
         onError: (SpeechRecognitionError e) =>
             onError(SttFailure(e.errorMsg, permanent: e.permanent)),
+        debugLogging: options.debugLogging,
         finalTimeout: Duration(milliseconds: options.finalTimeoutMs),
         options: [
           if (options.androidNoBluetooth) SpeechToText.androidNoBluetooth,

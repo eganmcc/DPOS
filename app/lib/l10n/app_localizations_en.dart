@@ -1208,6 +1208,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Workaround for Android builds that do not declare a recognizer properly.';
 
   @override
+  String get sttDebugLoggingHint =>
+      'Writes the plugin\'s own trace to logcat (tag SpeechToText).';
+
+  @override
   String get sttIosOnlyNote =>
       'listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.';
 

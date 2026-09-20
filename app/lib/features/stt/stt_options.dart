@@ -57,6 +57,12 @@ class SttOptions {
   /// `androidAlwaysUseStop` — forces stop() instead of destroying the recognizer (an SDK 29 bug).
   final bool androidAlwaysUseStop;
 
+  /// The plugin's own logging, which goes to logcat under the tag `SpeechToText`.
+  ///
+  /// On by default here BECAUSE this screen is a bench: when a session dies for a reason the Dart
+  /// side never hears about, the plugin's own trace is the only record of what Android said.
+  final bool debugLogging;
+
   const SttOptions({
     this.localeId,
     this.pauseForSeconds = 3,
@@ -69,6 +75,7 @@ class SttOptions {
     this.androidNoBluetooth = false,
     this.androidIntentLookup = false,
     this.androidAlwaysUseStop = false,
+    this.debugLogging = true,
   });
 
   /// Below ~2s the session ends before the speaker starts, because of the `pauseFor` timing above.
@@ -90,6 +97,7 @@ class SttOptions {
     bool? androidNoBluetooth,
     bool? androidIntentLookup,
     bool? androidAlwaysUseStop,
+    bool? debugLogging,
   }) =>
       SttOptions(
         localeId: clearLocale ? null : (localeId ?? this.localeId),
@@ -105,6 +113,7 @@ class SttOptions {
         androidNoBluetooth: androidNoBluetooth ?? this.androidNoBluetooth,
         androidIntentLookup: androidIntentLookup ?? this.androidIntentLookup,
         androidAlwaysUseStop: androidAlwaysUseStop ?? this.androidAlwaysUseStop,
+        debugLogging: debugLogging ?? this.debugLogging,
       );
 
   Map<String, dynamic> toJson() => {
@@ -119,6 +128,7 @@ class SttOptions {
         'androidNoBluetooth': androidNoBluetooth,
         'androidIntentLookup': androidIntentLookup,
         'androidAlwaysUseStop': androidAlwaysUseStop,
+        'debugLogging': debugLogging,
       };
 
   /// Tolerant: a stored value from an older build must never stop the lab opening.
@@ -137,6 +147,7 @@ class SttOptions {
       androidNoBluetooth: b('androidNoBluetooth', false),
       androidIntentLookup: b('androidIntentLookup', false),
       androidAlwaysUseStop: b('androidAlwaysUseStop', false),
+      debugLogging: b('debugLogging', true),
     );
   }
 

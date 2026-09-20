@@ -537,6 +537,7 @@
   "sttOnDeviceHint": "Forces offline recognition; listening fails outright if this device cannot.",
   "sttNoBluetoothHint": "Ignore Bluetooth audio routing. Worth testing with the thermal printer paired.",
   "sttIntentLookupHint": "Workaround for Android builds that do not declare a recognizer properly.",
+  "sttDebugLoggingHint": "Writes the plugin's own trace to logcat (tag SpeechToText).",
   "sttIosOnlyNote": "listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.",
   "sttLog": "Event log",
   "sttListenContinuous": "Listen (keeps going)",

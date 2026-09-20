@@ -1209,6 +1209,10 @@ class AppLocalizationsId extends AppLocalizations {
       'Solusi untuk Android yang tidak mendeklarasikan pengenal suara dengan benar.';
 
   @override
+  String get sttDebugLoggingHint =>
+      'Menulis jejak plugin ke logcat (tag SpeechToText).';
+
+  @override
   String get sttIosOnlyNote =>
       'listenMode, sampleRate, autoPunctuation dan haptic hanya berlaku di iOS pada versi plugin ini, jadi tidak ditampilkan.';
 

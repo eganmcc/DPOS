@@ -121,6 +121,19 @@ class _SttLabBodyState extends State<SttLabBody> {
   int _watchdogTicks = 0;
   bool _sawEngineListening = false;
 
+  /// Set when an error says the recognizer is wedged; cleared by rebuilding the engine.
+  bool _reinitBeforeNextSession = false;
+
+  /// Errors that mean "this recognizer object is no good any more", as opposed to "nobody spoke".
+  /// `error_no_match` and `error_speech_timeout` are deliberately NOT here: in a quiet shop they
+  /// are the normal end of a session.
+  static const Set<String> _wedging = {
+    'error_busy',
+    'error_client',
+    'error_server_disconnected',
+    'error_too_many_requests',
+  };
+
   /// Enough consecutive empty sessions to conclude the microphone is not working, rather than that
   /// the shop is quiet.
   static const int _maxEmptyRuns = 12;
@@ -181,6 +194,12 @@ class _SttLabBodyState extends State<SttLabBody> {
           _note('onError: ${f.code} permanent=${f.permanent}');
           _endOfSession();
           _status = f.code;
+          // Some failures mean the recognizer itself is wedged: starting another session against
+          // the same object just fails the same way. Rebuild the engine before trying again.
+          if (_wedging.contains(f.code)) {
+            _reinitBeforeNextSession = true;
+            _note('${f.code} — the engine will be rebuilt before the next session');
+          }
           // A permanent error will not fix itself by trying again — stop rather than spin.
           if (f.permanent) {
             _wantListening = false;
@@ -270,6 +289,9 @@ class _SttLabBodyState extends State<SttLabBody> {
       }
       _watchdogTicks++;
       if (widget.engine.isListening) {
+        // Once per session: the log then shows, for every restart, whether the microphone ever
+        // actually opened — which is the question a continuous run that goes quiet turns on.
+        if (!_sawEngineListening) setState(() => _note('engine reports listening'));
         _sawEngineListening = true;
         return;
       }
@@ -342,6 +364,11 @@ class _SttLabBodyState extends State<SttLabBody> {
   /// Start one listening session. Called by the mic button and, in continuous mode, by the
   /// restart timer after each session ends.
   Future<void> _startSession() async {
+    if (_reinitBeforeNextSession) {
+      _reinitBeforeNextSession = false;
+      await _init(restart: true);
+      if (!mounted || !_wantListening) return;
+    }
     setState(() {
       _transcript.startSession();
       _heardThisSession = false;
@@ -573,32 +600,53 @@ class _SttLabBodyState extends State<SttLabBody> {
             child: Text(t.sttNoResults, style: TextStyle(color: cs.onSurfaceVariant)),
           )
         else
-          for (final r in _transcript.results)
-            Card(
-              margin: const EdgeInsets.symmetric(vertical: 3),
-              child: ListTile(
-                dense: true,
-                title: Text(r.text),
-                subtitle: Text([
-                  '${r.at.hour.toString().padLeft(2, '0')}:'
-                      '${r.at.minute.toString().padLeft(2, '0')}:'
-                      '${r.at.second.toString().padLeft(2, '0')}',
-                  if (r.confidence != null && r.confidence! > 0)
-                    'conf ${r.confidence!.toStringAsFixed(2)}',
-                  if (r.spoken != null) '${r.spoken!.inMilliseconds} ms',
-                ].join('  ·  ')),
-                // In stock mode every heard line gets a verdict, and a problem is stated in full:
-                // a cashier needs the number that is actually left, not just "no".
-                trailing: !_checkStock ? null : _verdict(context, r.text),
-                onLongPress: () async {
-                  await Clipboard.setData(ClipboardData(text: r.text));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(SnackBar(content: Text(t.sttCopied)));
-                  }
+          // Its OWN scroll area, with a floor and a ceiling. A long continuous run produces
+          // dozens of lines, and letting them push the tuning panel off the bottom of the page
+          // means scrolling past the whole transcript to reach a dial mid-session.
+          Container(
+            constraints: const BoxConstraints(minHeight: 120, maxHeight: 320),
+            decoration: BoxDecoration(
+              border: Border.all(color: cs.outlineVariant),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Scrollbar(
+              child: ListView.builder(
+                key: const ValueKey('stt-results'),
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                shrinkWrap: true,
+                itemCount: _transcript.results.length,
+                itemBuilder: (context, i) {
+                  final r = _transcript.results[i];
+                  return Card(
+                    margin: const EdgeInsets.fromLTRB(6, 3, 6, 3),
+                    child: ListTile(
+                      dense: true,
+                      title: Text(r.text),
+                      subtitle: Text([
+                        '${r.at.hour.toString().padLeft(2, '0')}:'
+                            '${r.at.minute.toString().padLeft(2, '0')}:'
+                            '${r.at.second.toString().padLeft(2, '0')}',
+                        if (r.confidence != null && r.confidence! > 0)
+                          'conf ${r.confidence!.toStringAsFixed(2)}',
+                        if (r.spoken != null) '${r.spoken!.inMilliseconds} ms',
+                      ].join('  ·  ')),
+                      // In stock mode every heard line gets a verdict, and a problem is stated in
+                      // full: a cashier needs the number that is actually left, not just "no".
+                      trailing: !_checkStock ? null : _verdict(context, r.text),
+                      onLongPress: () async {
+                        await Clipboard.setData(ClipboardData(text: r.text));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context)
+                              .showSnackBar(SnackBar(content: Text(t.sttCopied)));
+                        }
+                      },
+                    ),
+                  );
                 },
               ),
             ),
+          ),
 
         // ---- tuning -------------------------------------------------------------------------
         const SizedBox(height: 18),
@@ -656,6 +704,9 @@ class _SttLabBodyState extends State<SttLabBody> {
             hint: t.sttIntentLookupHint),
         _switch(context, 'androidAlwaysUseStop', widget.options.androidAlwaysUseStop,
             (v) => _apply(widget.options.copyWith(androidAlwaysUseStop: v), restart: true)),
+        _switch(context, 'debugLogging', widget.options.debugLogging,
+            (v) => _apply(widget.options.copyWith(debugLogging: v), restart: true),
+            hint: t.sttDebugLoggingHint),
         // listenMode and friends are iOS-only in this plugin version; saying so is more useful
         // than offering a dial that turns nothing.
         Padding(
