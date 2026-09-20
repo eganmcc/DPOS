@@ -23,6 +23,7 @@ import 'stt_commands.dart';
 import 'stt_engine.dart';
 import 'stt_lab_screen.dart' show sttEngineProvider;
 import 'stt_options.dart';
+import 'stt_runner.dart';
 import 'stt_stock_check.dart';
 import 'stt_transcript.dart';
 import 'voice_order_parse.dart';
@@ -186,6 +187,9 @@ class VoiceOrderBody extends StatefulWidget {
   ) onFinish;
   final Duration restartDelay;
 
+  /// How often to check that the microphone is really open. Injected so a test need not wait.
+  final Duration watchdogPeriod;
+
   const VoiceOrderBody({
     super.key,
     required this.engine,
@@ -198,6 +202,7 @@ class VoiceOrderBody extends StatefulWidget {
     required this.onAddToCart,
     required this.onFinish,
     this.restartDelay = const Duration(milliseconds: 300),
+    this.watchdogPeriod = const Duration(seconds: 1),
   });
 
   @override
@@ -205,7 +210,7 @@ class VoiceOrderBody extends StatefulWidget {
 }
 
 class _VoiceOrderBodyState extends State<VoiceOrderBody> {
-  late final SttTranscript _transcript = SttTranscript();
+
 
   /// Tabular figures keep the price column from dancing as amounts change.
   static const List<FontFeature> tabular = [FontFeature.tabularFigures()];
@@ -216,24 +221,23 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   final List<SttStockCheck> _checks = [];
   final List<PricedLine> _priced = [];
 
-  bool _ready = false;
-  bool _listening = false;
-  bool _wantListening = false;
+
+
+
   bool _submitting = false;
 
-  double _level = 0;
-  Timer? _restartTimer;
+
+
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _run.init();
   }
 
   @override
   void dispose() {
-    _restartTimer?.cancel();
-    if (_wantListening) widget.engine.cancel();
+    _run.dispose();
     super.dispose();
   }
 
@@ -251,79 +255,24 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
 
   int _unitPrice(SttStockCheck c) => c.variant?.price ?? 0;
 
-  Future<void> _init() async {
-    if (!widget.engine.isSupported) return;
-    final ok = await widget.engine.initialize(
-      options: widget.options,
-      onStatus: (s) {
-        if (!mounted) return;
-        setState(() {
+  /// Everything about running a listening session lives in [SttRunner] — the same one the tuning
+  /// bench uses. This screen only decides what to DO with what it hears.
+  late final SttRunner _run = SttRunner(
+    engine: widget.engine,
+    options: widget.options,
+    restartDelay: widget.restartDelay,
+    watchdogPeriod: widget.watchdogPeriod,
+    onChanged: () {
+      if (mounted) setState(() {});
+    },
+    onUtterance: _take,
+  );
 
-          if (s == 'done' || s == 'notListening') {
-            _transcript.commit();
-            _drain();
-            _listening = false;
-            _level = 0;
-            if (!widget.options.continuous) _wantListening = false;
-          }
-        });
-        _maybeRestart();
-      },
-      onError: (f) {
-        if (!mounted) return;
-        setState(() {
-          _transcript.commit();
-          _drain();
-          _listening = false;
-
-          if (f.permanent) _wantListening = false;
-        });
-        _maybeRestart();
-      },
-    );
-    // Which language to listen in. The bench resolves this and the till must too: with no
-    // localeId saved, the recognizer would use whatever the PHONE's default is — English on a
-    // phone set to English — and a cashier saying "nasi goreng dua" would get nonsense back.
-    // Android reports Indonesian under the legacy code `in_ID`, which is why this asks the device
-    // rather than assuming `id`.
-    final locales = ok ? await widget.engine.locales() : const <SttLocale>[];
-    if (!mounted) return;
-    setState(() {
-      _ready = ok;
-      _indonesian = locales.where((l) => l.isIndonesian).firstOrNull?.id;
-    });
-  }
-
-  /// What this device calls Indonesian, if it offers it at all.
-  String? _indonesian;
-
-  /// An explicit choice from the bench wins; otherwise Indonesian; otherwise the device's own
-  /// default, which is all that is left to try.
-  SttOptions get _listenOptions =>
-      widget.options.localeId != null || _indonesian == null
-          ? widget.options
-          : widget.options.copyWith(localeId: _indonesian);
-
-  void _maybeRestart() {
-    if (!mounted || !_wantListening || !widget.options.continuous) return;
-    _restartTimer?.cancel();
-    _restartTimer = Timer(widget.restartDelay, () {
-      if (mounted && _wantListening) _listen();
-    });
-  }
+  SttTranscript get _transcript => _run.transcript;
 
   Future<void> _toggle() async {
-    if (_wantListening) {
-      _wantListening = false;
-      _restartTimer?.cancel();
-      await widget.engine.stop();
-      if (!mounted) return;
-      setState(() {
-        _transcript.commit();
-        _drain();
-        _listening = false;
-        _level = 0;
-      });
+    if (_run.wantListening) {
+      await _run.stop('by user');
       return;
     }
     if (!await widget.requestMicPermission()) {
@@ -340,84 +289,20 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       if (open) await widget.openSettings();
       return;
     }
-    setState(() {
-      _wantListening = true;
-      // A deliberate restart: whatever was said before must not be mistaken for a repeat.
-      _transcript.beginRun();
-    });
-    await _listen();
+    final dupesBefore = _transcript.duplicatesSuppressed;
+    await _run.start();
+    _warnIfSwallowed(dupesBefore);
   }
 
-  Future<void> _listen() async {
-    setState(() {
-      _transcript.startSession();
-      _drain(); // a straggler from the last session commits here
-      _listening = true;
-    });
-    final started = await widget.engine.listen(
-      options: _listenOptions,
-      onResult: (text, confidence, isFinal) {
-        if (!mounted) return;
-        final cmd = readStopPhrase(text);
-        final dupesBefore = _transcript.duplicatesSuppressed;
-        setState(() {
-          _transcript.onResult(cmd.text, confidence, isFinal: isFinal || cmd.stop);
-          _drain();
-        });
-        // A line held back as a repeat has to SAY so. Silently dropping something the cashier
-        // watched the screen hear is the one failure this surface must not have.
-        if (_transcript.duplicatesSuppressed > dupesBefore) {
-          final t = AppLocalizations.of(context)!;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(t.voiceRepeatIgnored),
-            duration: const Duration(seconds: 2),
-          ));
-        }
-        if (cmd.stop) _stopByPhrase();
-      },
-      onSoundLevel: (l) {
-        if (mounted) setState(() => _level = l);
-      },
-    );
-    if (mounted && !started) {
-      setState(() {
-        _listening = false;
-        _wantListening = false;
-      });
-    }
-  }
-
-  Future<void> _stopByPhrase() async {
-    _wantListening = false;
-    _restartTimer?.cancel();
-    await widget.engine.stop();
-    if (!mounted) return;
-    setState(() {
-      _transcript.commit();
-      _drain();
-      _listening = false;
-      _level = 0;
-    });
-  }
-
-  /// How many of the transcript's committed utterances have already become lines.
-  int _staged = 0;
-
-  /// Turn every utterance the transcript has committed since last time into lines.
-  ///
-  /// This is a DRAIN, not a callback, because a finished utterance does not only arrive through
-  /// `onResult`. The transcript also commits when the session's status says it ended, when an
-  /// error ends it, when the user presses stop, and when the next session starts and finds
-  /// something left over — five paths, and the first version of this screen staged lines from
-  /// exactly one of them. A line spoken into a session that ended without a final result was
-  /// heard, shown live, committed to the transcript, and then never reached the bill.
-  void _drain() {
-    // Newest first, so the ones not yet staged are at the front — walked back to front so they
-    // land in the order they were said.
-    for (var i = _transcript.results.length - _staged - 1; i >= 0; i--) {
-      _take(_transcript.results[i].text);
-    }
-    _staged = _transcript.results.length;
+  /// A line held back as a repeat has to SAY so. Silently dropping something the cashier watched
+  /// the screen hear is the one failure this surface must not have.
+  void _warnIfSwallowed(int before) {
+    if (!mounted || _transcript.duplicatesSuppressed <= before) return;
+    final t = AppLocalizations.of(context)!;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(t.voiceRepeatIgnored),
+      duration: const Duration(seconds: 2),
+    ));
   }
 
   /// One finished utterance becomes one or more staged lines.
@@ -498,7 +383,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
                 child: Text(
                   _transcript.live.isNotEmpty
                       ? _transcript.live
-                      : (_wantListening && !_listening ? t.sttRestarting : t.sttSaySomething),
+                      : (_run.wantListening && !_run.listening ? t.sttRestarting : t.sttSaySomething),
                   key: const ValueKey('voice-live'),
                   style: TextStyle(
                     fontSize: 15,
@@ -509,7 +394,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
               ),
               const SizedBox(height: 6),
               LinearProgressIndicator(
-                value: (_level.abs() / 10).clamp(0.0, 1.0),
+                value: (_run.level.abs() / 10).clamp(0.0, 1.0),
                 minHeight: 4,
                 backgroundColor: cs.surfaceContainerHighest,
               ),
@@ -519,24 +404,24 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
                 width: double.infinity,
                 child: FilledButton.icon(
                   key: const ValueKey('voice-mic'),
-                  onPressed: _ready ? _toggle : null,
-                  style: _wantListening
+                  onPressed: _run.ready ? _toggle : null,
+                  style: _run.wantListening
                       ? FilledButton.styleFrom(
                           backgroundColor: cs.error, foregroundColor: cs.onError)
                       : null,
-                  icon: Icon(_wantListening ? Icons.stop : Icons.mic),
-                  label: Text(_wantListening
+                  icon: Icon(_run.wantListening ? Icons.stop : Icons.mic),
+                  label: Text(_run.wantListening
                       ? t.sttStop
                       : (widget.options.continuous ? t.sttListenContinuous : t.sttListen)),
                 ),
               ),
-              if (!_ready)
+              if (!_run.ready)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(t.sttNoRecognizer,
                       style: TextStyle(color: cs.error, fontSize: 12)),
                 ),
-              if (_wantListening)
+              if (_run.wantListening)
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(t.sttStopPhraseHint(kStopPhrases.first),

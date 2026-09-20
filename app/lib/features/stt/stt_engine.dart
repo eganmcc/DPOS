@@ -78,6 +78,12 @@ class RealSttEngine implements SttEngine {
   late SpeechToText _speech = _create();
   bool _ready = false;
 
+  /// The CURRENT subscriber. The plugin is given one stable pair of listeners below, which
+  /// forward to whatever is in these — so swapping screens swaps who hears, without needing the
+  /// plugin to re-register anything.
+  void Function(String status)? _onStatus;
+  void Function(SttFailure failure)? _onError;
+
   /// Android only, for now. On anything else the lab says so rather than half-working: the plugin
   /// does ship a federated Windows package, but nothing here is built or tested against it.
   @override
@@ -94,6 +100,14 @@ class RealSttEngine implements SttEngine {
     bool restart = false,
   }) async {
     if (!isSupported) return false;
+    // The callbacks belong to whoever asked LAST, always — this engine is one shared instance
+    // (`sttEngineProvider`), so the bench and the order sheet, and each fresh open of either,
+    // take it in turn. `SpeechToText.initialize()` returns early once it has worked, which means
+    // a second caller's listeners were silently dropped: the plugin went on delivering statuses
+    // to a screen that no longer existed, and the live one sat with its stop button showing,
+    // waiting for an end-of-session that could never reach it.
+    _onStatus = onStatus;
+    _onError = onError;
     if (_ready && !restart) return true;
     try {
       if (restart) {
@@ -107,9 +121,11 @@ class RealSttEngine implements SttEngine {
         _ready = false;
       }
       _ready = await _speech.initialize(
-        onStatus: onStatus,
+        // Stable indirection — never the caller's closure directly, so the plugin keeps working
+        // for whoever holds the engine now.
+        onStatus: (s) => _onStatus?.call(s),
         onError: (SpeechRecognitionError e) =>
-            onError(SttFailure(e.errorMsg, permanent: e.permanent)),
+            _onError?.call(SttFailure(e.errorMsg, permanent: e.permanent)),
         debugLogging: options.debugLogging,
         finalTimeout: Duration(milliseconds: options.finalTimeoutMs),
         options: [
