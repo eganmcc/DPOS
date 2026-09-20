@@ -298,6 +298,11 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       if (mounted) setState(() {});
     },
     onUtterance: _take,
+    // To logcat, not to the screen: this surface has no room for a diagnostics panel, and when
+    // something goes wrong here the question is always "what did it actually hear". Gated on the
+    // bench's debugLogging so it can be turned off — the words are a customer's order, and they
+    // must not be in a real merchant's logs.
+    onNote: widget.options.debugLogging ? (line) => debugPrint('STT $line') : null,
   );
 
   SttTranscript get _transcript => _run.transcript;
@@ -338,12 +343,48 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   }
 
   /// One finished utterance becomes one or more staged lines.
+  /// A number on its own belongs to the line before it.
+  ///
+  /// "ayam geprek keju 5" does not always arrive in one piece: the device log for 22:05 shows the
+  /// words, a 5.9-second gap, and then the rest — and the recognizer had thrown its buffer away
+  /// in between, so the name was committed on its own (at a quantity of one, because none had
+  /// been said yet) and the number came through as an item nobody sells. Nobody orders "5".
+  ///
+  /// Returns true when the number was used, so the caller does not also stage it as an item.
+  bool _applyLooseNumber(String utterance) {
+    final words = normaliseSpoken(utterance).split(' ').where((w) => w.isNotEmpty).toList();
+    final n = spokenNumber(words);
+    if (n == null || n <= 0) return false;
+
+    if (_mode == VoiceOrderMode.catalogue) {
+      if (_checks.isEmpty) return false;
+      final last = _checks.last;
+      if (last.product == null) return false; // nothing sensible to attach it to
+      // Rebuilt, not patched: whether there is enough stock depends on the quantity.
+      _checks[_checks.length - 1] = checkItem(
+        qty: n,
+        item: last.spokenItem,
+        products: widget.catalog,
+      );
+      return true;
+    }
+
+    if (_priced.isEmpty) return false;
+    final last = _priced.last;
+    // In this mode the missing half is usually the price — "pecel lele", then "100".
+    _priced[_priced.length - 1] = last.price <= 0
+        ? PricedLine(label: last.label, qty: last.qty, price: spokenPrice(n))
+        : PricedLine(label: last.label, qty: n, price: last.price);
+    return true;
+  }
+
   void _take(String rawUtterance) {
     // An instruction that arrived on its own is not an item — and a trailing "pesanan" is the
     // first half of one, left behind when the recognizer split the phrase.
     if (isStopCommand(rawUtterance)) return;
     final utterance = stripTrailingCommandWords(rawUtterance);
     if (utterance.trim().isEmpty) return;
+    if (_applyLooseNumber(utterance)) return;
     if (_mode == VoiceOrderMode.catalogue) {
       _checks.addAll(checkUtterance(utterance, widget.catalog));
     } else {

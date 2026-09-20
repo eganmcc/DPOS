@@ -324,6 +324,61 @@ void main() {
     });
   });
 
+  /// The device, 22:05: "ayam geprek keju 5" arrived as the words, a 5.9-second gap, and then the
+  /// number — with the recognizer's buffer thrown away in between. The name was staged at a
+  /// quantity of one and the number turned up as an item nobody sells.
+  group('a number that arrives after its item', () {
+    testWidgets('becomes that item\'s quantity, not a line of its own', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, 'nasi goreng');
+      await say(tester, '5');
+
+      expect(find.text('Nasi Goreng'), findsOneWidget, reason: 'still one line');
+      expect(find.text('5'), findsOneWidget, reason: 'and that is the quantity column');
+      expect(find.byKey(const ValueKey('voice-blocked')), findsNothing,
+          reason: 'no phantom item nobody sells');
+    });
+
+    testWidgets('the verdict is recomputed, not patched', (tester) async {
+      // Five is more than the five in stock is fine; ten is not, and the line has to say so.
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, 'nasi goreng');
+      await say(tester, 'sepuluh');
+
+      expect(find.byKey(const ValueKey('voice-problem-0')), findsOneWidget);
+      expect(find.textContaining('sisa 5'), findsOneWidget);
+    });
+
+    testWidgets('spelled out, it works the same', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, 'nasi goreng');
+      await say(tester, 'dua');
+      expect(find.text('2'), findsOneWidget);
+    });
+
+    testWidgets('at a spoken price the stranded number is the price', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.openPrice);
+      await say(tester, 'pecel lele');
+      await say(tester, '100');
+
+      expect(find.text('pecel lele'), findsOneWidget);
+      expect(find.text('Rp 100.000'), findsWidgets);
+      final button = tester.widget<FilledButton>(find.byKey(const ValueKey('voice-selesai')));
+      expect(button.onPressed, isNotNull, reason: 'the line is complete now');
+    });
+
+    testWidgets('a number with nothing before it is shown, not swallowed', (tester) async {
+      // It attaches to nothing, so it stays visible as a line the cashier can see and remove.
+      // Dropping it silently would be the failure this screen must never have, and Selesai is
+      // blocked until it is dealt with either way.
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, '5');
+
+      expect(find.byKey(const ValueKey('voice-empty')), findsNothing);
+      expect(find.byKey(const ValueKey('voice-blocked')), findsOneWidget);
+    });
+  });
+
   group('the sheet itself', () {
     testWidgets('the mode cannot change once there is a bill to lose', (tester) async {
       await pump(tester, mode: VoiceOrderMode.catalogue);

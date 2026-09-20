@@ -346,6 +346,17 @@ SttStockCheck checkAgainstCatalog(String utterance, List<Product> products) {
 }
 
 /// One item and one quantity, already separated, against the catalog.
+///
+/// Public because a quantity can arrive AFTER its item: the recognizer sometimes resets its
+/// buffer between the two, and the line then has to be rebuilt with the number that followed —
+/// rebuilt, not patched, because the verdict depends on the quantity.
+SttStockCheck checkItem({
+  required int qty,
+  required String item,
+  required List<Product> products,
+}) =>
+    _check(qty: qty, item: item, products: products);
+
 SttStockCheck _check({
   required int qty,
   required String item,
