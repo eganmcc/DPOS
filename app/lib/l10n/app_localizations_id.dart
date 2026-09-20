@@ -1298,6 +1298,10 @@ class AppLocalizationsId extends AppLocalizations {
   String get voiceNeedsPrice => 'Harga belum disebut';
 
   @override
+  String get voiceRepeatIgnored =>
+      'Terdengar lagi dalam hitungan detik — dianggap ulangan, tidak ditambahkan.';
+
+  @override
   String voiceFixLines(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

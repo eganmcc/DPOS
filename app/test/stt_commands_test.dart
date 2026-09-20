@@ -34,11 +34,37 @@ void main() {
       expect(r.text, 'nasi goreng dua es teh manis satu');
     });
 
-    test('half the phrase is not the phrase', () {
-      // A single stray word must never end a run — a cashier saying "selesai" to a customer is
-      // not talking to the till.
-      expect(readStopPhrase('selesai').stop, false);
-      expect(readStopPhrase('pesanan').stop, false);
+    test('a bare "selesai" IS the instruction, because the recognizer splits the phrase', () {
+      // From the device on 20 Sep: "pesanan selesai" arrived as two results, neither of which
+      // matched the two-word phrase — so the run did not stop and "selesai" was staged as an item.
+      expect(readStopPhrase('selesai').stop, true);
+      expect(readStopPhrase('selesai').text, '');
+      expect(readStopPhrase('sudah selesai').stop, true);
+    });
+
+    test('but an ordinary word on its own is not', () {
+      expect(readStopPhrase('pesanan').stop, false, reason: 'no "selesai", no instruction');
+      expect(readStopPhrase('nasi goreng selesai').stop, false,
+          reason: 'an item is named, so this is an order — not a bare command');
+    });
+  });
+
+  group('a phrase split across two results', () {
+    test('the leading half does not stick to the item name', () {
+      expect(stripTrailingCommandWords('air mineral tiga pesanan'), 'air mineral tiga');
+      expect(stripTrailingCommandWords('nasi goreng dua pesanan sudah'), 'nasi goreng dua');
+    });
+
+    test('an ordinary line is left exactly as it was', () {
+      expect(stripTrailingCommandWords('Air Mineral 3'), 'Air Mineral 3',
+          reason: 'untouched, punctuation and capitals and all');
+    });
+
+    test('a line that is nothing but the command is recognised as one', () {
+      expect(isStopCommand('selesai'), true);
+      expect(isStopCommand('Pesanan, selesai'), true);
+      expect(isStopCommand('air mineral'), false);
+      expect(isStopCommand(''), false);
     });
   });
 }

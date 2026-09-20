@@ -29,6 +29,32 @@ void _lateWordsGroup() {
     expect(t.duplicatesSuppressed, 1);
   });
 
+  test('saying the same thing again after a deliberate stop is a second order, not a repeat', () {
+    // The device, 20 Sep: the run was stopped, "air mineral tiga" was said again, and it never
+    // reached the list — the duplicate window had swallowed it with no trace.
+    final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 21, 30));
+    t.startSession();
+    t.onResult('air mineral tiga', null, isFinal: true);
+    expect(t.results.length, 1);
+
+    t.beginRun(); // the cashier pressed the microphone again
+    t.startSession();
+    t.onResult('air mineral tiga', null, isFinal: true);
+
+    expect(t.results.length, 2, reason: 'they meant it the second time too');
+  });
+
+  test('but an automatic restart still catches the late final it was built for', () {
+    final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 21, 30));
+    t.startSession();
+    t.onResult('air mineral tiga', null, isFinal: true);
+    t.startSession(); // continuous restart — NOT a new run
+    t.onResult('air mineral tiga', null, isFinal: true);
+
+    expect(t.results.length, 1);
+    expect(t.duplicatesSuppressed, 1);
+  });
+
   test('a session with nothing left over counts no late words', () {
     final t = SttTranscript(clock: () => DateTime(2026, 9, 20, 19, 55));
     t.startSession();

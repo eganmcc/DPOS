@@ -1296,6 +1296,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceNeedsPrice => 'No price said';
 
   @override
+  String get voiceRepeatIgnored =>
+      'Heard again within seconds — treated as a repeat, not added.';
+
+  @override
   String voiceFixLines(int count) {
     String _temp0 = intl.Intl.pluralLogic(
       count,

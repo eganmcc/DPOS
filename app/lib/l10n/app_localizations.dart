@@ -2444,6 +2444,12 @@ abstract class AppLocalizations {
   /// **'No price said'**
   String get voiceNeedsPrice;
 
+  /// No description provided for @voiceRepeatIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'Heard again within seconds — treated as a repeat, not added.'**
+  String get voiceRepeatIgnored;
+
   /// No description provided for @voiceFixLines.
   ///
   /// In en, this message translates to:

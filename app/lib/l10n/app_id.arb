@@ -429,6 +429,7 @@
   "voiceColTotal": "Jumlah",
   "voiceAddToCart": "Tambah ke keranjang",
   "voiceNeedsPrice": "Harga belum disebut",
+  "voiceRepeatIgnored": "Terdengar lagi dalam hitungan detik — dianggap ulangan, tidak ditambahkan.",
   "voiceFixLines": "{count, plural, =1{Perbaiki 1 baris bertanda dulu.} other{Perbaiki {count} baris bertanda dulu.}}",
   "@voiceFixLines": {"placeholders":{"count":{"type":"int"}}},
   "sttStockNoCatalog": "Akun ini tidak punya katalog untuk dicek.",

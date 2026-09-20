@@ -78,6 +78,17 @@ class SttTranscript {
   /// thrown away (bug 4).
   int lateResults = 0;
 
+  /// A NEW run, started by a person: the mic button was tapped, or the order sheet was opened.
+  ///
+  /// Forgets what was last committed, so the duplicate window cannot swallow it. Saying "air
+  /// mineral tiga", stopping, and saying it again is a cashier adding an item — not the late final
+  /// of the previous one, which is the only thing the window exists to catch. An automatic restart
+  /// inside a continuous run deliberately does NOT call this: there the stragglers are real.
+  void beginRun() {
+    _lastCommittedText = null;
+    _lastCommittedAt = null;
+  }
+
   void startSession() {
     // Results keep arriving AFTER a session ends — the recognizer's last words land while the
     // next session is already being asked for. Whatever is still live belongs to the session that

@@ -275,6 +275,34 @@ void main() {
       expect(find.text('Nasi Goreng'), findsOneWidget);
     });
 
+    testWidgets('a split "pesanan selesai" is still the instruction, never an item',
+        (tester) async {
+      // What the handset did: the phrase arrived as two separate results.
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, 'nasi goreng dua pesanan');
+      await say(tester, 'selesai');
+
+      expect(find.text('selesai'), findsNothing, reason: 'it was an instruction, not an order');
+      expect(find.byKey(const ValueKey('voice-problem-0')), findsNothing);
+      expect(find.text('Nasi Goreng'), findsOneWidget);
+      expect(engine.stopCount, 1, reason: 'and it stopped the run, as asked');
+    });
+
+    testWidgets('an item added after stopping and starting again reaches the list',
+        (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await say(tester, 'nasi goreng dua');
+      await tester.tap(find.byKey(const ValueKey('voice-mic'))); // stop
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('voice-mic'))); // start again
+      await tester.pumpAndSettle();
+      engine.emitResult!('nasi goreng dua', 0.9, true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nasi Goreng'), findsNWidgets(2),
+          reason: 'said again on purpose after a stop — two lines, not one swallowed');
+    });
+
     testWidgets('a failed submit keeps the bill on screen', (tester) async {
       finishSucceeds = false;
       await pump(tester, mode: VoiceOrderMode.catalogue);

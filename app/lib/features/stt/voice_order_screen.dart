@@ -337,7 +337,11 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       if (open) await widget.openSettings();
       return;
     }
-    setState(() => _wantListening = true);
+    setState(() {
+      _wantListening = true;
+      // A deliberate restart: whatever was said before must not be mistaken for a repeat.
+      _transcript.beginRun();
+    });
     await _listen();
   }
 
@@ -352,6 +356,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
         if (!mounted) return;
         final cmd = readStopPhrase(text);
         final before = _transcript.results.length;
+        final dupesBefore = _transcript.duplicatesSuppressed;
         setState(() {
           _transcript.onResult(cmd.text, confidence, isFinal: isFinal || cmd.stop);
           // Every newly committed utterance becomes lines. Reading the transcript rather than the
@@ -361,6 +366,15 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
             _take(_transcript.results[i - 1].text);
           }
         });
+        // A line held back as a repeat has to SAY so. Silently dropping something the cashier
+        // watched the screen hear is the one failure this surface must not have.
+        if (_transcript.duplicatesSuppressed > dupesBefore) {
+          final t = AppLocalizations.of(context)!;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(t.voiceRepeatIgnored),
+            duration: const Duration(seconds: 2),
+          ));
+        }
         if (cmd.stop) _stopByPhrase();
       },
       onSoundLevel: (l) {
@@ -388,7 +402,11 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   }
 
   /// One finished utterance becomes one or more staged lines.
-  void _take(String utterance) {
+  void _take(String rawUtterance) {
+    // An instruction that arrived on its own is not an item — and a trailing "pesanan" is the
+    // first half of one, left behind when the recognizer split the phrase.
+    if (isStopCommand(rawUtterance)) return;
+    final utterance = stripTrailingCommandWords(rawUtterance);
     if (utterance.trim().isEmpty) return;
     if (_mode == VoiceOrderMode.catalogue) {
       _checks.addAll(checkUtterance(utterance, widget.catalog));

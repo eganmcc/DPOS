@@ -567,6 +567,7 @@
   "voiceColTotal": "Total",
   "voiceAddToCart": "Add to cart",
   "voiceNeedsPrice": "No price said",
+  "voiceRepeatIgnored": "Heard again within seconds — treated as a repeat, not added.",
   "voiceFixLines": "{count, plural, =1{Fix 1 marked line first.} other{Fix {count} marked lines first.}}",
   "@voiceFixLines": {"placeholders":{"count":{"type":"int"}}},
   "sttStockNoCatalog": "This account has no catalogue to check against.",

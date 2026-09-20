@@ -346,6 +346,9 @@ class _SttLabBodyState extends State<SttLabBody> {
       _wantListening = true;
       _restarts = 0;
       _emptyRuns = 0;
+      // A deliberate restart, so the duplicate window starts clean — saying the same thing again
+      // after pressing stop is a person repeating themselves on purpose.
+      _transcript.beginRun();
     });
     await _startSession();
   }
