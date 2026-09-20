@@ -1113,4 +1113,104 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailNote => 'Note';
+
+  @override
+  String get sttLabTitle => 'Voice test';
+
+  @override
+  String get sttSettingsRow => 'Voice test (speech-to-text)';
+
+  @override
+  String get sttSettingsHint => 'Android only — for testing and tuning';
+
+  @override
+  String get sttStatus => 'Status';
+
+  @override
+  String get sttFirstWord => 'First word';
+
+  @override
+  String get sttSaySomething => 'Tap Listen and say something…';
+
+  @override
+  String get sttListen => 'Listen';
+
+  @override
+  String get sttStop => 'Stop';
+
+  @override
+  String get sttClear => 'Clear results';
+
+  @override
+  String get sttCopyDiagnostics => 'Copy diagnostics';
+
+  @override
+  String get sttCopied => 'Copied';
+
+  @override
+  String get sttResultsLabel => 'Results';
+
+  @override
+  String get sttNoResults => 'Nothing heard yet.';
+
+  @override
+  String get sttTuning => 'Per listen';
+
+  @override
+  String get sttTuningInit => 'Per engine start';
+
+  @override
+  String get sttTuningInitHint =>
+      'Changing one of these restarts the recognizer.';
+
+  @override
+  String get sttLocaleAuto => 'Automatic';
+
+  @override
+  String sttIndonesianFound(String id) {
+    return 'Indonesian on this device: $id';
+  }
+
+  @override
+  String get sttNoIndonesian => 'This device offers no Indonesian recognition.';
+
+  @override
+  String get sttNoRecognizer =>
+      'No speech recognizer available on this device. On some Android builds, turning on androidIntentLookup below helps.';
+
+  @override
+  String get sttAndroidOnly => 'Voice input is Android only for now.';
+
+  @override
+  String get sttMicDeniedTitle => 'Microphone needed';
+
+  @override
+  String get sttMicDeniedBody =>
+      'Voice input needs permission to use the microphone.';
+
+  @override
+  String get sttOpenSettings => 'Open settings';
+
+  @override
+  String get sttPauseForHint =>
+      'Silence that ends the session. Counted from the moment listening starts, NOT from the first word — below 2s it can end before you speak.';
+
+  @override
+  String get sttOnDeviceHint =>
+      'Forces offline recognition; listening fails outright if this device cannot.';
+
+  @override
+  String get sttNoBluetoothHint =>
+      'Ignore Bluetooth audio routing. Worth testing with the thermal printer paired.';
+
+  @override
+  String get sttIntentLookupHint =>
+      'Workaround for Android builds that do not declare a recognizer properly.';
+
+  @override
+  String get sttIosOnlyNote =>
+      'listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.';
+
+  @override
+  String get sttLog => 'Event log';
 }

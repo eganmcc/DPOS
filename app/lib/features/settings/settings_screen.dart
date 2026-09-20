@@ -7,6 +7,7 @@ import '../../core/settings_actions.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../stt/stt_lab_screen.dart';
 import '../scanner/dpos_printer.dart';
 import '../scanner/rongta_printer.dart';
 
@@ -172,6 +173,21 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ]),
           ],
+          // The speech-to-text bench. Deliberately reachable by everyone in this build: it exists
+          // to be opened on real handsets and tuned. It sells nothing and touches no order.
+          const SizedBox(height: 24),
+          _sectionHeader(context, t.sttLabTitle),
+          _card(cs, [
+            ListTile(
+              key: const ValueKey('settings-stt'),
+              leading: const Icon(Icons.mic_none_outlined),
+              title: Text(t.sttSettingsRow),
+              subtitle: Text(t.sttSettingsHint),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const SttLabScreen())),
+            ),
+          ]),
           const SizedBox(height: 24),
           _sectionHeader(context, t.aboutSection),
           _card(cs, [

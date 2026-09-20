@@ -8,6 +8,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_tts
   permission_handler_windows
   print_bluetooth_thermal
+  speech_to_text_windows
   sqlite3_flutter_libs
 )
 

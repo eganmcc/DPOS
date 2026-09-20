@@ -2125,6 +2125,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note'**
   String get detailNote;
+
+  /// No description provided for @sttLabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice test'**
+  String get sttLabTitle;
+
+  /// No description provided for @sttSettingsRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice test (speech-to-text)'**
+  String get sttSettingsRow;
+
+  /// No description provided for @sttSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Android only — for testing and tuning'**
+  String get sttSettingsHint;
+
+  /// No description provided for @sttStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get sttStatus;
+
+  /// No description provided for @sttFirstWord.
+  ///
+  /// In en, this message translates to:
+  /// **'First word'**
+  String get sttFirstWord;
+
+  /// No description provided for @sttSaySomething.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Listen and say something…'**
+  String get sttSaySomething;
+
+  /// No description provided for @sttListen.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen'**
+  String get sttListen;
+
+  /// No description provided for @sttStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get sttStop;
+
+  /// No description provided for @sttClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear results'**
+  String get sttClear;
+
+  /// No description provided for @sttCopyDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy diagnostics'**
+  String get sttCopyDiagnostics;
+
+  /// No description provided for @sttCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get sttCopied;
+
+  /// No description provided for @sttResultsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get sttResultsLabel;
+
+  /// No description provided for @sttNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing heard yet.'**
+  String get sttNoResults;
+
+  /// No description provided for @sttTuning.
+  ///
+  /// In en, this message translates to:
+  /// **'Per listen'**
+  String get sttTuning;
+
+  /// No description provided for @sttTuningInit.
+  ///
+  /// In en, this message translates to:
+  /// **'Per engine start'**
+  String get sttTuningInit;
+
+  /// No description provided for @sttTuningInitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing one of these restarts the recognizer.'**
+  String get sttTuningInitHint;
+
+  /// No description provided for @sttLocaleAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get sttLocaleAuto;
+
+  /// No description provided for @sttIndonesianFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Indonesian on this device: {id}'**
+  String sttIndonesianFound(String id);
+
+  /// No description provided for @sttNoIndonesian.
+  ///
+  /// In en, this message translates to:
+  /// **'This device offers no Indonesian recognition.'**
+  String get sttNoIndonesian;
+
+  /// No description provided for @sttNoRecognizer.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech recognizer available on this device. On some Android builds, turning on androidIntentLookup below helps.'**
+  String get sttNoRecognizer;
+
+  /// No description provided for @sttAndroidOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input is Android only for now.'**
+  String get sttAndroidOnly;
+
+  /// No description provided for @sttMicDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone needed'**
+  String get sttMicDeniedTitle;
+
+  /// No description provided for @sttMicDeniedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input needs permission to use the microphone.'**
+  String get sttMicDeniedBody;
+
+  /// No description provided for @sttOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get sttOpenSettings;
+
+  /// No description provided for @sttPauseForHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Silence that ends the session. Counted from the moment listening starts, NOT from the first word — below 2s it can end before you speak.'**
+  String get sttPauseForHint;
+
+  /// No description provided for @sttOnDeviceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Forces offline recognition; listening fails outright if this device cannot.'**
+  String get sttOnDeviceHint;
+
+  /// No description provided for @sttNoBluetoothHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore Bluetooth audio routing. Worth testing with the thermal printer paired.'**
+  String get sttNoBluetoothHint;
+
+  /// No description provided for @sttIntentLookupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Workaround for Android builds that do not declare a recognizer properly.'**
+  String get sttIntentLookupHint;
+
+  /// No description provided for @sttIosOnlyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.'**
+  String get sttIosOnlyNote;
+
+  /// No description provided for @sttLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Event log'**
+  String get sttLog;
 }
 
 class _AppLocalizationsDelegate

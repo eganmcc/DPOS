@@ -1113,4 +1113,105 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get detailNote => 'Catatan';
+
+  @override
+  String get sttLabTitle => 'Uji coba suara';
+
+  @override
+  String get sttSettingsRow => 'Uji coba suara (ucapan ke teks)';
+
+  @override
+  String get sttSettingsHint =>
+      'Hanya Android — untuk pengujian dan penyetelan';
+
+  @override
+  String get sttStatus => 'Status';
+
+  @override
+  String get sttFirstWord => 'Kata pertama';
+
+  @override
+  String get sttSaySomething => 'Tekan Dengarkan lalu bicara…';
+
+  @override
+  String get sttListen => 'Dengarkan';
+
+  @override
+  String get sttStop => 'Berhenti';
+
+  @override
+  String get sttClear => 'Hapus hasil';
+
+  @override
+  String get sttCopyDiagnostics => 'Salin diagnostik';
+
+  @override
+  String get sttCopied => 'Disalin';
+
+  @override
+  String get sttResultsLabel => 'Hasil';
+
+  @override
+  String get sttNoResults => 'Belum ada yang terdengar.';
+
+  @override
+  String get sttTuning => 'Setiap sesi dengar';
+
+  @override
+  String get sttTuningInit => 'Saat mesin dimulai';
+
+  @override
+  String get sttTuningInitHint =>
+      'Mengubah salah satu ini akan memulai ulang pengenal suara.';
+
+  @override
+  String get sttLocaleAuto => 'Otomatis';
+
+  @override
+  String sttIndonesianFound(String id) {
+    return 'Bahasa Indonesia di perangkat ini: $id';
+  }
+
+  @override
+  String get sttNoIndonesian =>
+      'Perangkat ini tidak menyediakan pengenalan Bahasa Indonesia.';
+
+  @override
+  String get sttNoRecognizer =>
+      'Tidak ada pengenal suara di perangkat ini. Pada sebagian Android, menyalakan androidIntentLookup di bawah bisa membantu.';
+
+  @override
+  String get sttAndroidOnly => 'Input suara baru tersedia di Android.';
+
+  @override
+  String get sttMicDeniedTitle => 'Perlu izin mikrofon';
+
+  @override
+  String get sttMicDeniedBody => 'Input suara memerlukan izin mikrofon.';
+
+  @override
+  String get sttOpenSettings => 'Buka pengaturan';
+
+  @override
+  String get sttPauseForHint =>
+      'Jeda diam yang mengakhiri sesi. Dihitung sejak mulai mendengar, BUKAN sejak kata pertama — di bawah 2 dtk bisa berhenti sebelum Anda bicara.';
+
+  @override
+  String get sttOnDeviceHint =>
+      'Memaksa pengenalan offline; sesi gagal bila perangkat tidak mampu.';
+
+  @override
+  String get sttNoBluetoothHint =>
+      'Abaikan jalur audio Bluetooth. Layak diuji saat printer termal terhubung.';
+
+  @override
+  String get sttIntentLookupHint =>
+      'Solusi untuk Android yang tidak mendeklarasikan pengenal suara dengan benar.';
+
+  @override
+  String get sttIosOnlyNote =>
+      'listenMode, sampleRate, autoPunctuation dan haptic hanya berlaku di iOS pada versi plugin ini, jadi tidak ditampilkan.';
+
+  @override
+  String get sttLog => 'Catatan kejadian';
 }
