@@ -384,6 +384,40 @@ void main() {
           reason: 'nothing was recorded, so nothing may be cleared');
     });
 
+    testWidgets('the till keeps listening through a pause, whatever the bench is set to',
+        (tester) async {
+      // The device log for 21:57: a session ended at exactly 3.010s of quiet and the whole run
+      // ended with it, so every item needed its own tap. An order has thinking in it.
+      await pump(tester, mode: VoiceOrderMode.catalogue, options: const SttOptions());
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      expect(engine.lastListenOptions!.continuous, true);
+      expect(engine.lastListenOptions!.pauseForSeconds, greaterThanOrEqualTo(6));
+    });
+
+    testWidgets('a longer pause tuned on the bench is honoured, not overruled', (tester) async {
+      await pump(tester,
+          mode: VoiceOrderMode.catalogue, options: const SttOptions(pauseForSeconds: 12));
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      expect(engine.lastListenOptions!.pauseForSeconds, 12);
+    });
+
+    testWidgets('a session that ends on silence starts the next one by itself', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+      expect(engine.listenCount, 1);
+
+      engine.emitStatus!('done');
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.listenCount, 2, reason: 'the run survives a gap between items');
+      expect(find.text('Berhenti'), findsOneWidget);
+    });
+
     testWidgets('it listens in Indonesian, whatever language the phone is set to', (tester) async {
       // Android reports Indonesian as the legacy `in_ID`. Without this the recognizer would use
       // the phone's own default — English on an English phone — and hear nonsense.

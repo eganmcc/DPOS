@@ -236,6 +236,16 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   }
 
   @override
+  void didUpdateWidget(VoiceOrderBody old) {
+    super.didUpdateWidget(old);
+    // The runner took a COPY of the options when it was built. Tuning saved on the bench arrives
+    // here as a rebuild, and without this the till would go on listening with whatever happened
+    // to be loaded the moment it opened — including the defaults, on a cold start that beat
+    // SharedPreferences to it.
+    _run.options = _tillOptions;
+  }
+
+  @override
   void dispose() {
     _run.dispose();
     super.dispose();
@@ -257,9 +267,31 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
 
   /// Everything about running a listening session lives in [SttRunner] — the same one the tuning
   /// bench uses. This screen only decides what to DO with what it hears.
+  /// What the till listens with, as opposed to what the bench is set to.
+  ///
+  /// Two deliberate overrides, because this surface is not the bench:
+  ///
+  ///  - **continuous is always on.** Taking an order is one long turn with thinking in it, and
+  ///    this screen already has two ways to end it — the stop button and "pesanan selesai". The
+  ///    device log for 21:57 shows the alternative: a session ended at exactly 3.010s of quiet
+  ///    and the whole run ended with it, so every item needed its own tap.
+  ///  - **a floor under pauseFor**, since that timer starts at `listen()` and not at the first
+  ///    word. Three seconds is a fine number to experiment with and a bad one to sell with.
+  ///
+  /// Everything else the bench tunes — the locale, listenFor, the android flags — comes through
+  /// untouched, which is the point of tuning it there.
+  static const int _minPauseSeconds = 6;
+
+  SttOptions get _tillOptions => widget.options.copyWith(
+        continuous: true,
+        pauseForSeconds: widget.options.pauseForSeconds < _minPauseSeconds
+            ? _minPauseSeconds
+            : widget.options.pauseForSeconds,
+      );
+
   late final SttRunner _run = SttRunner(
     engine: widget.engine,
-    options: widget.options,
+    options: _tillOptions,
     restartDelay: widget.restartDelay,
     watchdogPeriod: widget.watchdogPeriod,
     onChanged: () {
@@ -412,7 +444,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
                   icon: Icon(_run.wantListening ? Icons.stop : Icons.mic),
                   label: Text(_run.wantListening
                       ? t.sttStop
-                      : (widget.options.continuous ? t.sttListenContinuous : t.sttListen)),
+                      : (_run.options.continuous ? t.sttListenContinuous : t.sttListen)),
                 ),
               ),
               if (!_run.ready)
