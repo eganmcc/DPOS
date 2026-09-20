@@ -1214,4 +1214,15 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get sttLog => 'Catatan kejadian';
+
+  @override
+  String get sttListenContinuous => 'Dengarkan (terus)';
+
+  @override
+  String get sttContinuousHint =>
+      'Terus mendengarkan sampai Anda menekan berhenti. Tiap jeda mengakhiri satu ucapan dan sesi berikutnya dimulai sendiri — pengenal suara tidak punya mode terus-menerus.';
+
+  @override
+  String get sttRestarting =>
+      'Masih mendengarkan — menyiapkan sesi berikutnya…';
 }

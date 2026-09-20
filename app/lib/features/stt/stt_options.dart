@@ -34,6 +34,13 @@ class SttOptions {
   /// point: it answers "does this phone work without a network" unambiguously.
   final bool onDevice;
 
+  /// Keep listening until the user presses stop.
+  ///
+  /// The plugin has no such mode: a session always ends on `pauseFor` silence or the `listenFor`
+  /// cap. So this restarts it each time it ends, and each utterance lands as its own result. Both
+  /// halves matter — without it a cashier gets one sentence per tap.
+  final bool continuous;
+
   /// How long the plugin waits for a final result (its own default is 2000 ms). Directly upstream
   /// of the late-duplicate problem: raise it and late finals get later.
   final int finalTimeoutMs;
@@ -57,6 +64,7 @@ class SttOptions {
     this.partialResults = true,
     this.cancelOnError = true,
     this.onDevice = false,
+    this.continuous = false,
     this.finalTimeoutMs = 2000,
     this.androidNoBluetooth = false,
     this.androidIntentLookup = false,
@@ -77,6 +85,7 @@ class SttOptions {
     bool? partialResults,
     bool? cancelOnError,
     bool? onDevice,
+    bool? continuous,
     int? finalTimeoutMs,
     bool? androidNoBluetooth,
     bool? androidIntentLookup,
@@ -91,6 +100,7 @@ class SttOptions {
         partialResults: partialResults ?? this.partialResults,
         cancelOnError: cancelOnError ?? this.cancelOnError,
         onDevice: onDevice ?? this.onDevice,
+        continuous: continuous ?? this.continuous,
         finalTimeoutMs: (finalTimeoutMs ?? this.finalTimeoutMs).clamp(500, 10000),
         androidNoBluetooth: androidNoBluetooth ?? this.androidNoBluetooth,
         androidIntentLookup: androidIntentLookup ?? this.androidIntentLookup,
@@ -104,6 +114,7 @@ class SttOptions {
         'partialResults': partialResults,
         'cancelOnError': cancelOnError,
         'onDevice': onDevice,
+        'continuous': continuous,
         'finalTimeoutMs': finalTimeoutMs,
         'androidNoBluetooth': androidNoBluetooth,
         'androidIntentLookup': androidIntentLookup,
@@ -121,6 +132,7 @@ class SttOptions {
       partialResults: b('partialResults', true),
       cancelOnError: b('cancelOnError', true),
       onDevice: b('onDevice', false),
+      continuous: b('continuous', false),
       finalTimeoutMs: i('finalTimeoutMs', 2000),
       androidNoBluetooth: b('androidNoBluetooth', false),
       androidIntentLookup: b('androidIntentLookup', false),

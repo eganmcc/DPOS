@@ -2305,6 +2305,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Event log'**
   String get sttLog;
+
+  /// No description provided for @sttListenContinuous.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen (keeps going)'**
+  String get sttListenContinuous;
+
+  /// No description provided for @sttContinuousHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep listening until you press stop. Each pause ends one utterance and the next session starts by itself — the recognizer has no continuous mode of its own.'**
+  String get sttContinuousHint;
+
+  /// No description provided for @sttRestarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Still listening — starting the next stretch…'**
+  String get sttRestarting;
 }
 
 class _AppLocalizationsDelegate

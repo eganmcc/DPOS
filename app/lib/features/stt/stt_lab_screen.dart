@@ -52,6 +52,10 @@ class SttLabBody extends StatefulWidget {
   final Future<void> Function() openSettings;
   final DateTime Function() clock;
 
+  /// The beat between one continuous session ending and the next starting. Injected so a test
+  /// does not have to wait it out.
+  final Duration restartDelay;
+
   const SttLabBody({
     super.key,
     required this.engine,
@@ -60,6 +64,7 @@ class SttLabBody extends StatefulWidget {
     required this.requestMicPermission,
     required this.openSettings,
     this.clock = DateTime.now,
+    this.restartDelay = const Duration(milliseconds: 300),
   });
 
   @override
@@ -76,10 +81,35 @@ class _SttLabBodyState extends State<SttLabBody> {
   String _status = '—';
   double _level = 0;
 
+  /// True from the moment the mic is tapped until stop is tapped. In continuous mode this is what
+  /// distinguishes "the session ended on its own, start another" from "the user is done".
+  bool _wantListening = false;
+
+  /// Sessions restarted in the current continuous run, and how many of them heard nothing. A
+  /// recognizer that errors instantly would otherwise spin forever, burning battery in silence.
+  int _restarts = 0;
+  int _emptyRuns = 0;
+
+  /// Whether the stretch now ending produced anything at all.
+  bool _heardThisSession = false;
+  Timer? _restartTimer;
+
+  /// Enough consecutive empty sessions to conclude the microphone is not working, rather than that
+  /// the shop is quiet.
+  static const int _maxEmptyRuns = 12;
+
   @override
   void initState() {
     super.initState();
     _init();
+  }
+
+  @override
+  void dispose() {
+    _restartTimer?.cancel();
+    // Leaving a live recognizer behind would hold the microphone after the screen is gone.
+    if (_wantListening) widget.engine.cancel();
+    super.dispose();
   }
 
   void _note(String line) {
@@ -108,21 +138,24 @@ class _SttLabBodyState extends State<SttLabBody> {
           _status = s;
           // One of the four ways a session ends — flush, or the words are lost.
           if (s == 'done' || s == 'notListening') {
-            _transcript.commit();
-            _listening = false;
-            _level = 0;
+            _endOfSession();
           }
         });
+        _maybeRestart();
       },
       onError: (f) {
         if (!mounted) return;
         setState(() {
           _note('onError: ${f.code} permanent=${f.permanent}');
-          _transcript.commit();
-          _listening = false;
-          _level = 0;
+          _endOfSession();
           _status = f.code;
+          // A permanent error will not fix itself by trying again — stop rather than spin.
+          if (f.permanent) {
+            _wantListening = false;
+            _note('permanent error — continuous listening stopped');
+          }
         });
+        _maybeRestart();
       },
     );
     final locales = ok ? await widget.engine.locales() : const <SttLocale>[];
@@ -132,6 +165,48 @@ class _SttLabBodyState extends State<SttLabBody> {
       _locales = locales;
       _note(restart ? 'initialize (restart) → $ok' : 'initialize → $ok');
       if (!ok) _status = 'unavailable';
+    });
+  }
+
+  /// One listening session just ended, however it ended. Flush first — always.
+  void _endOfSession() {
+    _transcript.commit();
+    _listening = false;
+    _level = 0;
+    // Not continuous: the session ending IS the end of listening, so the button goes back to Mic.
+    if (!widget.options.continuous) {
+      _wantListening = false;
+      return;
+    }
+    // A stretch that heard nothing is normal in a quiet shop; a long run of them is a broken mic.
+    // Measured from whether any result arrived, NOT from the live text — a final has already been
+    // committed by the time the status callback lands, so live is empty either way.
+    _emptyRuns = _heardThisSession ? 0 : _emptyRuns + 1;
+  }
+
+  /// Continuous mode: the plugin always ends a session, so start the next one.
+  ///
+  /// This is the whole of "keep listening until stop is pressed" — there is no such mode in the
+  /// plugin. The guards are what keep it from becoming a spin: the user must still want it, the
+  /// screen must still be mounted, and a run of sessions that hear nothing at all gives up.
+  void _maybeRestart() {
+    if (!mounted || !_wantListening || !widget.options.continuous) return;
+    if (_emptyRuns >= _maxEmptyRuns) {
+      setState(() {
+        _wantListening = false;
+        _note('stopped after $_emptyRuns sessions with nothing heard');
+        _status = 'stopped';
+      });
+      return;
+    }
+    _restartTimer?.cancel();
+    // A beat before restarting: Android does not reliably accept a new session in the same frame
+    // the old one ended.
+    _restartTimer = Timer(widget.restartDelay, () {
+      if (!mounted || !_wantListening) return;
+      _restarts++;
+      _note('restart #$_restarts (continuous)');
+      _startSession();
     });
   }
 
@@ -147,7 +222,11 @@ class _SttLabBodyState extends State<SttLabBody> {
 
   Future<void> _toggle() async {
     final t = AppLocalizations.of(context)!;
-    if (_listening) {
+    if (_wantListening) {
+      // Clear the intent BEFORE stopping: the stop produces a status callback, and in continuous
+      // mode that callback would otherwise start the very session the user just ended.
+      _wantListening = false;
+      _restartTimer?.cancel();
       await widget.engine.stop();
       if (!mounted) return;
       setState(() {
@@ -174,13 +253,26 @@ class _SttLabBodyState extends State<SttLabBody> {
     }
 
     setState(() {
+      _wantListening = true;
+      _restarts = 0;
+      _emptyRuns = 0;
+    });
+    await _startSession();
+  }
+
+  /// Start one listening session. Called by the mic button and, in continuous mode, by the
+  /// restart timer after each session ends.
+  Future<void> _startSession() async {
+    setState(() {
       _transcript.startSession();
+      _heardThisSession = false;
       _listening = true;
       _status = 'listening';
       _note('listen(locale=${_effectiveLocale ?? "default"}, '
           'pauseFor=${widget.options.pauseForSeconds}s, '
           'listenFor=${widget.options.listenForSeconds}s, '
-          'partial=${widget.options.partialResults}, onDevice=${widget.options.onDevice})');
+          'partial=${widget.options.partialResults}, onDevice=${widget.options.onDevice}, '
+          'continuous=${widget.options.continuous})');
     });
 
     await widget.engine.listen(
@@ -188,6 +280,7 @@ class _SttLabBodyState extends State<SttLabBody> {
       onResult: (text, confidence, isFinal) {
         if (!mounted) return;
         setState(() {
+          _heardThisSession = true;
           _note('onResult${isFinal ? " FINAL" : ""}: "$text"'
               '${confidence == null ? "" : " conf=${confidence.toStringAsFixed(2)}"}');
           _transcript.onResult(text, confidence, isFinal: isFinal);
@@ -277,7 +370,11 @@ class _SttLabBodyState extends State<SttLabBody> {
             borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
-            _transcript.live.isEmpty ? t.sttSaySomething : _transcript.live,
+            _transcript.live.isNotEmpty
+                ? _transcript.live
+                // In continuous mode there is a real gap between utterances while the next
+                // session starts; saying so stops it looking like the app stopped listening.
+                : (_wantListening && !_listening ? t.sttRestarting : t.sttSaySomething),
             key: const ValueKey('stt-live'),
             style: TextStyle(
               fontStyle: _transcript.live.isEmpty ? FontStyle.italic : FontStyle.normal,
@@ -300,11 +397,15 @@ class _SttLabBodyState extends State<SttLabBody> {
             child: FilledButton.icon(
               key: const ValueKey('stt-mic'),
               onPressed: _ready ? _toggle : null,
-              style: _listening
+              // The button follows the INTENT, not one session: in continuous mode it stays red
+              // through the gaps between utterances, because listening has not actually stopped.
+              style: _wantListening
                   ? FilledButton.styleFrom(backgroundColor: cs.error, foregroundColor: cs.onError)
                   : null,
-              icon: Icon(_listening ? Icons.stop : Icons.mic),
-              label: Text(_listening ? t.sttStop : t.sttListen),
+              icon: Icon(_wantListening ? Icons.stop : Icons.mic),
+              label: Text(_wantListening
+                  ? t.sttStop
+                  : (widget.options.continuous ? t.sttListenContinuous : t.sttListen)),
             ),
           ),
           const SizedBox(width: 8),
@@ -338,6 +439,8 @@ class _SttLabBodyState extends State<SttLabBody> {
               key: const ValueKey('stt-resets')),
           _chip(context, 'duplicates: ${_transcript.duplicatesSuppressed}',
               key: const ValueKey('stt-dupes')),
+          if (widget.options.continuous)
+            _chip(context, 'restarts: $_restarts', key: const ValueKey('stt-restarts')),
         ]),
 
         // ---- results ------------------------------------------------------------------------
@@ -376,6 +479,10 @@ class _SttLabBodyState extends State<SttLabBody> {
         // ---- tuning -------------------------------------------------------------------------
         const SizedBox(height: 18),
         _header(context, t.sttTuning),
+        // First, because it changes what the mic button means.
+        _switch(context, 'continuous', widget.options.continuous,
+            (v) => _apply(widget.options.copyWith(continuous: v)),
+            hint: t.sttContinuousHint),
         _localeRow(context),
         _stepper(
           context,

@@ -20,6 +20,7 @@ class FakeSttEngine implements SttEngine {
   int restartCount = 0;
   int listenCount = 0;
   int stopCount = 0;
+  int cancelCount = 0;
   SttOptions? lastListenOptions;
 
   void Function(String status)? emitStatus;
@@ -63,7 +64,7 @@ class FakeSttEngine implements SttEngine {
   Future<void> stop() async => stopCount++;
 
   @override
-  Future<void> cancel() async {}
+  Future<void> cancel() async => cancelCount++;
 }
 
 void main() {
@@ -91,6 +92,7 @@ void main() {
             requestMicPermission: () async => micGranted,
             openSettings: () async => settingsOpened++,
             clock: () => DateTime(2026, 9, 20, 10, 0, 0),
+            restartDelay: Duration.zero,
           ),
         ),
       ),
@@ -226,6 +228,122 @@ void main() {
     await tester.pumpAndSettle();
     expect(settingsOpened, 1);
     expect(engine.listenCount, 0);
+  });
+
+  group('continuous mode — keep listening until stop is pressed', () {
+    setUp(() => options = const SttOptions(continuous: true));
+
+    testWidgets('a session ending on silence starts the next one by itself', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+      expect(engine.listenCount, 1);
+
+      engine.emitResult!('nasi goreng', 0.9, true);
+      engine.emitStatus!('done'); // the plugin always ends a session; continuous starts another
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.listenCount, 2, reason: 'listening continues without another tap');
+      expect(find.text('nasi goreng'), findsOneWidget);
+      expect(find.text('restarts: 1'), findsOneWidget);
+      // Still armed, so the button still offers to stop.
+      expect(find.text('Berhenti'), findsOneWidget);
+    });
+
+    testWidgets('each stretch lands as its own result', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('es teh satu', null, true);
+      engine.emitStatus!('done');
+      await tester.pump(const Duration(milliseconds: 50));
+      engine.emitResult!('nasi goreng dua', null, true);
+      engine.emitStatus!('done');
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('es teh satu'), findsOneWidget);
+      expect(find.text('nasi goreng dua'), findsOneWidget);
+    });
+
+    testWidgets('pressing stop really stops — a late status cannot restart it', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('stt-mic'))); // stop
+      await tester.pumpAndSettle();
+      final after = engine.listenCount;
+
+      // The stop itself produces a status callback; it must not be read as "start another".
+      engine.emitStatus!('notListening');
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.listenCount, after);
+      expect(find.text('Dengarkan (terus)'), findsOneWidget);
+    });
+
+    testWidgets('a recoverable error just starts the next stretch', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      // Silence in a quiet shop looks exactly like this, and must not end the run.
+      engine.emitError!(const SttFailure('error_no_match'));
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(engine.listenCount, 2);
+    });
+
+    testWidgets('a permanent error stops the run instead of spinning', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitError!(const SttFailure('error_client', permanent: true));
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.listenCount, 1, reason: 'trying again would fail the same way');
+      expect(find.text('Dengarkan (terus)'), findsOneWidget);
+    });
+
+    testWidgets('a long run of sessions that hear nothing gives up rather than burn the battery',
+        (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 20; i++) {
+        engine.emitStatus!('done');
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+
+      expect(engine.listenCount, lessThan(20));
+      expect(find.text('Dengarkan (terus)'), findsOneWidget, reason: 'it stopped itself');
+    });
+
+    testWidgets('a stretch that heard something resets the give-up counter', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      for (var i = 0; i < 30; i++) {
+        // Every few empty stretches, someone actually says something.
+        if (i % 5 == 0) engine.emitResult!('halo $i', null, true);
+        engine.emitStatus!('done');
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(find.text('Berhenti'), findsOneWidget, reason: 'still listening');
+    });
+
+    testWidgets('leaving the screen mid-run releases the microphone', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(engine.cancelCount, 1);
+    });
   });
 
   group('tuning', () {

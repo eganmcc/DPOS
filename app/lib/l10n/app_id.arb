@@ -405,5 +405,8 @@
   "sttNoBluetoothHint": "Abaikan jalur audio Bluetooth. Layak diuji saat printer termal terhubung.",
   "sttIntentLookupHint": "Solusi untuk Android yang tidak mendeklarasikan pengenal suara dengan benar.",
   "sttIosOnlyNote": "listenMode, sampleRate, autoPunctuation dan haptic hanya berlaku di iOS pada versi plugin ini, jadi tidak ditampilkan.",
-  "sttLog": "Catatan kejadian"
+  "sttLog": "Catatan kejadian",
+  "sttListenContinuous": "Dengarkan (terus)",
+  "sttContinuousHint": "Terus mendengarkan sampai Anda menekan berhenti. Tiap jeda mengakhiri satu ucapan dan sesi berikutnya dimulai sendiri — pengenal suara tidak punya mode terus-menerus.",
+  "sttRestarting": "Masih mendengarkan — menyiapkan sesi berikutnya…"
 }

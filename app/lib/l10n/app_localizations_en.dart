@@ -1213,4 +1213,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sttLog => 'Event log';
+
+  @override
+  String get sttListenContinuous => 'Listen (keeps going)';
+
+  @override
+  String get sttContinuousHint =>
+      'Keep listening until you press stop. Each pause ends one utterance and the next session starts by itself — the recognizer has no continuous mode of its own.';
+
+  @override
+  String get sttRestarting => 'Still listening — starting the next stretch…';
 }
