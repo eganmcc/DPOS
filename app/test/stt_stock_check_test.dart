@@ -28,6 +28,10 @@ void main() {
     p('Es Teh Manis', [v('Gelas', stock: 0)]),
     p('Kopi Tubruk', [v('Gelas', tracked: false)]),
     p('Ayam Goreng', [v('Porsi', stock: 2)], available: false),
+    // The shape that actually ships (server/prisma/menu-data.ts): one product, several variants,
+    // the first of them the default.
+    p('Ayam Geprek', [v('Original', stock: 4), v('Keju', stock: 9)]),
+    p('Bakso', [v('Biasa', stock: 6), v('Spesial', stock: 0)]),
   ];
 
   group('hearing a quantity', () {
@@ -123,6 +127,50 @@ void main() {
     });
   });
 
+  group('naming a variant, not just a dish', () {
+    test('the variant said is the variant checked', () {
+      final c = checkAgainstCatalog('ayam geprek keju satu', catalog);
+      expect(c.variant!.name, 'Keju', reason: 'not the default, which is Original');
+      expect(c.remaining, 9, reason: "and its OWN stock, not the default variant's");
+      expect(c.displayName, 'Ayam Geprek Keju');
+    });
+
+    test('the default is still the default when no variant is named', () {
+      final c = checkAgainstCatalog('ayam geprek dua', catalog);
+      expect(c.variant!.name, 'Original');
+      expect(c.displayName, 'Ayam Geprek Original',
+          reason: 'say which one is about to be rung up, even when nobody named it');
+    });
+
+    test('naming the default explicitly also works', () {
+      expect(checkAgainstCatalog('ayam geprek original satu', catalog).variant!.name, 'Original');
+    });
+
+    test('a sold-out variant is sold out, even when another variant has stock', () {
+      final c = checkAgainstCatalog('bakso spesial dua', catalog);
+      expect(c.status, SttStockStatus.outOfStock);
+      expect(c.displayName, 'Bakso Spesial');
+    });
+
+    test('leftover words that name no variant fall back to the default', () {
+      // "mas" is talking to a person, not naming a cheese.
+      final c = checkAgainstCatalog('bakso mas satu', catalog);
+      expect(c.variant!.name, 'Biasa');
+    });
+
+    test('a single-variant product is named on its own', () {
+      expect(checkAgainstCatalog('nasi goreng dua', catalog).displayName, 'Nasi Goreng');
+    });
+
+    test('two variants of the same dish in one breath stay apart', () {
+      final checks = checkUtterance('ayam geprek keju 1 ayam geprek original 2', catalog);
+      expect(checks.length, 2);
+      expect(checks[0].variant!.name, 'Keju');
+      expect(checks[1].variant!.name, 'Original');
+      expect(checks[1].qty, 2);
+    });
+  });
+
   group('matching what was said to the catalog', () {
     test('finds the item however it was cased or punctuated', () {
       expect(matchProduct('NASI, GORENG', catalog)?.name, 'Nasi Goreng');
@@ -153,7 +201,9 @@ void main() {
     });
 
     test('not on the menu at all', () {
-      final c = checkAgainstCatalog('bakso urat tiga', catalog);
+      // Not "bakso urat": this shop sells Bakso, so that is a real match with an unknown extra
+      // word, which is a different case. Roti bakar it does not sell at all.
+      final c = checkAgainstCatalog('roti bakar tiga', catalog);
       expect(c.status, SttStockStatus.notFound);
       expect(c.qty, 3);
       expect(c.product, isNull);

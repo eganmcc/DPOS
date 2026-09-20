@@ -779,7 +779,7 @@ class _SttLabBodyState extends State<SttLabBody> {
     final t = AppLocalizations.of(context)!;
     final cs = Theme.of(context).colorScheme;
     final ext = brandColors(context);
-    final name = c.product?.name ?? c.spokenItem;
+    final name = c.displayName;
     final left = c.remaining ?? 0;
 
     final (String label, Color bg, Color fg) = switch (c.status) {

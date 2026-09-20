@@ -48,6 +48,15 @@ class SttStockCheck {
 
   bool get isProblem => status != SttStockStatus.ok;
 
+  /// What to call this on screen. A product with several variants is named WITH its variant,
+  /// because "Ayam Geprek" alone does not say which one is about to be rung up.
+  String get displayName {
+    final p = product;
+    if (p == null) return spokenItem;
+    if (variant == null || p.variants.length < 2) return p.name;
+    return '${p.name} ${variant!.name}';
+  }
+
   /// On hand now; null when the item is not stock-tracked (i.e. unlimited).
   int? get remaining =>
       (variant == null || !variant!.trackInventory) ? null : (variant!.stock ?? 0);
@@ -235,6 +244,7 @@ Product? matchProduct(String spokenItem, List<Product> products) {
 
   Product? best;
   var bestScore = 0.0;
+  var bestShared = 0;
   for (final p in products) {
     final name = _normalise(p.name);
     if (name.isEmpty) continue;
@@ -250,16 +260,48 @@ Product? matchProduct(String spokenItem, List<Product> products) {
     if (contained && (shorter.contains(' ') || shorter.length >= 5)) {
       score = score < 0.9 ? 0.9 : score;
     }
-    if (score > bestScore) {
+    // On a tie the MORE SPECIFIC name wins — more of the spoken words accounted for. Otherwise
+    // "Ayam Geprek" and "Ayam Geprek Keju" both score 1.0 and catalogue order decides, which is
+    // not a decision anybody made.
+    if (score > bestScore || (score == bestScore && shared > bestShared)) {
       bestScore = score;
+      bestShared = shared;
       best = p;
     }
   }
   return bestScore >= 0.5 ? best : null;
 }
 
-/// The sellable variant of a product: the first available one, since the lab is checking whether
-/// the ITEM can be sold, not which size was meant.
+/// The variant the cashier actually named, if they named one.
+///
+/// "ayam geprek keju" is a product AND a variant: the product's own words identify the dish, and
+/// what is left over — "keju" — says which one. Dropping the leftovers and taking the first
+/// available variant is how an Ayam Geprek Keju quietly became an Ayam Geprek Original, at a
+/// different price and out of a different stock count.
+Variant? matchVariant(String spokenItem, Product product) {
+  if (product.variants.length < 2) return null;
+  final spoken = _normalise(spokenItem).split(' ').where((w) => w.isNotEmpty).toSet();
+  final residual = spoken.difference(_normalise(product.name).split(' ').toSet());
+  if (residual.isEmpty) return null;
+
+  Variant? best;
+  var bestScore = 0.0;
+  for (final v in product.variants) {
+    final words = _normalise(v.name).split(' ').where((w) => w.isNotEmpty).toSet();
+    if (words.isEmpty) continue;
+    final score = words.intersection(residual).length / words.length;
+    if (score > bestScore) {
+      bestScore = score;
+      best = v;
+    }
+  }
+  // Below the threshold the leftovers were not a variant name at all — filler, a modifier, a
+  // misheard word — and inventing a variant from them would be worse than using the default.
+  return bestScore >= 0.5 ? best : null;
+}
+
+/// The sellable variant of a product: the first available one. Used when the cashier named no
+/// variant, in which case this is the one the till would ring up anyway.
 Variant? sellableVariant(Product p) {
   for (final v in p.variants) {
     if (v.isAvailable) return v;
@@ -307,7 +349,9 @@ SttStockCheck _check({
       spokenItem: split.item,
     );
   }
-  final variant = sellableVariant(product);
+  // What they said beats what is first in the list — and if they named an unavailable variant,
+  // the answer is "not available", not a silent swap to one that is.
+  final variant = matchVariant(split.item, product) ?? sellableVariant(product);
   if (!product.isAvailable || variant == null || !variant.isAvailable) {
     return SttStockCheck(
       status: SttStockStatus.unavailable,
