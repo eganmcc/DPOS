@@ -38,8 +38,11 @@ class _FakeEngine implements SttEngine {
     return true;
   }
 
+  List<SttLocale> offered = const [SttLocale('en_US', 'English'), SttLocale('in_ID', 'Indonesia')];
+  SttOptions? lastListenOptions;
+
   @override
-  Future<List<SttLocale>> locales() async => const [];
+  Future<List<SttLocale>> locales() async => offered;
 
   @override
   Future<bool> listen({
@@ -48,6 +51,7 @@ class _FakeEngine implements SttEngine {
     required void Function(double level) onSoundLevel,
   }) async {
     listenCount++;
+    lastListenOptions = options;
     emitResult = onResult;
     engineListening = true;
     return true;
@@ -79,7 +83,8 @@ void main() {
       id: 'v-$n', name: n, price: price, sku: null,
       isAvailable: true, trackInventory: stock != null, stock: stock);
 
-  Future<void> pump(WidgetTester tester, {required VoiceOrderMode mode}) async {
+  Future<void> pump(WidgetTester tester,
+      {required VoiceOrderMode mode, SttOptions options = const SttOptions()}) async {
     tester.view.physicalSize = const Size(1080, 2340);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -91,7 +96,7 @@ void main() {
       home: Scaffold(
         body: VoiceOrderBody(
           engine: engine,
-          options: const SttOptions(),
+          options: options,
           catalog: catalog,
           taxRule: null,
           initialMode: mode,
@@ -279,6 +284,24 @@ void main() {
 
       expect(find.text('Nasi Goreng'), findsOneWidget,
           reason: 'nothing was recorded, so nothing may be cleared');
+    });
+
+    testWidgets('it listens in Indonesian, whatever language the phone is set to', (tester) async {
+      // Android reports Indonesian as the legacy `in_ID`. Without this the recognizer would use
+      // the phone's own default — English on an English phone — and hear nonsense.
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      expect(engine.lastListenOptions!.localeId, 'in_ID');
+    });
+
+    testWidgets('a locale chosen on the bench is not overridden', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue, options: const SttOptions(localeId: 'en_US'));
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      expect(engine.lastListenOptions!.localeId, 'en_US', reason: 'an explicit choice wins');
     });
 
     testWidgets('leaving mid-session releases the microphone', (tester) async {

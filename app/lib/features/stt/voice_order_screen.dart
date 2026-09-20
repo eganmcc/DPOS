@@ -279,8 +279,28 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
         _maybeRestart();
       },
     );
-    if (mounted) setState(() => _ready = ok);
+    // Which language to listen in. The bench resolves this and the till must too: with no
+    // localeId saved, the recognizer would use whatever the PHONE's default is — English on a
+    // phone set to English — and a cashier saying "nasi goreng dua" would get nonsense back.
+    // Android reports Indonesian under the legacy code `in_ID`, which is why this asks the device
+    // rather than assuming `id`.
+    final locales = ok ? await widget.engine.locales() : const <SttLocale>[];
+    if (!mounted) return;
+    setState(() {
+      _ready = ok;
+      _indonesian = locales.where((l) => l.isIndonesian).firstOrNull?.id;
+    });
   }
+
+  /// What this device calls Indonesian, if it offers it at all.
+  String? _indonesian;
+
+  /// An explicit choice from the bench wins; otherwise Indonesian; otherwise the device's own
+  /// default, which is all that is left to try.
+  SttOptions get _listenOptions =>
+      widget.options.localeId != null || _indonesian == null
+          ? widget.options
+          : widget.options.copyWith(localeId: _indonesian);
 
   void _maybeRestart() {
     if (!mounted || !_wantListening || !widget.options.continuous) return;
@@ -327,7 +347,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       _listening = true;
     });
     final started = await widget.engine.listen(
-      options: widget.options,
+      options: _listenOptions,
       onResult: (text, confidence, isFinal) {
         if (!mounted) return;
         final cmd = readStopPhrase(text);
