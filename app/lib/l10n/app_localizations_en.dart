@@ -1268,4 +1268,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get sttStockNoCatalog =>
       'This account has no catalogue to check against.';
+
+  @override
+  String sttStopPhraseHint(String phrase) {
+    return 'Say “$phrase” to stop listening.';
+  }
 }

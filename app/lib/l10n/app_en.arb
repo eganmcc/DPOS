@@ -557,5 +557,7 @@
   "@sttStockOk": {"placeholders":{"name":{"type":"String"},"asked":{"type":"int"},"left":{"type":"int"}}},
   "sttStockOkUntracked": "{name} ×{asked} — stock not tracked",
   "@sttStockOkUntracked": {"placeholders":{"name":{"type":"String"},"asked":{"type":"int"}}},
-  "sttStockNoCatalog": "This account has no catalogue to check against."
+  "sttStockNoCatalog": "This account has no catalogue to check against.",
+  "sttStopPhraseHint": "Say “{phrase}” to stop listening.",
+  "@sttStopPhraseHint": {"placeholders":{"phrase":{"type":"String"}}}
 }

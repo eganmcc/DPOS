@@ -11,6 +11,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import 'stt_commands.dart';
 import 'stt_engine.dart';
 import 'stt_options.dart';
 import 'stt_stock_check.dart';
@@ -323,19 +324,7 @@ class _SttLabBodyState extends State<SttLabBody> {
   Future<void> _toggle() async {
     final t = AppLocalizations.of(context)!;
     if (_wantListening) {
-      // Clear the intent BEFORE stopping: the stop produces a status callback, and in continuous
-      // mode that callback would otherwise start the very session the user just ended.
-      _wantListening = false;
-      _restartTimer?.cancel();
-      _watchdog?.cancel();
-      await widget.engine.stop();
-      if (!mounted) return;
-      setState(() {
-        _note('stop (by user)');
-        _transcript.commit();
-        _listening = false;
-        _level = 0;
-      });
+      await _stopListening('by user');
       return;
     }
 
@@ -359,6 +348,25 @@ class _SttLabBodyState extends State<SttLabBody> {
       _emptyRuns = 0;
     });
     await _startSession();
+  }
+
+  /// Stop listening for good — the button, or the spoken stop phrase. One path, because both mean
+  /// exactly the same thing and a second one would drift.
+  Future<void> _stopListening(String why) async {
+    // Clear the intent BEFORE stopping: the stop produces a status callback, and in continuous
+    // mode that callback would otherwise start the very session the user just ended.
+    _wantListening = false;
+    _restartTimer?.cancel();
+    _watchdog?.cancel();
+    await widget.engine.stop();
+    if (!mounted) return;
+    setState(() {
+      _note('stop ($why)');
+      _transcript.commit();
+      _listening = false;
+      _level = 0;
+      _status = 'stopped';
+    });
   }
 
   /// Start one listening session. Called by the mic button and, in continuous mode, by the
@@ -385,12 +393,19 @@ class _SttLabBodyState extends State<SttLabBody> {
       options: widget.options.copyWith(localeId: _effectiveLocale),
       onResult: (text, confidence, isFinal) {
         if (!mounted) return;
+        // "ayam bakar dua pesanan selesai" is an order AND an instruction: keep the order, obey
+        // the instruction. Acted on the partial as well as the final, so the run ends when the
+        // words are said rather than seconds later — the repeat that follows is absorbed by the
+        // transcript's duplicate window.
+        final cmd = readStopPhrase(text);
         setState(() {
           _heardThisSession = true;
           _note('onResult${isFinal ? " FINAL" : ""}: "$text"'
               '${confidence == null ? "" : " conf=${confidence.toStringAsFixed(2)}"}');
-          _transcript.onResult(text, confidence, isFinal: isFinal);
+          if (cmd.stop) _note('stop phrase heard');
+          _transcript.onResult(cmd.text, confidence, isFinal: isFinal || cmd.stop);
         });
+        if (cmd.stop) _stopListening('stop phrase');
       },
       onSoundLevel: (l) {
         if (mounted) setState(() => _level = l);
@@ -548,6 +563,14 @@ class _SttLabBodyState extends State<SttLabBody> {
           Padding(
             padding: const EdgeInsets.only(top: 10),
             child: Text(t.sttNoRecognizer, style: TextStyle(color: cs.error, fontSize: 12)),
+          ),
+        // Worth saying on screen: a stop phrase nobody knows about is not a feature.
+        if (_wantListening)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(t.sttStopPhraseHint(kStopPhrases.first),
+                key: const ValueKey('stt-stop-phrase-hint'),
+                style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12)),
           ),
 
         // ---- counters -----------------------------------------------------------------------

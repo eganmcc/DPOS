@@ -419,5 +419,7 @@
   "sttStockShort": "{name} — sisa {left}, diminta {asked}",
   "sttStockOk": "{name} ×{asked} — sisa {left}",
   "sttStockOkUntracked": "{name} ×{asked} — stok tidak dilacak",
-  "sttStockNoCatalog": "Akun ini tidak punya katalog untuk dicek."
+  "sttStockNoCatalog": "Akun ini tidak punya katalog untuk dicek.",
+  "sttStopPhraseHint": "Ucapkan “{phrase}” untuk berhenti mendengarkan.",
+  "@sttStopPhraseHint": {"placeholders":{"phrase":{"type":"String"}}}
 }

@@ -1269,4 +1269,9 @@ class AppLocalizationsId extends AppLocalizations {
 
   @override
   String get sttStockNoCatalog => 'Akun ini tidak punya katalog untuk dicek.';
+
+  @override
+  String sttStopPhraseHint(String phrase) {
+    return 'Ucapkan “$phrase” untuk berhenti mendengarkan.';
+  }
 }

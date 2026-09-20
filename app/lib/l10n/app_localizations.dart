@@ -2389,6 +2389,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'This account has no catalogue to check against.'**
   String get sttStockNoCatalog;
+
+  /// No description provided for @sttStopPhraseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Say “{phrase}” to stop listening.'**
+  String sttStopPhraseHint(String phrase);
 }
 
 class _AppLocalizationsDelegate

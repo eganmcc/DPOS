@@ -460,6 +460,48 @@ void main() {
       expect(engine.listenCount, 2, reason: 'one ending, one restart');
     });
 
+    testWidgets('saying the stop phrase ends the run and keeps the order', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('ayam bakar dua pesanan selesai', 0.9, true);
+      await tester.pumpAndSettle();
+
+      expect(engine.stopCount, 1, reason: 'the microphone was released');
+      expect(find.text('Dengarkan (terus)'), findsOneWidget, reason: 'and the run is over');
+      expect(find.text('ayam bakar dua'), findsOneWidget,
+          reason: 'the order is kept, without the instruction');
+    });
+
+    testWidgets('a late repeat of the stop phrase does not record itself', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      // Android sends the partial and then the final for the same words.
+      engine.emitResult!('nasi goreng satu pesanan selesai', null, false);
+      await tester.pumpAndSettle();
+      engine.emitResult!('nasi goreng satu pesanan selesai', null, true);
+      await tester.pumpAndSettle();
+
+      expect(find.text('nasi goreng satu'), findsOneWidget, reason: 'recorded once, not twice');
+      expect(find.textContaining('pesanan selesai'), findsNothing);
+    });
+
+    testWidgets('an ordinary order keeps the run going', (tester) async {
+      await pump(tester);
+      await tester.tap(find.byKey(const ValueKey('stt-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('ayam bakar dua', 0.9, true);
+      engine.emitStatus!('done');
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(engine.stopCount, 0);
+      expect(find.text('Berhenti'), findsOneWidget);
+    });
+
     testWidgets('leaving the screen mid-run releases the microphone', (tester) async {
       await pump(tester);
       await tester.tap(find.byKey(const ValueKey('stt-mic')));
