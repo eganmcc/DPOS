@@ -254,6 +254,76 @@ void main() {
     });
   });
 
+  /// An utterance does not only finish with a final result. It also finishes when the session's
+  /// status says so, when an error ends it, when the user presses stop, and when the next session
+  /// starts and finds something left over. Every one of those has to reach the bill — the first
+  /// version staged lines from the final only, so anything said into a session that ended another
+  /// way was heard, shown live, and silently never listed.
+  group('every way an utterance can end reaches the bill', () {
+    testWidgets('a session that ends on silence, with no final result', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('nasi goreng dua', 0.9, false); // partial only
+      engine.emitStatus!('done');
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nasi Goreng'), findsOneWidget);
+    });
+
+    testWidgets('a session that ends on an error', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('nasi goreng dua', 0.9, false);
+      engine.emitError!(const SttFailure('error_no_match'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nasi Goreng'), findsOneWidget);
+    });
+
+    testWidgets('a session the cashier stops by hand', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('nasi goreng dua', 0.9, false);
+      await tester.tap(find.byKey(const ValueKey('voice-mic'))); // stop
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nasi Goreng'), findsOneWidget);
+    });
+
+    testWidgets('a session stopped by the spoken phrase', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.openPrice);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      engine.emitResult!('pecel lele 100', null, false);
+      engine.emitResult!('selesai', null, false);
+      await tester.pumpAndSettle();
+
+      expect(find.text('pecel lele'), findsOneWidget);
+      expect(engine.stopCount, 1);
+    });
+
+    testWidgets('words that land after the session has already closed', (tester) async {
+      await pump(tester, mode: VoiceOrderMode.catalogue);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      // The straggler: the session is done, its last words arrive, and the next session starts.
+      engine.emitStatus!('done');
+      engine.emitResult!('nasi goreng dua', 0.9, false);
+      await tester.tap(find.byKey(const ValueKey('voice-mic')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Nasi Goreng'), findsOneWidget);
+    });
+  });
+
   group('the sheet itself', () {
     testWidgets('the mode cannot change once there is a bill to lose', (tester) async {
       await pump(tester, mode: VoiceOrderMode.catalogue);

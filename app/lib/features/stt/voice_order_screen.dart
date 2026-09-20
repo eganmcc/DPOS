@@ -261,6 +261,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
 
           if (s == 'done' || s == 'notListening') {
             _transcript.commit();
+            _drain();
             _listening = false;
             _level = 0;
             if (!widget.options.continuous) _wantListening = false;
@@ -272,6 +273,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
         if (!mounted) return;
         setState(() {
           _transcript.commit();
+          _drain();
           _listening = false;
 
           if (f.permanent) _wantListening = false;
@@ -318,6 +320,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       if (!mounted) return;
       setState(() {
         _transcript.commit();
+        _drain();
         _listening = false;
         _level = 0;
       });
@@ -348,6 +351,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   Future<void> _listen() async {
     setState(() {
       _transcript.startSession();
+      _drain(); // a straggler from the last session commits here
       _listening = true;
     });
     final started = await widget.engine.listen(
@@ -355,16 +359,10 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       onResult: (text, confidence, isFinal) {
         if (!mounted) return;
         final cmd = readStopPhrase(text);
-        final before = _transcript.results.length;
         final dupesBefore = _transcript.duplicatesSuppressed;
         setState(() {
           _transcript.onResult(cmd.text, confidence, isFinal: isFinal || cmd.stop);
-          // Every newly committed utterance becomes lines. Reading the transcript rather than the
-          // raw callback means the bench's hard-won rules — buffer resets, late finals, stragglers
-          // — apply here unchanged.
-          for (var i = _transcript.results.length - before; i > 0; i--) {
-            _take(_transcript.results[i - 1].text);
-          }
+          _drain();
         });
         // A line held back as a repeat has to SAY so. Silently dropping something the cashier
         // watched the screen hear is the one failure this surface must not have.
@@ -396,9 +394,30 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
     if (!mounted) return;
     setState(() {
       _transcript.commit();
+      _drain();
       _listening = false;
       _level = 0;
     });
+  }
+
+  /// How many of the transcript's committed utterances have already become lines.
+  int _staged = 0;
+
+  /// Turn every utterance the transcript has committed since last time into lines.
+  ///
+  /// This is a DRAIN, not a callback, because a finished utterance does not only arrive through
+  /// `onResult`. The transcript also commits when the session's status says it ended, when an
+  /// error ends it, when the user presses stop, and when the next session starts and finds
+  /// something left over — five paths, and the first version of this screen staged lines from
+  /// exactly one of them. A line spoken into a session that ended without a final result was
+  /// heard, shown live, committed to the transcript, and then never reached the bill.
+  void _drain() {
+    // Newest first, so the ones not yet staged are at the front — walked back to front so they
+    // land in the order they were said.
+    for (var i = _transcript.results.length - _staged - 1; i >= 0; i--) {
+      _take(_transcript.results[i].text);
+    }
+    _staged = _transcript.results.length;
   }
 
   /// One finished utterance becomes one or more staged lines.
