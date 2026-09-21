@@ -162,23 +162,25 @@ onMounted(load);
           </div>
         </div>
       </div>
-      <table class="table" v-if="recon.lines.length">
-        <thead>
-          <tr><th>Tanggal</th><th>Jalur</th><th class="right">DPOS</th><th class="right">Settlement</th><th class="right">Selisih</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <!-- Findings first: a clean line teaches nobody anything. -->
-          <tr v-for="l in [...recon.lines].sort((a, b) => (a.status === 'MATCHED' ? 1 : 0) - (b.status === 'MATCHED' ? 1 : 0))"
-              :key="l.day + l.rail" :class="{ bad: l.status !== 'MATCHED' }">
-            <td class="mono">{{ l.day }}</td>
-            <td>{{ l.rail }}</td>
-            <td class="right mono">{{ formatRupiah(l.dposAmount) }}</td>
-            <td class="right mono">{{ formatRupiah(l.settledAmount) }}</td>
-            <td class="right mono">{{ l.difference === 0 ? '—' : formatRupiah(l.difference) }}</td>
-            <td>{{ statusLabel(l.status) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll" v-if="recon.lines.length">
+        <table class="table">
+          <thead>
+            <tr><th>Tanggal</th><th>Jalur</th><th class="right">DPOS</th><th class="right">Settlement</th><th class="right">Selisih</th><th>Status</th></tr>
+          </thead>
+          <tbody>
+            <!-- Findings first: a clean line teaches nobody anything. -->
+            <tr v-for="l in [...recon.lines].sort((a, b) => (a.status === 'MATCHED' ? 1 : 0) - (b.status === 'MATCHED' ? 1 : 0))"
+                :key="l.day + l.rail" :class="{ bad: l.status !== 'MATCHED' }">
+              <td class="mono">{{ l.day }}</td>
+              <td>{{ l.rail }}</td>
+              <td class="right mono">{{ formatRupiah(l.dposAmount) }}</td>
+              <td class="right mono">{{ formatRupiah(l.settledAmount) }}</td>
+              <td class="right mono">{{ l.difference === 0 ? '—' : formatRupiah(l.difference) }}</td>
+              <td>{{ statusLabel(l.status) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-else class="muted">Tidak ada transaksi non-tunai pada rentang ini.</p>
     </div>
 
@@ -215,22 +217,24 @@ onMounted(load);
           <div class="bar-x">{{ monthLabel(m.month) }}</div>
         </div>
       </div>
-      <table class="table">
-        <thead>
-          <tr><th>Bulan</th><th class="right">Omzet</th><th class="right">Transaksi</th><th class="right">Hari buka</th><th class="right">Tunai</th><th class="right">Margin</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="m in credit.series" :key="m.month">
-            <td class="mono">{{ m.month }}</td>
-            <td class="right mono">{{ formatRupiah(m.turnover) }}</td>
-            <td class="right mono">{{ formatNumber(m.orders) }}</td>
-            <td class="right mono">{{ m.tradingDays }}</td>
-            <td class="right mono">{{ pct(m.cashShareBps) }}</td>
-            <!-- No catalogue, no cost price, no margin. Said, not sent as a zero. -->
-            <td class="right mono">{{ m.grossMarginBps === null ? '—' : pct(m.grossMarginBps) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr><th>Bulan</th><th class="right">Omzet</th><th class="right">Transaksi</th><th class="right">Hari buka</th><th class="right">Tunai</th><th class="right">Margin</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="m in credit.series" :key="m.month">
+              <td class="mono">{{ m.month }}</td>
+              <td class="right mono">{{ formatRupiah(m.turnover) }}</td>
+              <td class="right mono">{{ formatNumber(m.orders) }}</td>
+              <td class="right mono">{{ m.tradingDays }}</td>
+              <td class="right mono">{{ pct(m.cashShareBps) }}</td>
+              <!-- No catalogue, no cost price, no margin. Said, not sent as a zero. -->
+              <td class="right mono">{{ m.grossMarginBps === null ? '—' : pct(m.grossMarginBps) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-if="!credit.merchant.sellsFromCatalogue" class="muted small">
         Pedagang ini menjual tanpa katalog, jadi harga modal tidak ada menurut definisinya — bukan
         karena belum diisi. Kolom margin sengaja dikosongkan.
@@ -304,15 +308,17 @@ onMounted(load);
       </div>
       <template v-if="activation.dormant.length">
         <h3 class="ch">Tidak ada penjualan ≥ 7 hari</h3>
-        <table class="table">
-          <thead><tr><th>Pedagang</th><th class="right">Penjualan terakhir</th><th class="right">Hari diam</th></tr></thead>
-          <tbody>
-            <tr v-for="d in activation.dormant" :key="d.name" class="bad">
-              <td>{{ d.name }}</td><td class="right mono">{{ d.lastSaleAt }}</td>
-              <td class="right mono">{{ d.daysSinceLastSale }}</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-scroll">
+          <table class="table">
+            <thead><tr><th>Pedagang</th><th class="right">Penjualan terakhir</th><th class="right">Hari diam</th></tr></thead>
+            <tbody>
+              <tr v-for="d in activation.dormant" :key="d.name" class="bad">
+                <td>{{ d.name }}</td><td class="right mono">{{ d.lastSaleAt }}</td>
+                <td class="right mono">{{ d.daysSinceLastSale }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </template>
     </div>
   </template>

@@ -75,29 +75,31 @@ onMounted(load);
     </p>
 
     <div class="card" v-if="data.rows.length">
-      <table class="table">
-        <thead>
-          <tr><th>Tanggal</th><th class="right">Transaksi</th><th class="right">Dasar pengenaan</th><th class="right">Pajak</th><th class="right">Servis</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in data.rows" :key="r.day">
-            <td class="mono nowrap">{{ r.day }}</td>
-            <td class="right mono">{{ formatNumber(r.orders) }}</td>
-            <td class="right mono">{{ formatRupiah(r.base) }}</td>
-            <td class="right mono"><b>{{ formatRupiah(r.tax) }}</b></td>
-            <td class="right mono">{{ formatRupiah(r.service) }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td><b>Total</b></td>
-            <td class="right mono"><b>{{ formatNumber(data.totals.orders) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.base) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.tax) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.service) }}</b></td>
-          </tr>
-        </tfoot>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr><th>Tanggal</th><th class="right">Transaksi</th><th class="right">Dasar pengenaan</th><th class="right">Pajak</th><th class="right">Servis</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in data.rows" :key="r.day">
+              <td class="mono nowrap">{{ r.day }}</td>
+              <td class="right mono">{{ formatNumber(r.orders) }}</td>
+              <td class="right mono">{{ formatRupiah(r.base) }}</td>
+              <td class="right mono"><b>{{ formatRupiah(r.tax) }}</b></td>
+              <td class="right mono">{{ formatRupiah(r.service) }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td><b>Total</b></td>
+              <td class="right mono"><b>{{ formatNumber(data.totals.orders) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.base) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.tax) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.service) }}</b></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   </template>
 </template>

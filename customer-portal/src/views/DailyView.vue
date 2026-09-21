@@ -72,43 +72,45 @@ onMounted(load);
     </div>
 
     <div class="card">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Tanggal</th><th class="right">Transaksi</th><th class="right">Subtotal</th>
-            <th class="right">Diskon</th><th class="right">Pajak + servis</th>
-            <th class="right">Tunai</th><th class="right">Non-tunai</th><th class="right">Kotor</th>
-            <th class="right">Batal</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in data.rows" :key="r.day">
-            <td class="mono nowrap">{{ r.day }}</td>
-            <td class="right mono">{{ formatNumber(r.orders) }}</td>
-            <td class="right mono">{{ formatRupiah(r.subtotal) }}</td>
-            <td class="right mono">{{ r.discount ? formatRupiah(r.discount) : '—' }}</td>
-            <td class="right mono">{{ formatRupiah(r.tax + r.service) }}</td>
-            <td class="right mono">{{ formatRupiah(r.cash) }}</td>
-            <td class="right mono">{{ formatRupiah(r.nonCash) }}</td>
-            <td class="right mono"><b>{{ formatRupiah(r.gross) }}</b></td>
-            <!-- Voided sales are counted but never banked; a blank here would hide them. -->
-            <td class="right mono" :class="{ bad: r.voided > 0 }">{{ r.voided || '—' }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td><b>Total</b></td>
-            <td class="right mono"><b>{{ formatNumber(data.totals.orders) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.subtotal) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.discount) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.tax + data.totals.service) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.cash) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.nonCash) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(data.totals.gross) }}</b></td>
-            <td class="right mono"><b>{{ data.totals.voided || '—' }}</b></td>
-          </tr>
-        </tfoot>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Tanggal</th><th class="right">Transaksi</th><th class="right">Subtotal</th>
+              <th class="right">Diskon</th><th class="right">Pajak + servis</th>
+              <th class="right">Tunai</th><th class="right">Non-tunai</th><th class="right">Kotor</th>
+              <th class="right">Batal</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in data.rows" :key="r.day">
+              <td class="mono nowrap">{{ r.day }}</td>
+              <td class="right mono">{{ formatNumber(r.orders) }}</td>
+              <td class="right mono">{{ formatRupiah(r.subtotal) }}</td>
+              <td class="right mono">{{ r.discount ? formatRupiah(r.discount) : '—' }}</td>
+              <td class="right mono">{{ formatRupiah(r.tax + r.service) }}</td>
+              <td class="right mono">{{ formatRupiah(r.cash) }}</td>
+              <td class="right mono">{{ formatRupiah(r.nonCash) }}</td>
+              <td class="right mono"><b>{{ formatRupiah(r.gross) }}</b></td>
+              <!-- Voided sales are counted but never banked; a blank here would hide them. -->
+              <td class="right mono" :class="{ bad: r.voided > 0 }">{{ r.voided || '—' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td><b>Total</b></td>
+              <td class="right mono"><b>{{ formatNumber(data.totals.orders) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.subtotal) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.discount) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.tax + data.totals.service) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.cash) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.nonCash) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(data.totals.gross) }}</b></td>
+              <td class="right mono"><b>{{ data.totals.voided || '—' }}</b></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
       <p v-if="!data.rows.length" class="muted pad">Tidak ada penjualan pada rentang ini.</p>
     </div>
   </template>

@@ -87,23 +87,25 @@ onMounted(load);
     </p>
 
     <div class="card">
-      <table class="table">
-        <thead>
-          <tr><th>Waktu</th><th>Jenis</th><th>Alasan</th><th>Oleh</th><th>Disetujui</th><th class="right">Nilai</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="(r, i) in data.rows" :key="r.orderId + i">
-            <td class="mono nowrap">{{ time(r.at) }}</td>
-            <td>{{ kindLabel(r.kind) }}</td>
-            <td>{{ r.reason || '—' }}</td>
-            <td class="small">{{ r.by || '—' }}</td>
-            <td class="small" :class="{ warn: r.selfApproved }">
-              {{ r.approvedBy || (r.selfApproved ? 'sendiri' : '—') }}
-            </td>
-            <td class="right mono">{{ formatRupiah(r.amount) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr><th>Waktu</th><th>Jenis</th><th>Alasan</th><th>Oleh</th><th>Disetujui</th><th class="right">Nilai</th></tr>
+          </thead>
+          <tbody>
+            <tr v-for="(r, i) in data.rows" :key="r.orderId + i">
+              <td class="mono nowrap">{{ time(r.at) }}</td>
+              <td>{{ kindLabel(r.kind) }}</td>
+              <td>{{ r.reason || '—' }}</td>
+              <td class="small">{{ r.by || '—' }}</td>
+              <td class="small" :class="{ warn: r.selfApproved }">
+                {{ r.approvedBy || (r.selfApproved ? 'sendiri' : '—') }}
+              </td>
+              <td class="right mono">{{ formatRupiah(r.amount) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-if="!data.rows.length" class="muted pad">Tidak ada koreksi pada rentang ini.</p>
     </div>
   </template>

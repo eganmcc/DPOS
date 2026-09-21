@@ -94,31 +94,33 @@ onMounted(load);
     </div>
 
     <div class="card">
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Waktu</th><th>Keterangan</th><th>Kasir</th>
-            <th class="right">Subtotal</th><th class="right">Pajak</th><th class="right">Total</th>
-            <th>Metode</th><th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="r in data.rows" :key="r.id" :class="{ bad: isProblem(r.status) }">
-            <td class="mono nowrap">{{ time(r.at) }}</td>
-            <td>
-              {{ r.description }}
-              <div v-if="r.voidReason" class="muted small">alasan: {{ r.voidReason }}</div>
-              <div v-else-if="r.customer" class="muted small">{{ r.customer }}</div>
-            </td>
-            <td class="small">{{ r.cashier }}</td>
-            <td class="right mono">{{ formatRupiah(r.subtotal) }}</td>
-            <td class="right mono">{{ r.tax ? formatRupiah(r.tax) : '—' }}</td>
-            <td class="right mono"><b>{{ formatRupiah(r.total) }}</b></td>
-            <td class="small">{{ r.methods.map(methodLabel).join(' + ') || '—' }}</td>
-            <td class="small">{{ statusLabel(r.status) }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Waktu</th><th>Keterangan</th><th>Kasir</th>
+              <th class="right">Subtotal</th><th class="right">Pajak</th><th class="right">Total</th>
+              <th>Metode</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="r in data.rows" :key="r.id" :class="{ bad: isProblem(r.status) }">
+              <td class="mono nowrap">{{ time(r.at) }}</td>
+              <td>
+                {{ r.description }}
+                <div v-if="r.voidReason" class="muted small">alasan: {{ r.voidReason }}</div>
+                <div v-else-if="r.customer" class="muted small">{{ r.customer }}</div>
+              </td>
+              <td class="small">{{ r.cashier }}</td>
+              <td class="right mono">{{ formatRupiah(r.subtotal) }}</td>
+              <td class="right mono">{{ r.tax ? formatRupiah(r.tax) : '—' }}</td>
+              <td class="right mono"><b>{{ formatRupiah(r.total) }}</b></td>
+              <td class="small">{{ r.methods.map(methodLabel).join(' + ') || '—' }}</td>
+              <td class="small">{{ statusLabel(r.status) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <p v-if="!data.rows.length" class="muted pad">Tidak ada transaksi pada rentang ini.</p>
     </div>
 

@@ -81,23 +81,25 @@ onMounted(load);
         <span v-if="!e.balanced" class="bad small">TIDAK SEIMBANG</span>
         <span v-else class="muted small">seimbang</span>
       </div>
-      <table class="table">
-        <thead><tr><th>Akun</th><th class="right">Debit</th><th class="right">Kredit</th></tr></thead>
-        <tbody>
-          <tr v-for="p in e.postings" :key="p.account">
-            <td :class="{ indent: p.credit > 0 }">{{ p.account }}</td>
-            <td class="right mono">{{ p.debit ? formatRupiah(p.debit) : '' }}</td>
-            <td class="right mono">{{ p.credit ? formatRupiah(p.credit) : '' }}</td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr class="total-row">
-            <td></td>
-            <td class="right mono"><b>{{ formatRupiah(e.debit) }}</b></td>
-            <td class="right mono"><b>{{ formatRupiah(e.credit) }}</b></td>
-          </tr>
-        </tfoot>
-      </table>
+      <div class="table-scroll">
+        <table class="table">
+          <thead><tr><th>Akun</th><th class="right">Debit</th><th class="right">Kredit</th></tr></thead>
+          <tbody>
+            <tr v-for="p in e.postings" :key="p.account">
+              <td :class="{ indent: p.credit > 0 }">{{ p.account }}</td>
+              <td class="right mono">{{ p.debit ? formatRupiah(p.debit) : '' }}</td>
+              <td class="right mono">{{ p.credit ? formatRupiah(p.credit) : '' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="total-row">
+              <td></td>
+              <td class="right mono"><b>{{ formatRupiah(e.debit) }}</b></td>
+              <td class="right mono"><b>{{ formatRupiah(e.credit) }}</b></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
       <p v-if="!e.costComplete" class="muted small">
         Ada barang terjual tanpa harga modal, jadi pasangan HPP / Persediaan hari ini belum lengkap.
       </p>

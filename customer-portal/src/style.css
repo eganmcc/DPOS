@@ -222,3 +222,47 @@ h3 {
 @media (max-width: 640px) {
   .two { grid-template-columns: 1fr !important; }
 }
+
+/* ---- Wide report tables ---- */
+/* Report rows scroll sideways instead of wrapping: a figure or an item list broken over two lines
+   stops reading as one value, and a bank reviewer scanning a column wants it to stay a column. */
+.table-scroll {
+  overflow-x: auto;
+  border-radius: inherit;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--outline) transparent;
+}
+.table-scroll .table {
+  /* max-content lets the columns claim the width they need; min-width keeps a narrow table full. */
+  width: max-content;
+  min-width: 100%;
+}
+.table-scroll .table th,
+.table-scroll .table td {
+  white-space: nowrap;
+}
+/* Overlay scrollbars hide until you scroll, so give this one a permanent track. */
+.table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--outline);
+  border-radius: 100px;
+}
+@media print {
+  /* On paper there is nothing to drag, so the table wraps and prints whole. */
+  .table-scroll {
+    overflow: visible;
+  }
+  .table-scroll .table {
+    width: 100%;
+  }
+  .table-scroll .table th,
+  .table-scroll .table td {
+    white-space: normal;
+  }
+}
