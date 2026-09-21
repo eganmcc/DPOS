@@ -36,6 +36,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get errorSignIn => 'Sign-in failed (check connection)';
 
   @override
+  String get errorConnection =>
+      'Can\'t reach the server — check the connection.';
+
+  @override
+  String errorStockShort(String name) {
+    return 'Not enough $name in stock — the order was not saved.';
+  }
+
+  @override
+  String errorSaveFailed(int code) {
+    return 'Couldn\'t save the order (code $code).';
+  }
+
+  @override
   String get sessionExpired => 'Your session expired. Please sign in again.';
 
   @override

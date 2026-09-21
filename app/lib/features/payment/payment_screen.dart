@@ -16,6 +16,7 @@ import '../../l10n/app_localizations.dart';
 import '../order/cart.dart';
 import '../receipt/receipt_screen.dart';
 import '../scanner/rongta_printer.dart';
+import '../../core/submit_error.dart';
 import 'brand_mark.dart';
 import 'edc_screen.dart';
 import 'payment_tenders.dart';
@@ -188,7 +189,7 @@ class _PaymentScreenState extends ConsumerState<PaymentScreen> {
       final code = e.response?.data is Map ? (e.response!.data as Map)['code'] : null;
       setState(() => _error = code == 'UMI_TENDER_NOT_AVAILABLE'
           ? t.tenderNotAvailable
-          : '${t.errorSignIn} (${e.response?.statusCode ?? 'network'})');
+          : describeSubmitError(t, e));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

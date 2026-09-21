@@ -223,15 +223,16 @@ class _NotaOrderBodyState extends State<NotaOrderBody> {
     final c = l.check;
     final out = <({String text, bool fatal})>[];
     if (l.qtyUnreadable) out.add((text: t.notaQtyUnreadable, fatal: true));
+    // Red for what blocks (the server would refuse it), amber for what only warns.
     switch (c.status) {
       case SttStockStatus.notFound:
         out.add((text: t.sttStockNotFound, fatal: true));
       case SttStockStatus.unavailable:
         out.add((text: t.sttStockUnavailable(c.displayName), fatal: false));
       case SttStockStatus.outOfStock:
-        out.add((text: t.sttStockOut(c.displayName), fatal: false));
+        out.add((text: t.sttStockOut(c.displayName), fatal: true));
       case SttStockStatus.insufficient:
-        out.add((text: t.sttStockShort(c.displayName, c.remaining ?? 0, c.qty), fatal: false));
+        out.add((text: t.sttStockShort(c.displayName, c.remaining ?? 0, c.qty), fatal: true));
       case SttStockStatus.ok:
         break;
     }

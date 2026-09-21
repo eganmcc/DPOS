@@ -152,6 +152,24 @@ abstract class AppLocalizations {
   /// **'Sign-in failed (check connection)'**
   String get errorSignIn;
 
+  /// No description provided for @errorConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach the server — check the connection.'**
+  String get errorConnection;
+
+  /// No description provided for @errorStockShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough {name} in stock — the order was not saved.'**
+  String errorStockShort(String name);
+
+  /// No description provided for @errorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save the order (code {code}).'**
+  String errorSaveFailed(int code);
+
   /// No description provided for @sessionExpired.
   ///
   /// In en, this message translates to:

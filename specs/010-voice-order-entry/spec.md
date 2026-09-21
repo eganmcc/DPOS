@@ -53,8 +53,15 @@ any future accuracy work.
 10. Every line can be removed before it becomes money.
 11. Problems are stated on the line: not in the catalogue, unavailable, sold out (with the real
     remaining count), fewer left than asked for.
-12. **A line nobody understood blocks Selesai** — not in the catalogue, or no price said. Short
-    stock does not block: the cashier is looking at the shelf and the database often is not.
+12. **A line the server would refuse blocks Selesai** — not in the catalogue, no price said, or
+    **more than is on hand** (sold out or short). A switched-off item only warns: the server
+    accepts it.
+    *Changed 2026-09-21.* This used to read "Short stock does not block: the cashier is looking at
+    the shelf and the database often is not." The server does not share that view — it refuses to
+    take a tracked variant below zero and rolls the whole sale back (Constitution IV) — so the old
+    rule only moved the failure to the till, where it surfaced as "Gagal masuk (cek koneksi)". It
+    was found on the device through the nota order screen (009 § F), which shares this rule. If the
+    shelf really has more than the database, the fix is a stock adjustment, not an oversold order.
 13. The total is shown with tax and service charge when the outlet has a rule, through the same
     `previewTotals` as every other surface.
 
@@ -68,6 +75,9 @@ any future accuracy work.
     - spoken price → the existing `showNotaPaymentDialog`, settled now as a counter sale.
 16. Both go through code that already existed. No new money path.
 17. A failed submit leaves the bill on screen. Nothing was recorded, so nothing may be cleared.
+    The cashier is told **why** — the server's reason, stock in Indonesian ("Stok X tidak cukup —
+    pesanan tidak disimpan"), and "cek koneksi" only when the server was never reached
+    (`core/submit_error.dart`). Previously every refusal read "Gagal masuk (cek koneksi)".
 
 ### E. What the receipt says
 

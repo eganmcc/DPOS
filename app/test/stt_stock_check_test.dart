@@ -238,4 +238,27 @@ void main() {
       expect(c.status, SttStockStatus.ok);
     });
   });
+
+  /// What blocks Selesai is exactly what the server refuses (2026-09-21).
+  group('what blocks a sale', () {
+    SttStockCheck check(String item, int qty) => checkItem(qty: qty, item: item, products: catalog);
+
+    test('not in the catalogue, sold out, and short all block', () {
+      expect(check('soto betawi', 1).blocksSale, isTrue);
+      expect(check('es teh manis', 1).blocksSale, isTrue, reason: '0 on hand');
+      expect(check('nasi goreng', 6).blocksSale, isTrue, reason: '5 on hand');
+    });
+
+    test('enough stock, or an untracked item, does not', () {
+      expect(check('nasi goreng', 5).blocksSale, isFalse, reason: 'exactly what is on hand');
+      expect(check('kopi tubruk', 99).blocksSale, isFalse, reason: 'not stock-tracked');
+    });
+
+    test('a switched-off item warns but does not block — the server accepts it', () {
+      final c = check('ayam goreng', 1);
+      expect(c.status, SttStockStatus.unavailable);
+      expect(c.isProblem, isTrue);
+      expect(c.blocksSale, isFalse);
+    });
+  });
 }

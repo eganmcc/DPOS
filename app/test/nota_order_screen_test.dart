@@ -146,6 +146,56 @@ void main() {
     expect(finished, isEmpty);
   });
 
+  // The device, 2026-09-21: nota #2 read Mie Goreng x1 and Es Campur x2 with 0 and 1 on hand.
+  // Selesai went through, the server refused it for stock, and the till said "Gagal masuk (cek
+  // koneksi)". Now the list stops it before it leaves the phone.
+  testWidgets('the order from the device: short stock blocks Selesai before it is sent',
+      (tester) async {
+    Product tracked(String name, int price, int stock) => Product(
+          id: 'p-$name',
+          name: name,
+          categoryName: 'Cat',
+          isAvailable: true,
+          variants: [
+            Variant(
+              id: 'v-$name',
+              name: 'Regular',
+              price: price,
+              sku: null,
+              isAvailable: true,
+              trackInventory: true,
+              stock: stock,
+            ),
+          ],
+          modifierGroups: const [],
+        );
+    final lines = stageNotaReading(
+      const NotaReading(
+        notaNumber: '2',
+        items: [
+          NotaLine(rawText: 'Mie Goreng', qty: 1, unitPrice: 25000, lineTotal: 25000),
+          NotaLine(rawText: 'Es Campur', qty: 2, unitPrice: 20000, lineTotal: 40000),
+        ],
+        unclear: [],
+        confidence: 93,
+        model: 'test',
+        latencyMs: 0,
+        raw: {},
+      ),
+      [tracked('Mie Goreng', 25000, 0), tracked('Es Campur', 20000, 1)],
+    );
+    await pump(tester, lines);
+
+    expect(find.text('Mie Goreng — stok habis (sisa 0)'), findsOneWidget);
+    expect(find.text('Es Campur — sisa 1, diminta 2'), findsOneWidget);
+    expect(find.byKey(const ValueKey('nota-order-blocked')), findsOneWidget);
+    expect(selesai(tester).onPressed, isNull);
+
+    await tester.tap(find.byKey(const ValueKey('nota-order-selesai')));
+    await tester.pump();
+    expect(finished, isEmpty, reason: 'nothing reaches the server');
+  });
+
   testWidgets('a fractional quantity blocks, with its reason on the line', (tester) async {
     await pump(tester, read(const [NotaLine(rawText: 'Nasi Goreng', qty: 1.5)]));
     expect(find.text('Jumlah di nota bukan bilangan bulat'), findsOneWidget);

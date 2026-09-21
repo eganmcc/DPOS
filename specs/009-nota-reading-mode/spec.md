@@ -93,12 +93,17 @@ catalogue mode ends (`specs/010`), and deliberately by the same code:
    are stripped before matching; the reader's own qty field is the quantity.
 3. **The shop's price is charged, never the paper's.** A catalogue merchant cannot be charged a
    written amount (the open-amount gate, D, refuses it). Where the paper's unit price differs, the
-   line says so — *"Di nota Rp 20.000 — yang dikenakan harga toko"* — and **does not block**,
-   for the same reason short stock doesn't: the cashier can see both.
-4. **Blocks Selesai:** a line not in the catalogue (as in voice), and a quantity that is not a whole
-   number of at least one. A line with no count written is one of it. Unavailable and short-stock
-   lines are flagged, not blocked — as in voice. Every line can be removed; nothing on the paper
-   silently disappears — an unmatched line stays, in the paper's own words, until removed.
+   line says so — *"Di nota Rp 20.000 — yang dikenakan harga toko"* — and **does not block**:
+   the server charges the shop's price and accepts the order, and the cashier can see both.
+4. **Blocks Selesai:** whatever the server would refuse — a line not in the catalogue, **sold out
+   or short of stock** (voice's rule, 010 § 12, as amended the same day) — and a quantity that is
+   not a whole number of at least one. A line with no count written is one of it. A switched-off
+   item only warns. Every line can be removed; nothing on the paper silently disappears — an
+   unmatched line stays, in the paper's own words, until removed.
+   *First device run, 2026-09-21:* nota #2 read Mie Goreng ×1 and Es Campur ×2 against 0 and 1 on
+   hand; stock then only warned, so Selesai went through, the server refused it
+   (`Insufficient stock`), and the till said "Gagal masuk (cek koneksi)". Hence the rule, and the
+   real error message.
 5. **Tambah ke keranjang** puts the lines in the till's cart; **Selesai** goes through the existing
    open-bill path, or the payment screen where the outlet pays immediately. Both are the shared
    `features/order/staged_order.dart`, which voice now uses too. **No new money path.**

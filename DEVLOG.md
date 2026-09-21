@@ -39,6 +39,30 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 > The one real gap: voice has never had a clean end-to-end run on a device — every fix since build
 > 2107 came from reading logs. That pass is item 2 of Next steps, and it is the user's to run.
 
+> ### 2026-09-21 (latest, Mac) — first device run of nota → order failed; fixed (app 0.5.1)
+>
+> On the Xiaomi, nota #2 read **Mie Goreng ×1, Es Campur ×2**; Warung Kopi Demo has **0 and 1** on
+> hand (both stock-tracked, both outlets). Stock only *warned* — voice's rule, "short stock does not
+> block" — so Selesai went through, the server refused it (`400 Insufficient stock for Mie Goreng`,
+> `orders.service.ts:305`) and rolled back, and the till said **"Gagal masuk (cek koneksi)"**. Nothing
+> was recorded. Diagnosed from the phone log (the reading), the live catalogue (the stock), and the
+> server code (the refusal); **not** from the server log — SSH to EC2 timed out from this Mac's
+> network, so the 400 itself was inferred, not seen.
+>
+> - **Stock now blocks Selesai in voice AND nota** — `SttStockCheck.blocksSale`: not in the catalogue,
+>   sold out, or short. A switched-off item still only warns (the server accepts it). **Voice's spec
+>   010 § 12 is reversed, deliberately**, and its one test that pinned the old rule
+>   (`sold out ... does NOT block`) was rewritten to the new contract, with the reason in the test.
+> - **The till says why a sale failed** — `core/submit_error.dart`: stock in Indonesian ("Stok X
+>   tidak cukup — pesanan tidak disimpan"), otherwise the server's own words, and "cek koneksi" only
+>   when the server was never reached. Used by the open-bill confirm and the payment screen. This
+>   also closes the old note under 2026-09-19 that `payment_screen.dart` showed a *sign-in* message
+>   for a failed sale. (`checkout_screen.dart` still has it — superseded, nothing routes to it.)
+> - Dart **246 tests** (+11), `flutter analyze` clean. App-only; no server change.
+> - **To demo nota → order on Warung Kopi Demo, it needs stock.** Checked live: **Outlet Cabang has
+>   all 28 tracked variants at 0 or 1**, and it is the login picker's default; Outlet Pusat has 15 of
+>   28. Log in to Pusat, or restock in the portal.
+
 > ### 2026-09-21 (later, Mac) — a read nota becomes an order on the F&B till (app 0.5.0)
 >
 > The till's **Baca nota** (scan icon, F&B) is no longer read-only. After a reading, **Jadikan
@@ -48,8 +72,9 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 >
 > - **The shop's price is charged, never the paper's** — a catalogue merchant can't be charged a
 >   written amount. A different written price is shown on the line and does **not** block.
-> - **Blocks Selesai:** not in the catalogue (as voice), or a non-whole quantity. Stock and
->   availability are flagged, not blocked (as voice).
+> - **Blocks Selesai:** whatever the server would refuse — not in the catalogue, **sold out or
+>   short** — or a non-whole quantity. A switched-off item only warns. *(Stock blocking was added
+>   after the first device run — see the entry above.)*
 > - **Lines only, on your call:** the nota number is NOT carried, so re-reading one slip makes two
 >   sales. The server already accepts `notaNumber` from any merchant if that changes.
 > - **One money path:** voice's two finish helpers moved to `features/order/staged_order.dart`, and

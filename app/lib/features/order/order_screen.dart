@@ -18,6 +18,7 @@ import '../reports/reports_screen.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
 import '../stt/voice_order_screen.dart';
+import '../../core/submit_error.dart';
 import 'cart.dart';
 import 'online_orders_controller.dart';
 import 'open_bills_screen.dart';
@@ -1016,7 +1017,8 @@ Future<bool> confirmOpenBill(BuildContext context, WidgetRef ref) async {
       await showAppDialog(
         context,
         kind: AppDialogKind.error,
-        message: e.response?.statusCode == 409 ? t.tableExists : t.errorSignIn,
+        // 409 here is the table already having an open bill; anything else, the server's reason.
+        message: e.response?.statusCode == 409 ? t.tableExists : describeSubmitError(t, e),
       );
     }
     return false;

@@ -183,13 +183,19 @@ void main() {
       expect(find.byKey(const ValueKey('voice-blocked')), findsNothing);
     });
 
-    testWidgets('sold out is shown but does NOT block — the shelf knows better', (tester) async {
+    // Contract changed 2026-09-21. This used to assert that sold out does NOT block ("the shelf
+    // knows better"). The server disagrees: it refuses to take a tracked variant below zero and
+    // rolls the sale back, so letting Selesai through only moved the failure to the till, where it
+    // surfaced as "Gagal masuk (cek koneksi)". Found on the device via the nota order screen.
+    testWidgets('sold out blocks Selesai — the server will not sell stock it does not have',
+        (tester) async {
       await pump(tester, mode: VoiceOrderMode.catalogue);
       await say(tester, 'es teh manis satu');
 
       expect(find.byKey(const ValueKey('voice-problem-0')), findsOneWidget);
+      expect(find.byKey(const ValueKey('voice-blocked')), findsOneWidget);
       final button = tester.widget<FilledButton>(find.byKey(const ValueKey('voice-selesai')));
-      expect(button.onPressed, isNotNull);
+      expect(button.onPressed, isNull);
     });
 
     testWidgets('Tambah ke keranjang hands the lines to the cart', (tester) async {

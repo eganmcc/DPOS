@@ -48,6 +48,15 @@ class SttStockCheck {
 
   bool get isProblem => status != SttStockStatus.ok;
 
+  /// A line the server will refuse, so Selesai must wait until it is dealt with: not in the
+  /// catalogue, or more than is on hand. Stock is the server's call, not the shelf's — it refuses
+  /// to take a tracked variant below zero (`Insufficient stock`, Constitution IV) and rolls the
+  /// whole sale back. A switched-off item is NOT refused by the server, so it only warns.
+  bool get blocksSale =>
+      status == SttStockStatus.notFound ||
+      status == SttStockStatus.outOfStock ||
+      status == SttStockStatus.insufficient;
+
   /// What to call this on screen. A product with several variants is named WITH its variant,
   /// because "Ayam Geprek" alone does not say which one is about to be rung up.
   String get displayName {

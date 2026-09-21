@@ -233,10 +233,11 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
 
   bool get _isEmpty => _mode == VoiceOrderMode.catalogue ? _checks.isEmpty : _priced.isEmpty;
 
-  /// A line nobody can be charged for. Selesai waits until these are gone: an order that silently
-  /// drops what it could not understand is how a customer is charged for the wrong thing.
+  /// A line the server would refuse. Selesai waits until these are gone: an order that silently
+  /// drops what it could not understand is how a customer is charged for the wrong thing, and one
+  /// the server refuses for stock is a sale that fails at the till with the customer waiting.
   int get _blocking => _mode == VoiceOrderMode.catalogue
-      ? _checks.where((c) => c.status == SttStockStatus.notFound).length
+      ? _checks.where((c) => c.blocksSale).length
       : _priced.where((l) => l.isIncomplete).length;
 
   int get _subtotal => _mode == VoiceOrderMode.catalogue
@@ -618,7 +619,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
       qty: c.qty,
       price: _unitPrice(c),
       problem: problem,
-      fatal: c.status == SttStockStatus.notFound,
+      fatal: c.blocksSale,
     );
   }
 
@@ -677,7 +678,7 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
                       key: ValueKey('voice-problem-$index'),
                       style: TextStyle(
                           fontSize: 11,
-                          // Short stock is a number to work with; the others stop the order.
+                          // Red stops the order (the server would refuse it); amber only warns.
                           color: fatal ? cs.error : const Color(0xFF7A5A00))),
               ],
             ),

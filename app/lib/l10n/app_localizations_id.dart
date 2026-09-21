@@ -36,6 +36,19 @@ class AppLocalizationsId extends AppLocalizations {
   String get errorSignIn => 'Gagal masuk (cek koneksi)';
 
   @override
+  String get errorConnection => 'Tidak bisa terhubung ke server — cek koneksi.';
+
+  @override
+  String errorStockShort(String name) {
+    return 'Stok $name tidak cukup — pesanan tidak disimpan.';
+  }
+
+  @override
+  String errorSaveFailed(int code) {
+    return 'Gagal menyimpan pesanan (kode $code).';
+  }
+
+  @override
   String get sessionExpired => 'Sesi Anda berakhir. Silakan masuk lagi.';
 
   @override

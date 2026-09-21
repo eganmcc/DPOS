@@ -126,18 +126,24 @@ void main() {
       expect(l.unitPrice, 0);
     });
 
-    test('unavailable and short stock are flagged but do not block — as in voice', () {
+    test('out of stock and short stock block — the server refuses them', () {
       final lines = stage(const [
-        NotaLine(rawText: 'Bakwan', qty: 1),
-        NotaLine(rawText: 'Teh Botol', qty: 1),
-        NotaLine(rawText: 'Air Mineral', qty: 3),
+        NotaLine(rawText: 'Teh Botol', qty: 1), // 0 on hand
+        NotaLine(rawText: 'Air Mineral', qty: 3), // 1 on hand
+        NotaLine(rawText: 'Air Mineral', qty: 1), // 1 on hand — fine
       ]);
       expect(lines.map((l) => l.check.status), [
-        SttStockStatus.unavailable,
         SttStockStatus.outOfStock,
         SttStockStatus.insufficient,
+        SttStockStatus.ok,
       ]);
-      expect(lines.any((l) => l.blocks), isFalse);
+      expect(lines.map((l) => l.blocks), [true, true, false]);
+    });
+
+    test('a switched-off item only warns — the server does not refuse it', () {
+      final l = stage([const NotaLine(rawText: 'Bakwan', qty: 1)]).single;
+      expect(l.check.status, SttStockStatus.unavailable);
+      expect(l.blocks, isFalse);
     });
 
     test('blank lines are dropped; every other line is kept, matched or not', () {

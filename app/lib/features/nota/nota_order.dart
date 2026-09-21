@@ -7,7 +7,9 @@
 /// **The shop's price is what gets charged, not the paper's.** A catalogue merchant cannot be
 /// charged a written amount — the server refuses open amounts outside calculator and nota-reading
 /// merchants — so the handwritten price is only compared, and a difference is shown on the line.
-/// It does not block Selesai, for the same reason short stock doesn't: the cashier can see both.
+/// It does not block Selesai: the server charges the shop's price and accepts the order, so the
+/// cashier can see both and decide. What blocks is what the server would refuse — see
+/// [NotaOrderLine.blocks].
 library;
 
 import '../../data/models.dart';
@@ -46,9 +48,10 @@ class NotaOrderLine {
 
   bool get notFound => check.status == SttStockStatus.notFound;
 
-  /// A line nobody can be charged for. Same rule as voice (not in the catalogue), plus a quantity
-  /// that can't be sold. Unavailable and short-stock lines are flagged but do not block — as in voice.
-  bool get blocks => qtyUnreadable || notFound;
+  /// A line the server would refuse. Same rule as voice ([SttStockCheck.blocksSale]: not in the
+  /// catalogue, out of stock, or short), plus a quantity that can't be sold. A switched-off item
+  /// only warns — the server does not refuse it.
+  bool get blocks => qtyUnreadable || check.blocksSale;
 
   /// The paper's price is not the shop's. Shown, never charged, never blocking.
   bool get priceDiffers =>
