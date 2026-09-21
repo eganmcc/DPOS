@@ -164,6 +164,31 @@ describe('Open-amount lines (calculator-only mode)', () => {
     });
   });
 
+  // Voice ordering sends what the cashier SAID as the line's label ("Pecel lele 100"), and a
+  // spoken quantity becomes repeated qty-1 lines because an open amount is the price of one thing.
+  // Both halves are pinned here: the receipt has to read back what was ordered.
+  describe('a spoken sale', () => {
+    it('keeps the spoken name on the line, and expands a quantity into lines', async () => {
+      const res = await post(calc, {
+        clientOrderId: uuidv4(),
+        outletId: calc.outletId,
+        type: 'RETAIL',
+        lines: [
+          { variantId: calc.openAmountVariantId, qty: 1, amount: 100000, label: 'pecel lele' },
+          { variantId: calc.openAmountVariantId, qty: 1, amount: 100000, label: 'pecel lele' },
+          { variantId: calc.openAmountVariantId, qty: 1, amount: 5000, label: 'es teh' },
+        ],
+        payment: { method: 'CASH', tendered: 250000 },
+      });
+      expect(res.status).toBe(201);
+      expect(res.body.subtotal).toBe(205000);
+      const names = res.body.lines.map((l: { productNameSnapshot: string }) => l.productNameSnapshot);
+      expect(names).toEqual(['pecel lele', 'pecel lele', 'es teh']);
+      // Not the sentinel product's own name, which is what an unlabelled line would snapshot.
+      expect(names).not.toContain('Nota');
+    });
+  });
+
   // Tax must be switchable later WITHOUT a code change. If the zero were a hard-coded branch, this
   // test would fail — which is the whole reason it exists. Same figures as the Dart preview test.
   describe('tax is data, not code', () => {
