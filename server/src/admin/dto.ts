@@ -8,7 +8,12 @@ import {
   Matches,
   Min,
   MinLength,
+  MaxLength,
+  IsArray,
+  ArrayMaxSize,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { BusinessType, OutletPaymentMode, StaffRole } from '@prisma/client';
 
 // ---------- Entity / company ----------
@@ -102,4 +107,24 @@ export class DashboardQuery {
   @IsOptional() @IsUUID() outletId?: string;
   @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) from?: string;
   @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) to?: string;
+}
+
+/** One settlement line as the acquirer reported it (specs/011-bank-reporting). */
+export class SettlementRowDto {
+  @Matches(/^\d{4}-\d{2}-\d{2}$/) settledOn!: string;
+  @IsString() @MaxLength(16) method!: string; // QRIS | CARD | EWALLET — the acquirer's own word
+  @IsOptional() @IsString() @MaxLength(64) terminalRef?: string;
+  @IsInt() @Min(0) grossAmount!: number;
+  @IsOptional() @IsInt() @Min(0) feeAmount?: number;
+  @IsInt() @Min(0) netAmount!: number;
+  @IsOptional() @IsInt() @Min(0) txnCount?: number;
+  @IsOptional() @IsString() @MaxLength(64) externalRef?: string;
+}
+
+export class IngestSettlementDto {
+  @IsArray()
+  @ArrayMaxSize(2000)
+  @ValidateNested({ each: true })
+  @Type(() => SettlementRowDto)
+  rows!: SettlementRowDto[];
 }

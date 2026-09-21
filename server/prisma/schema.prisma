@@ -165,6 +165,32 @@ model Merchant {
   logoUrl      String?
   createdAt    DateTime     @default(now())
 
+  // ---- The acquiring bank's own keys (specs/011-bank-reporting) -------------------------------
+  // All optional and additive: a merchant with no bank relationship carries none of them and is
+  // unaffected. Without `qrisNmid` / `edcTid` the bank cannot join its settlement file to our
+  // orders, which is the whole of the reconciliation report — so they are the first fields the
+  // onboarding officer fills.
+  bankCif       String? // CIF / nomor rekening the account was opened under
+  bankBranch    String? // the branch that onboarded them
+  bankOfficerId String? // whoever opened it, in the bank's own staffing
+  onboardedAt   DateTime?
+  qrisNmid      String? // National Merchant ID
+  qrisMpan      String?
+  edcTid        String? // terminal id
+  edcMid        String? // merchant id
+  nib           String?
+  npwp          String?
+  mcc           String? // the category the bank files them under
+
+  // Sharing this merchant's transaction data with the bank is a decision they make, recorded with
+  // the text they agreed to and revocable (UU PDP 27/2022). Null = never given. Exports check it.
+  dataConsentAt      DateTime?
+  dataConsentVersion String?
+  dataConsentBy      String? // the staff id that recorded it
+  dataConsentRevokedAt DateTime?
+
+  settlements SettlementRecord[]
+
   outlets    Outlet[]
   staff      Staff[]
   categories Category[]
@@ -670,4 +696,37 @@ model AuditLog {
 
   @@index([merchantId])
   @@map("audit_logs")
+}
+
+/// One line as the ACQUIRER reported it — the bank's record of what it settled, not ours.
+///
+/// Stored exactly as sent and never edited to fit our orders (Constitution IV). The reconciliation
+/// report compares the two sides and shows both; a mismatch is a finding, not something to correct.
+/// This is what makes the cash figure beside it believable: the non-cash half can be checked
+/// against the bank's own books.
+model SettlementRecord {
+  id         String   @id @default(uuid())
+  merchantId String
+  /// Business date the acquirer settled for.
+  settledOn  DateTime @db.Date
+  /// QRIS | CARD | EWALLET — the acquirer's own word for the rail.
+  method     String
+  /// Which terminal or NMID it settled under; how we find the outlet.
+  terminalRef String?
+  /// Integer rupiah, as the acquirer stated them.
+  grossAmount Int
+  feeAmount   Int @default(0)
+  netAmount   Int
+  /// How many transactions the acquirer counted that day on that rail.
+  txnCount    Int @default(0)
+  /// The acquirer's own line reference, when it gave one. Unique per merchant so a re-sent file
+  /// updates rather than duplicates.
+  externalRef String?
+  ingestedAt  DateTime @default(now())
+
+  merchant Merchant @relation(fields: [merchantId], references: [id])
+
+  @@unique([merchantId, externalRef])
+  @@index([merchantId, settledOn])
+  @@map("settlement_records")
 }

@@ -15,6 +15,7 @@ const nav = [
   { to: '/resources', label: 'Resources', icon: '👥' },
   { to: '/prices', label: 'Prices', icon: '🏷️' },
   { to: '/entity', label: 'Entity Settings', icon: '🏢' },
+  { to: '/bank', label: 'Laporan Bank', icon: '🏦' },
 ];
 
 onMounted(async () => {

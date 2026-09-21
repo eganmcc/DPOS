@@ -232,6 +232,9 @@ export async function cleanupMerchant(prisma: PrismaService, merchantId: string)
   await prisma.category.deleteMany({ where: { merchantId } });
   await prisma.taxRule.deleteMany({ where: { merchantId } });
   await prisma.auditLog.deleteMany({ where: { merchantId } });
+  // The acquirer's settlement lines (specs/011). RESTRICT on the FK, so a suite that ingested any
+  // cannot tear its merchant down without this — which is how it should fail: loudly.
+  await prisma.settlementRecord.deleteMany({ where: { merchantId } });
   await prisma.staff.deleteMany({ where: { merchantId } });
   await prisma.outlet.deleteMany({ where: { merchantId } });
   await prisma.merchant.delete({ where: { id: merchantId } });
