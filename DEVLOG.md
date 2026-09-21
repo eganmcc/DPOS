@@ -15,6 +15,30 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> ### Note to the next Claude session (written 2026-09-21, PC → Mac)
+>
+> - **State, already verified — don't re-derive it.** `main` @ the STT merge: `flutter analyze`
+>   clean, 214 Dart tests, 14 suites / 107 server tests, tree clean, nothing unpushed. Re-run the
+>   suites when you change code, not to confirm this line.
+> - **Read "What the device taught us" below before touching anything under
+>   `app/lib/features/stt/`.** Every bullet cost hours on real hardware and none of it is in the
+>   plugin's docs. The comments in those files say *why*, not what; keep them that way.
+> - **Diagnose from the device log, never from a plausible story.** This session shipped a fix
+>   built on a guess; the user caught it and was right to. `adb logcat -d | grep SpeechToTextPlugin`
+>   (drop `rmsDB` lines), and the runner's own notes now reach logcat when the bench's
+>   `debugLogging` is on. If the log cannot answer it, say so and ask — do not reason forward.
+> - **State branch + commit + date in any finding about the code.** Project rule, and this repo has
+>   burned people before.
+> - **Stage the whole tree.** `git add -A app` once stranded a server test for a day.
+> - **Revert `app/windows/` before every commit.** A Flutter build regenerates the plugin registrant
+>   and this app is Android-only by decision.
+> - **The phone is the user's.** Install, `adb`, and log pulls only when asked for that round.
+> - **Never weaken a failing test to make it pass.** If the product changed, say so and update the
+>   assertion to the new contract, explicitly.
+>
+> The one real gap: voice has never had a clean end-to-end run on a device — every fix since build
+> 2107 came from reading logs. That pass is item 2 of Next steps, and it is the user's to run.
+
 > ### 2026-09-21 — speech to text is ON `main` (app 0.4.0). PICK UP HERE.
 >
 > **`feat/stt` was merged into `main` (18 commits) and deleted.** Everything below is on the trunk;
