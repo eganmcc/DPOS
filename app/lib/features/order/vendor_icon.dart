@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 /// Human-readable vendor name for an `OrderChannel` value.
 String vendorName(String channel) {
@@ -41,43 +42,61 @@ String _monogram(String channel) {
   }
 }
 
+/// The platform's own wordmark, bundled with the payment brand marks.
+///
+/// These were in the repo all along; this looked for PNGs at `assets/images/` that never
+/// existed, so every order fell back to the monogram.
 String? _asset(String channel) {
   switch (channel) {
     case 'GOFOOD':
-      return 'assets/images/gofood.png';
+      return 'assets/images/payments/gofood.svg';
     case 'GRABFOOD':
-      return 'assets/images/grabfood.png';
+      return 'assets/images/payments/grabfood.svg';
     case 'SHOPEEFOOD':
-      return 'assets/images/shopeefood.png';
+      return 'assets/images/payments/shopeefood.svg';
     default:
       return null;
   }
 }
 
-/// Circular vendor badge. Renders the official logo PNG when it is bundled in
-/// `assets/images/`, otherwise a brand-colour monogram fallback — so it looks right
-/// immediately and upgrades the moment the real logos are dropped in.
-Widget vendorIcon(String channel, {double size = 40}) {
+/// The vendor's own mark, on a white chip.
+///
+/// A chip rather than the circular avatar this used to be, because these are **wordmarks**, not
+/// square icons — GoFood is 308×63 — and a circle would crop them to a letter and a half. White
+/// because the marks carry their own black and white parts: GoFood's type is `#000`, ShopeeFood's
+/// cutlery is `#fff`, and either one disappears if it is handed the app's own surface in the
+/// wrong theme.
+///
+/// Falls back to the brand-colour monogram when a mark is missing, so a bad asset never leaves a
+/// hole in the list.
+Widget vendorIcon(String channel, {double width = 64, double height = 40}) {
   final fallback = CircleAvatar(
-    radius: size / 2,
+    radius: height / 2,
     backgroundColor: vendorColor(channel),
     child: Text(
       _monogram(channel),
       style: TextStyle(
         color: Colors.white,
         fontWeight: FontWeight.w800,
-        fontSize: size * 0.34,
+        fontSize: height * 0.34,
       ),
     ),
   );
   final asset = _asset(channel);
   if (asset == null) return fallback;
-  return ClipOval(
-    child: Image.asset(
+  return Container(
+    width: width,
+    height: height,
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: const Color(0x1A000000)),
+    ),
+    child: SvgPicture.asset(
       asset,
-      width: size,
-      height: size,
-      fit: BoxFit.cover,
+      fit: BoxFit.contain,
+      placeholderBuilder: (_) => const SizedBox.shrink(),
       errorBuilder: (_, __, ___) => fallback,
     ),
   );

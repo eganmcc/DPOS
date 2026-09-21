@@ -77,10 +77,8 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               children: [
-                if (onlineOrders.isNotEmpty) ...[
-                  _header(t.onlineOrdersTitle, cs),
-                  for (final o in onlineOrders) _onlineTile(o, outletId, t, cs),
-                ],
+                // The shop's own bills first — they are the ones with a customer waiting at the
+                // counter. Delivery platforms have their own driver and their own clock.
                 if (bills.isNotEmpty) ...[
                   if (showBillsHeader) _header(t.openBillsTitle, cs),
                   Padding(
@@ -97,6 +95,10 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
                     ),
                   ),
                   for (final b in filteredBills) _billTile(b, t, cs, canEdit: canEdit),
+                ],
+                if (onlineOrders.isNotEmpty) ...[
+                  _header(t.onlineOrdersTitle, cs),
+                  for (final o in onlineOrders) _onlineTile(o, outletId, t, cs),
                 ],
               ],
             ),
@@ -121,8 +123,9 @@ class _OpenBillsScreenState extends ConsumerState<OpenBillsScreen> {
       leading: vendorIcon(o.channel),
       title: Row(
         children: [
+          // The mark says which platform; repeating "GoFood" beside it would be saying it twice.
           Flexible(
-            child: Text('#${o.externalOrderRef ?? o.id.substring(0, 4)} · ${vendorName(o.channel)}',
+            child: Text('#${o.externalOrderRef ?? o.id.substring(0, 4)}',
                 overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
           if (isNew)
