@@ -12,8 +12,11 @@ import '../../core/brand.dart';
 import '../../core/money.dart';
 import '../../core/theme.dart';
 import '../../data/api_client.dart';
+import '../../data/providers.dart';
+import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import 'nota_models.dart';
+import 'nota_order_screen.dart';
 import 'nota_photo_viewer.dart';
 
 enum _Stage { idle, reading, done, failed }
@@ -24,8 +27,11 @@ const double kNotaMaxPixels = 600;
 
 /// Photograph a handwritten nota and show what DPOS reads off it.
 ///
-/// Read-only by design: nothing is saved and no sale is created. This screen exists to find out
-/// how well real slips read before anything is built on top of the result.
+/// Reading saves nothing. On an F&B till the reading can then be turned into an order —
+/// **Jadikan pesanan** hands it to [NotaOrderScreen], which checks every line against the catalogue
+/// the way voice does and finishes through the till's existing cart / open-bill / payment flow.
+/// Nota-reading merchants have their own route (the nota chat, which records the paper's amounts);
+/// grocery and calculator tills have no catalogue lines a nota could match.
 class NotaReaderScreen extends ConsumerStatefulWidget {
   const NotaReaderScreen({super.key});
 
@@ -306,34 +312,70 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
     );
   }
 
+  /// Whether this reading can become an order here: an F&B till with a catalogue to match against,
+  /// and a reading that has lines. Other merchants either have their own route or nothing to match.
+  bool _canMakeOrder() {
+    final reading = _reading;
+    if (_stage != _Stage.done || reading == null || reading.items.isEmpty) return false;
+    final session = ref.watch(sessionProvider);
+    if (session == null) return false;
+    final catalog = ref.watch(catalogProvider(session.outletId)).valueOrNull;
+    return catalog != null && catalog.isFnb && !catalog.sellsWithoutCatalog;
+  }
+
   Widget _actions(AppLocalizations t) {
     final done = _stage == _Stage.done;
+    final offerOrder = _canMakeOrder();
+    final retakeIcon = Icon(done ? Icons.add_a_photo_outlined : Icons.photo_camera_outlined);
+    final retakeLabel = Text(
+      done ? t.notaReadAnother : (_photo == null ? t.notaTakePhoto : t.notaRetake),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+    );
+    void retake() {
+      if (done) _reset();
+      _pick(ImageSource.camera);
+    }
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (offerOrder) ...[
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton.icon(
+                  key: const ValueKey('nota-make-order'),
+                  style: FilledButton.styleFrom(shape: const StadiumBorder()),
+                  icon: const Icon(Icons.shopping_cart_checkout_outlined),
+                  label: Text(t.notaMakeOrder,
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => NotaOrderScreen(reading: _reading!)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+            // Once an order is on offer, reading another nota steps back to the secondary action.
             SizedBox(
               width: double.infinity,
               height: 52,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(shape: const StadiumBorder()),
-                icon: Icon(done
-                    ? Icons.add_a_photo_outlined
-                    : Icons.photo_camera_outlined),
-                label: Text(
-                  done
-                      ? t.notaReadAnother
-                      : (_photo == null ? t.notaTakePhoto : t.notaRetake),
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700),
-                ),
-                onPressed: () {
-                  if (done) _reset();
-                  _pick(ImageSource.camera);
-                },
-              ),
+              child: offerOrder
+                  ? OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(shape: const StadiumBorder()),
+                      icon: retakeIcon,
+                      label: retakeLabel,
+                      onPressed: retake,
+                    )
+                  : FilledButton.icon(
+                      style: FilledButton.styleFrom(shape: const StadiumBorder()),
+                      icon: retakeIcon,
+                      label: retakeLabel,
+                      onPressed: retake,
+                    ),
             ),
             const SizedBox(height: 6),
             TextButton.icon(

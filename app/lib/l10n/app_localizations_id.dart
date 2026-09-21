@@ -906,6 +906,28 @@ class AppLocalizationsId extends AppLocalizations {
   String get notaReadAnother => 'Baca nota lain';
 
   @override
+  String get notaMakeOrder => 'Jadikan pesanan';
+
+  @override
+  String get notaOrderTitle => 'Pesanan dari nota';
+
+  @override
+  String notaOrderFrom(String number) {
+    return 'Dibaca dari nota #$number';
+  }
+
+  @override
+  String get notaOrderEmpty => 'Tidak ada baris untuk dipesan.';
+
+  @override
+  String get notaQtyUnreadable => 'Jumlah di nota bukan bilangan bulat';
+
+  @override
+  String notaPriceOnPaper(String price) {
+    return 'Di nota $price — yang dikenakan harga toko';
+  }
+
+  @override
   String get notaCameraDenied => 'Akses kamera diperlukan untuk memotret nota.';
 
   @override

@@ -1778,6 +1778,42 @@ abstract class AppLocalizations {
   /// **'Read another nota'**
   String get notaReadAnother;
 
+  /// No description provided for @notaMakeOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'Make it an order'**
+  String get notaMakeOrder;
+
+  /// No description provided for @notaOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Order from nota'**
+  String get notaOrderTitle;
+
+  /// No description provided for @notaOrderFrom.
+  ///
+  /// In en, this message translates to:
+  /// **'Read from nota #{number}'**
+  String notaOrderFrom(String number);
+
+  /// No description provided for @notaOrderEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No lines left to order.'**
+  String get notaOrderEmpty;
+
+  /// No description provided for @notaQtyUnreadable.
+  ///
+  /// In en, this message translates to:
+  /// **'The quantity on the nota isn\'t a whole number'**
+  String get notaQtyUnreadable;
+
+  /// No description provided for @notaPriceOnPaper.
+  ///
+  /// In en, this message translates to:
+  /// **'Nota says {price} — the shop\'s price is charged'**
+  String notaPriceOnPaper(String price);
+
   /// No description provided for @notaCameraDenied.
   ///
   /// In en, this message translates to:

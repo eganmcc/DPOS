@@ -16,9 +16,7 @@ import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import '../calculator/nota_counter.dart';
 import '../calculator/nota_payment_sheet.dart';
-import '../order/cart.dart';
-import '../order/order_screen.dart';
-import '../payment/payment_screen.dart';
+import '../order/staged_order.dart';
 import 'stt_commands.dart';
 import 'stt_engine.dart';
 import 'stt_lab_screen.dart' show sttEngineProvider;
@@ -86,15 +84,8 @@ class VoiceOrderScreen extends ConsumerWidget {
 
   /// Spoken catalogue lines go into the SAME cart as tapped ones, so an order can be half spoken
   /// and half tapped and still be one bill.
-  static void _addToCart(WidgetRef ref, List<SttStockCheck> checks) {
-    final cart = ref.read(cartProvider.notifier);
-    for (final c in checks) {
-      final p = c.product;
-      final v = c.variant;
-      if (p == null || v == null) continue;
-      cart.addItem(p, v, const [], qty: c.qty);
-    }
-  }
+  static void _addToCart(WidgetRef ref, List<SttStockCheck> checks) =>
+      addStagedToCart(ref, checks);
 
   /// Selesai. What it means depends on the mode, because the two sell differently: an open-price
   /// sale is a counter sale paid now, a catalogue order is usually served before it is paid.
@@ -106,19 +97,8 @@ class VoiceOrderScreen extends ConsumerWidget {
     required List<PricedLine> priced,
   }) async {
     if (mode == VoiceOrderMode.catalogue) {
-      _addToCart(ref, checks);
-      final session = ref.read(sessionProvider)!;
-      final catalog = ref.read(catalogProvider(session.outletId)).valueOrNull;
-      if (catalog?.isOpenBill ?? false) {
-        // The existing open-bill path — one money path, whoever called it.
-        return confirmOpenBill(context, ref);
-      }
-      final preview = ref.read(cartProvider).preview(catalog?.taxRule);
-      if (!context.mounted) return false;
-      await Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => PaymentScreen(grandTotalPreview: preview.grandTotal)),
-      );
-      return true;
+      // The existing open-bill / payment path — one money path, shared with the nota reader.
+      return finishStagedOrder(context, ref, checks);
     }
     return _finishOpenPrice(context, ref, priced);
   }

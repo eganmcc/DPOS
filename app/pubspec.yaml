@@ -1,7 +1,7 @@
 name: dpos
 description: "DPOS — Indonesian mobile POS (phone + tablet)."
 publish_to: "none"
-version: 0.4.0+1
+version: 0.5.0+1
 
 environment:
   sdk: ">=3.5.0 <4.0.0"

@@ -80,11 +80,40 @@ becomes an open transaction**, paid later through the existing settlement flow.
 2. The **edit** action is hidden for this type: editing rebuilds a cart from catalog variants, and a
    nota has none. Cancel and settle work as for any open bill.
 
+### F. On an F&B till: a read nota becomes a catalogue order (added 2026-09-21)
+
+The till's **Baca nota** screen (scan icon, F&B) used to be read-only. It now ends the way voice's
+catalogue mode ends (`specs/010`), and deliberately by the same code:
+
+1. After a reading, **Jadikan pesanan** opens the lines in voice's four columns. Shown only on an F&B
+   till with a catalogue — a nota-reading merchant has the chat above; grocery and calculator tills
+   have no catalogue lines a nota could match.
+2. Every line is checked with the **voice matcher** (`checkItem`): product, the variant the paper
+   names, availability and stock. Counts and prices written into a line's text ("2 nasgor 30.000")
+   are stripped before matching; the reader's own qty field is the quantity.
+3. **The shop's price is charged, never the paper's.** A catalogue merchant cannot be charged a
+   written amount (the open-amount gate, D, refuses it). Where the paper's unit price differs, the
+   line says so — *"Di nota Rp 20.000 — yang dikenakan harga toko"* — and **does not block**,
+   for the same reason short stock doesn't: the cashier can see both.
+4. **Blocks Selesai:** a line not in the catalogue (as in voice), and a quantity that is not a whole
+   number of at least one. A line with no count written is one of it. Unavailable and short-stock
+   lines are flagged, not blocked — as in voice. Every line can be removed; nothing on the paper
+   silently disappears — an unmatched line stays, in the paper's own words, until removed.
+5. **Tambah ke keranjang** puts the lines in the till's cart; **Selesai** goes through the existing
+   open-bill path, or the payment screen where the outlet pays immediately. Both are the shared
+   `features/order/staged_order.dart`, which voice now uses too. **No new money path.**
+6. **Lines only.** The nota number is not carried into the order (decided 2026-09-21), so the
+   `NOTA_ALREADY_RECORDED` guard does not apply here: reading the same slip twice makes two sales,
+   and the second is voided by hand. The server already accepts `notaNumber` from any merchant, so
+   adding it later is app-side plumbing through the cart, not a server change.
+
 ## Out of scope
 
 - Correcting a reading ("Ya" is a placeholder).
 - Persisting the chat history across app launches — the transactions themselves are on the server.
-- A catalog for this type; matching nota shorthand to products.
+- A catalog for this type. (Matching nota shorthand to products now exists for **F&B** tills — F above —
+  as far as the voice matcher goes: "nasgor" will not find "Nasi Goreng"; it is reported as not in the
+  catalogue and a human decides.)
 
 ## Open item — must be decided before any real merchant uses this
 

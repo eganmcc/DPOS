@@ -39,6 +39,28 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 > The one real gap: voice has never had a clean end-to-end run on a device — every fix since build
 > 2107 came from reading logs. That pass is item 2 of Next steps, and it is the user's to run.
 
+> ### 2026-09-21 (later, Mac) — a read nota becomes an order on the F&B till (app 0.5.0)
+>
+> The till's **Baca nota** (scan icon, F&B) is no longer read-only. After a reading, **Jadikan
+> pesanan** opens the lines in voice's four-column list, each checked with the **voice matcher**
+> (`checkItem`: product, named variant, availability, stock), then **Tambah ke keranjang** or
+> **Selesai** through the existing open-bill / payment flow. Spec: `specs/009` § F.
+>
+> - **The shop's price is charged, never the paper's** — a catalogue merchant can't be charged a
+>   written amount. A different written price is shown on the line and does **not** block.
+> - **Blocks Selesai:** not in the catalogue (as voice), or a non-whole quantity. Stock and
+>   availability are flagged, not blocked (as voice).
+> - **Lines only, on your call:** the nota number is NOT carried, so re-reading one slip makes two
+>   sales. The server already accepts `notaNumber` from any merchant if that changes.
+> - **One money path:** voice's two finish helpers moved to `features/order/staged_order.dart`, and
+>   voice and nota both call them. Voice behaviour unchanged; its tests untouched and green.
+> - App-only: **no server change, no migration, EC2 needs nothing.** Dart **235 tests** (+21:
+>   `nota_order_test.dart`, `nota_order_screen_test.dart`), `flutter analyze` clean.
+> - **Not yet on a device.** Matching is the voice matcher's: shorthand like "nasgor" will not find
+>   "Nasi Goreng" — it shows as not in the catalogue and must be removed. That is the thing to watch
+>   on real slips.
+> - The **0.4.0 / 2111** APK built earlier today (debug-signed, `dist/`) predates this.
+
 > ### 2026-09-21 — speech to text is ON `main` (app 0.4.0). PICK UP HERE.
 >
 > **`feat/stt` was merged into `main` (18 commits) and deleted.** Everything below is on the trunk;
@@ -452,6 +474,9 @@ the emulator as the **Laba Kotor** card.
    in one move, and the sheet is already the right place for it.
 4. Fill the five placeholders in the pitch decks before showing either: pilot status, commercial
    model, next commercial milestone, the investment ask, contact details.
+5. **Nota → order on an F&B till, on a device:** read a real slip as Warung Kopi Demo, check how many
+   lines the voice matcher misses on real shorthand, then Selesai through the open bill. If shorthand
+   misses dominate, the fix is aliases on the matcher, which helps voice too.
 
 **Older board scope (US1 + US3 + US6 + US7):**
 1. **US3 on-device pass**: as owner, walk history → detail → void; confirm the sale shows as *Dibatalkan*, the reversal row appears, and stock comes back.

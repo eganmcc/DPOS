@@ -905,6 +905,29 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notaReadAnother => 'Read another nota';
 
   @override
+  String get notaMakeOrder => 'Make it an order';
+
+  @override
+  String get notaOrderTitle => 'Order from nota';
+
+  @override
+  String notaOrderFrom(String number) {
+    return 'Read from nota #$number';
+  }
+
+  @override
+  String get notaOrderEmpty => 'No lines left to order.';
+
+  @override
+  String get notaQtyUnreadable =>
+      'The quantity on the nota isn\'t a whole number';
+
+  @override
+  String notaPriceOnPaper(String price) {
+    return 'Nota says $price — the shop\'s price is charged';
+  }
+
+  @override
   String get notaCameraDenied =>
       'Camera access is needed to photograph a nota.';
 
