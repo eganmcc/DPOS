@@ -15,29 +15,39 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
-> ### Note to the next Claude session (written 2026-09-21, PC → Mac)
+> ### Note to the next Claude session (written 2026-09-21 evening, Mac → PC)
 >
-> - **State, already verified — don't re-derive it.** `main` @ the STT merge: `flutter analyze`
->   clean, 214 Dart tests, 14 suites / 107 server tests, tree clean, nothing unpushed. Re-run the
->   suites when you change code, not to confirm this line.
-> - **Read "What the device taught us" below before touching anything under
->   `app/lib/features/stt/`.** Every bullet cost hours on real hardware and none of it is in the
->   plugin's docs. The comments in those files say *why*, not what; keep them that way.
-> - **Diagnose from the device log, never from a plausible story.** This session shipped a fix
->   built on a guess; the user caught it and was right to. `adb logcat -d | grep SpeechToTextPlugin`
->   (drop `rmsDB` lines), and the runner's own notes now reach logcat when the bench's
->   `debugLogging` is on. If the log cannot answer it, say so and ask — do not reason forward.
-> - **State branch + commit + date in any finding about the code.** Project rule, and this repo has
->   burned people before.
-> - **Stage the whole tree.** `git add -A app` once stranded a server test for a day.
-> - **Revert `app/windows/` before every commit.** A Flutter build regenerates the plugin registrant
->   and this app is Android-only by decision.
+> - **State, already verified — don't re-derive it.** `main` @ `c3d6adb` (+ this DEVLOG commit):
+>   app **0.5.1**, `flutter analyze` clean, **246 Dart tests**; server unchanged today, still 14
+>   suites / 107. Tree clean, nothing unpushed. Re-run the suites when you change code, not to
+>   confirm this line.
+> - **The phone's signature changed today — read this before installing anything on it.** The
+>   Xiaomi (Redmi Note 14 Pro+, wireless adb) now has **0.5.1 / build 2113, signed with the Mac's
+>   DEBUG key**, because this Mac has no release keystore. The PC's release-signed build will fail
+>   with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; it must be **uninstalled first**, which wipes the
+>   app's local data (login, cached catalogue, bench tuning, unsynced sales). The user chose that
+>   trade-off today. **Next build number: 2114 or higher.**
+> - **A debug-signed 0.4.0 / 2111 APK may have been sent out on WhatsApp** (`dist/`, Mac only,
+>   gitignored). Anyone who installed it has the same problem on the next real release.
+> - **Two things changed behaviour on the till today** (entries below): a read nota can become an
+>   order on an F&B till, and **short or sold-out stock now blocks Selesai in voice too** — spec 010
+>   § 12 was reversed on purpose, because the server refuses to oversell. A refused sale now says why
+>   instead of "Gagal masuk (cek koneksi)".
+> - **Not yet confirmed on the device:** the stock fix was installed but the user had not re-run
+>   the nota from the first failure when the Mac session ended. Warung Kopi Demo's **Outlet Cabang
+>   has every tracked item at 0 or 1** — test on Outlet Pusat, or restock.
+> - **Read "What the device taught us" below before touching `app/lib/features/stt/`.**
+> - **Diagnose from the device log, never from a plausible story.** If the log cannot answer it, say
+>   so and ask. Today's stock bug was traced through the phone log, the live catalogue and the server
+>   code — SSH to EC2 **timed out from the Mac**, so check whether it works from the PC.
+> - **State branch + commit + date in any finding about the code.**
+> - **Stage the whole tree**, but **leave `app/windows/` out** — a Flutter build regenerates its
+>   plugin registrant and this app is Android-only by decision.
 > - **The phone is the user's.** Install, `adb`, and log pulls only when asked for that round.
 > - **Never weaken a failing test to make it pass.** If the product changed, say so and update the
->   assertion to the new contract, explicitly.
+>   assertion to the new contract, explicitly (as done today in `voice_order_screen_test.dart`).
 >
-> The one real gap: voice has never had a clean end-to-end run on a device — every fix since build
-> 2107 came from reading logs. That pass is item 2 of Next steps, and it is the user's to run.
+> Still the biggest gap: voice has never had a clean end-to-end run on a device. Item 2 of Next steps.
 
 > ### 2026-09-21 (latest, Mac) — first device run of nota → order failed; fixed (app 0.5.1)
 >
@@ -489,9 +499,11 @@ the emulator as the **Laba Kotor** card.
 
 ## Next steps
 
-**First, on the Mac (2026-09-21):**
-1. Build from `main` and put it on the phone — the installed 2110 came from the branch tip, so the
-   code matches but the version string still reads 0.3.1.
+**Next, on the PC (from 2026-09-21 evening):**
+1. ~~Build from `main` and put it on the phone.~~ **Done on the Mac: 0.5.1 / 2113, debug-signed.**
+   To go back to release signing, uninstall on the phone first, then install a PC build ≥ 2114.
+   Re-run the nota that failed (Mie Goreng ×1, Es Campur ×2) to confirm Selesai is now blocked
+   with *"Perbaiki 2 baris bertanda dulu."*
 2. Run voice on the device end to end: catalogue mode with real stock, then spoken-price mode on
    the calculator account. Everything since build 2107 was fixed from logs, not from a clean run.
 3. If the restart seam loses words in front of a real merchant, build **push-to-talk** — hold to
@@ -642,7 +654,7 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 
 | Branch | What it is | Status |
 |---|---|---|
-| `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current, 2026-09-19 |
+| `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current, 2026-09-21 |
 | `feat/nota-reader` | Nota photo reading — its work shipped via `main` on 2026-09-19 | behind `main`, safe to delete, 2026-09-16 |
 | `features/UMI` | UMI (Ultra Mikro) business size — 7 commits off `main` @ `1fc071f` | behind `main` (shipped), 2026-09-08 |
 | `feat/payment-methods` | Card (EDC) + e-wallet tenders — cut from `features/UMI` | behind `main` (shipped), 2026-09-10 |
