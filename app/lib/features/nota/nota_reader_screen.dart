@@ -377,15 +377,9 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
                       onPressed: retake,
                     ),
             ),
-            const SizedBox(height: 6),
-            TextButton.icon(
-              icon: const Icon(Icons.photo_library_outlined, size: 18),
-              label: Text(t.notaChooseGallery),
-              onPressed: () {
-                if (done) _reset();
-                _pick(ImageSource.gallery);
-              },
-            ),
+            // No "choose from gallery": a nota is photographed at the counter, in front of the
+            // customer, and a picture chosen from the roll is one nobody watched being taken.
+            // `_pick` still takes a source, so this is one button away if that changes.
           ],
         ),
       ),
@@ -523,34 +517,13 @@ class _ResultView extends StatelessWidget {
           ]),
         ],
         const SizedBox(height: 12),
+        // Confidence only. Which model read it, and how long it took, is ours to know and not a
+        // merchant's business — it read the paper or it did not. The raw JSON below it went the
+        // same way; both are still in the response for the log and the bench.
         Text(
-          '${t.notaConfidence(r.confidence)}  ·  '
-          '${t.notaReadBy(r.model, (r.latencyMs / 1000).toStringAsFixed(1))}',
+          t.notaConfidence(r.confidence),
           textAlign: TextAlign.center,
           style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-        ),
-        const SizedBox(height: 8),
-        Theme(
-          data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-          child: ExpansionTile(
-            tilePadding: EdgeInsets.zero,
-            title: Text(t.notaRawData,
-                style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-            children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: cs.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: SelectableText(
-                  const JsonEncoder.withIndent('  ').convert(r.raw),
-                  style: const TextStyle(fontFamily: 'monospace', fontSize: 11),
-                ),
-              ),
-            ],
-          ),
         ),
       ],
     );
