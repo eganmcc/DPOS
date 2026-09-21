@@ -260,3 +260,129 @@ describe('Bank reporting', () => {
     });
   });
 });
+
+/**
+ * Transaction-level and journal reporting.
+ *
+ * The property worth testing hardest is the general journal: debits must equal credits, every day,
+ * or an accountant cannot post it and would be right not to trust the rest.
+ */
+describe('Journal reporting', () => {
+  let ctx: TestContext;
+  let fx: MerchantFixture;
+
+  beforeAll(async () => {
+    ctx = await createTestApp();
+    fx = await makeMerchant(ctx);
+  });
+  afterAll(async () => {
+    await cleanupMerchant(ctx.prisma, fx.merchantId);
+    await ctx.app.close();
+  });
+
+  const api = () => request(ctx.app.getHttpServer());
+  const get = (path: string) =>
+    api().get(`/api/v1/admin/journal/${path}`).set('Authorization', `Bearer ${fx.ownerToken}`);
+
+  const sell = (method = 'CASH', qty = 1) =>
+    api()
+      .post('/api/v1/orders')
+      .set('Authorization', `Bearer ${fx.cashierToken}`)
+      .send({
+        clientOrderId: uuidv4(),
+        outletId: fx.outletId,
+        type: 'TAKEAWAY',
+        lines: [{ variantId: fx.variantRegularId, qty }],
+        payment: { method, tendered: 1000000 },
+      });
+
+  it('lists transactions with what was sold and how it was paid', async () => {
+    const sale = await sell('CASH');
+    expect(sale.status).toBe(201);
+    const res = await get('transactions');
+    expect(res.status).toBe(200);
+    const row = res.body.rows.find((r: { id: string }) => r.id === sale.body.id);
+    expect(row).toBeDefined();
+    expect(row.methods).toContain('CASH');
+    expect(row.total).toBe(sale.body.grandTotal);
+    expect(row.description).toContain('×');
+  });
+
+  it('keeps a voided sale IN the journal, labelled — not filtered out of it', async () => {
+    const sale = await sell('CASH');
+    await api()
+      .post(`/api/v1/orders/${sale.body.id}/void`)
+      .set('Authorization', `Bearer ${fx.cashierToken}`)
+      .send({ reason: 'salah input', clientVoidId: uuidv4(), approverPin: '4321' });
+
+    const res = await get('transactions');
+    const row = res.body.rows.find((r: { id: string }) => r.id === sale.body.id);
+    expect(row.status).toBe('VOIDED');
+    expect(row.voidReason).toBe('salah input');
+  });
+
+  it('the daily recap banks the live sales and counts the voided ones separately', async () => {
+    const res = await get('daily');
+    expect(res.status).toBe(200);
+    const today = res.body.rows[0];
+    expect(today.orders).toBeGreaterThanOrEqual(1);
+    expect(today.voided).toBeGreaterThanOrEqual(1);
+    // A voided sale contributes to neither the takings nor the drawer.
+    expect(today.gross).toBeGreaterThan(0);
+    expect(today.cash + today.nonCash).toBe(today.gross);
+  });
+
+  it('the corrections journal names the reason and the approver', async () => {
+    const res = await get('corrections');
+    expect(res.status).toBe(200);
+    const voided = res.body.rows.find((r: { kind: string }) => r.kind === 'VOID');
+    expect(voided.reason).toBe('salah input');
+    expect(voided.approvedBy).toBeTruthy();
+    expect(voided.selfApproved).toBe(false);
+  });
+
+  it('the tax recap carries the rate it was charged at', async () => {
+    const res = await get('tax');
+    expect(res.status).toBe(200);
+    expect(res.body.totals.tax).toBeGreaterThan(0);
+    expect(res.body.rateBps).toBeGreaterThan(0);
+    expect(res.body.label).toBeTruthy();
+  });
+
+  describe('the general journal', () => {
+    it('balances — debits equal credits, every day', async () => {
+      await sell('QRIS_SIMULATED');
+      const res = await get('general');
+      expect(res.status).toBe(200);
+      expect(res.body.entries.length).toBeGreaterThan(0);
+      for (const e of res.body.entries) {
+        expect(e.debit).toBe(e.credit);
+        expect(e.balanced).toBe(true);
+      }
+      expect(res.body.totals.unbalancedDays).toBe(0);
+      expect(res.body.totals.debit).toBe(res.body.totals.credit);
+    });
+
+    it('posts cash and non-cash to different accounts', async () => {
+      const res = await get('general');
+      const today = res.body.entries[0];
+      const accounts = today.postings.map((p: { account: string }) => p.account);
+      expect(accounts).toContain('Kas');
+      expect(accounts).toContain('Bank / Piutang Penyelenggara');
+      expect(accounts).toContain('Pendapatan Penjualan');
+      expect(accounts).toContain('Pajak Terutang (PB1/PPN)');
+    });
+
+    it('a voided sale is posted nowhere at all', async () => {
+      const before = await get('general');
+      const beforeDebit = before.body.totals.debit;
+      const sale = await sell('CASH');
+      await api()
+        .post(`/api/v1/orders/${sale.body.id}/void`)
+        .set('Authorization', `Bearer ${fx.cashierToken}`)
+        .send({ reason: 'test', clientVoidId: uuidv4(), approverPin: '4321' });
+      const after = await get('general');
+      expect(after.body.totals.debit).toBe(beforeDebit);
+    });
+  });
+});

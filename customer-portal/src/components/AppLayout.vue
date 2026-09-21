@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { RouterView, useRouter } from 'vue-router';
+import { ref, computed, onMounted } from 'vue';
+import { RouterView, useRouter, useRoute } from 'vue-router';
 import { useAuth, businessTypeLabel } from '../stores/auth';
 import { APP_VERSION, fetchServerVersion } from '../version';
 import logoUrl from '../assets/logo.png';
@@ -8,6 +8,13 @@ import logoUrl from '../assets/logo.png';
 const auth = useAuth();
 const router = useRouter();
 const serverVersion = ref('…');
+const route = useRoute();
+// Open when a report is on screen; otherwise remembers the click.
+const manualOpen = ref(false);
+const reportsOpen = computed({
+  get: () => manualOpen.value || route.path.startsWith('/laporan'),
+  set: (v: boolean) => (manualOpen.value = v),
+});
 const showVersion = ref(false);
 
 const nav = [
@@ -15,7 +22,20 @@ const nav = [
   { to: '/resources', label: 'Resources', icon: '👥' },
   { to: '/prices', label: 'Prices', icon: '🏷️' },
   { to: '/entity', label: 'Entity Settings', icon: '🏢' },
-  { to: '/bank', label: 'Laporan Bank', icon: '🏦' },
+];
+
+/**
+ * Laporan — every report under one heading, in the order they are read: what happened (jurnal,
+ * harian), what it means (pajak, jurnal umum), what went wrong (koreksi), and the pack the bank
+ * asked for. Flat in the sidebar would bury Dashboard under eight siblings.
+ */
+const reports = [
+  { to: '/laporan/jurnal', label: 'Jurnal Transaksi' },
+  { to: '/laporan/harian', label: 'Rekap Harian' },
+  { to: '/laporan/koreksi', label: 'Jurnal Koreksi' },
+  { to: '/laporan/pajak', label: 'Rekap Pajak' },
+  { to: '/laporan/umum', label: 'Jurnal Umum' },
+  { to: '/laporan/bank', label: 'Laporan Bank' },
 ];
 
 onMounted(async () => {
@@ -43,6 +63,18 @@ function logout() {
         <RouterLink v-for="n in nav" :key="n.to" :to="n.to" class="nav-item" active-class="active">
           <span class="ico">{{ n.icon }}</span>{{ n.label }}
         </RouterLink>
+
+        <!-- Opens itself whenever a report is on screen, so the sidebar never disagrees with the
+             page. Toggling it shut while reading one would be the sidebar lying. -->
+        <button class="nav-item nav-group" :class="{ open: reportsOpen }" @click="reportsOpen = !reportsOpen">
+          <span class="ico">📑</span>Laporan
+          <span class="chev">{{ reportsOpen ? '▾' : '▸' }}</span>
+        </button>
+        <div v-if="reportsOpen" class="nav-sub">
+          <RouterLink v-for="r in reports" :key="r.to" :to="r.to" class="nav-item sub" active-class="active">
+            {{ r.label }}
+          </RouterLink>
+        </div>
       </nav>
 
       <div class="side-foot">
@@ -147,6 +179,33 @@ function logout() {
 .ico {
   width: 20px;
   text-align: center;
+}
+.nav-group {
+  width: 100%;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.nav-group .chev {
+  margin-left: auto;
+  font-size: 11px;
+  opacity: 0.7;
+}
+.nav-sub {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Indented under the heading, and a rule down the side so the group reads as one block. */
+  margin-left: 18px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+.nav-item.sub {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: 500;
 }
 .side-foot {
   border-top: 1px solid rgba(255, 255, 255, 0.12);

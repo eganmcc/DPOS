@@ -22,6 +22,7 @@ import { ProductsService } from './products.service';
 import { InventoryService } from './inventory.service';
 import { DashboardService } from './dashboard.service';
 import { BankService } from './bank.service';
+import { JournalService } from './journal.service';
 import {
   AdjustStockDto,
   CreateBranchDto,
@@ -217,5 +218,55 @@ export class BankController {
   @Get('integrity')
   integrity(@CurrentUser() user: AuthUser, @Query() q: DashboardQuery) {
     return this.bank.integrity(user.merchantId, q);
+  }
+}
+
+/**
+ * Transaction-level and journal reporting (specs/011-bank-reporting).
+ *
+ * Merchant-scoped from the token like every other admin surface. Managers can read these — they
+ * are the day's own figures, and a manager closing a till needs the daily recap.
+ */
+@Controller('admin/journal')
+@UseGuards(AuthGuard, RolesGuard)
+@Roles(StaffRole.OWNER, StaffRole.MANAGER)
+export class JournalController {
+  constructor(private readonly journal: JournalService) {}
+
+  /** Every transaction, corrections included and labelled. */
+  @Get('transactions')
+  transactions(
+    @CurrentUser() user: AuthUser,
+    @Query() q: DashboardQuery & { limit?: string; offset?: string },
+  ) {
+    return this.journal.transactions(user.merchantId, {
+      ...q,
+      limit: q.limit ? Number(q.limit) : undefined,
+      offset: q.offset ? Number(q.offset) : undefined,
+    });
+  }
+
+  /** One row per day — the end-of-day recap. */
+  @Get('daily')
+  daily(@CurrentUser() user: AuthUser, @Query() q: DashboardQuery) {
+    return this.journal.daily(user.merchantId, q);
+  }
+
+  /** Voids, refunds and abandoned bills, with reasons and approvers. */
+  @Get('corrections')
+  corrections(@CurrentUser() user: AuthUser, @Query() q: DashboardQuery) {
+    return this.journal.corrections(user.merchantId, q);
+  }
+
+  /** Tax and service charge collected. */
+  @Get('tax')
+  tax(@CurrentUser() user: AuthUser, @Query() q: DashboardQuery) {
+    return this.journal.tax(user.merchantId, q);
+  }
+
+  /** Double-entry postings an accountant can post. */
+  @Get('general')
+  general(@CurrentUser() user: AuthUser, @Query() q: DashboardQuery) {
+    return this.journal.generalJournal(user.merchantId, q);
   }
 }

@@ -15,7 +15,15 @@ const router = createRouter({
         { path: 'resources', name: 'resources', component: () => import('../views/ResourcesView.vue') },
         { path: 'prices', name: 'prices', component: () => import('../views/PricesView.vue') },
         { path: 'entity', name: 'entity', component: () => import('../views/EntityView.vue') },
-        { path: 'bank', name: 'bank', component: () => import('../views/BankView.vue') },
+        // Laporan — every report under one path, so the sidebar group and the URL agree.
+        { path: 'laporan/jurnal', name: 'laporan-jurnal', component: () => import('../views/JournalView.vue') },
+        { path: 'laporan/harian', name: 'laporan-harian', component: () => import('../views/DailyView.vue') },
+        { path: 'laporan/koreksi', name: 'laporan-koreksi', component: () => import('../views/CorrectionsView.vue') },
+        { path: 'laporan/pajak', name: 'laporan-pajak', component: () => import('../views/TaxView.vue') },
+        { path: 'laporan/umum', name: 'laporan-umum', component: () => import('../views/LedgerView.vue') },
+        { path: 'laporan/bank', name: 'laporan-bank', component: () => import('../views/BankView.vue') },
+        // The old link, kept working: it was live for an afternoon and may be in a bookmark.
+        { path: 'bank', redirect: '/laporan/bank' },
       ],
     },
     { path: '/:pathMatch(.*)*', redirect: '/dashboard' },
