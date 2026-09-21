@@ -7,6 +7,7 @@ import {
   IsUUID,
   Matches,
   Min,
+  Max,
   MinLength,
   MaxLength,
   IsArray,
@@ -107,6 +108,16 @@ export class DashboardQuery {
   @IsOptional() @IsUUID() outletId?: string;
   @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) from?: string;
   @IsOptional() @Matches(/^\d{4}-\d{2}-\d{2}$/) to?: string;
+}
+
+/**
+ * Jurnal Transaksi, which pages. This has to be a real class: an intersection type at the
+ * `@Query()` leaves the ValidationPipe no class to instantiate, so nothing on it gets checked at
+ * all — which is how a malformed `from` reached Prisma as an Invalid Date and came back a 500.
+ */
+export class JournalQuery extends DashboardQuery {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(2000) limit?: number;
+  @IsOptional() @Type(() => Number) @IsInt() @Min(0) offset?: number;
 }
 
 /** One settlement line as the acquirer reported it (specs/011-bank-reporting). */

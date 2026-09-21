@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { PeriodQuery } from './bank.service';
+import { PeriodQuery, range, isoRange } from './bank.service';
 
 /**
  * Transaction-level and journal reporting (specs/011-bank-reporting).
@@ -430,17 +430,6 @@ export class JournalService {
   }
 }
 
-function range(q: PeriodQuery, defaultDays: number) {
-  const to = q.to ? new Date(`${q.to}T23:59:59.999Z`) : new Date();
-  const from = q.from
-    ? new Date(`${q.from}T00:00:00.000Z`)
-    : new Date(to.getTime() - defaultDays * 86400000);
-  return { from, to };
-}
-
-function isoRange(from: Date, to: Date) {
-  return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
-}
 
 /** Decimal(12,3) reads as "2" rather than "2.000" in a journal a human is scanning. */
 function trimNum(q: unknown): string {

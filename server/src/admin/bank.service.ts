@@ -639,15 +639,27 @@ export class BankService {
 
 // ---------------------------------------------------------------- helpers
 
-function range(q: PeriodQuery, defaultDays: number) {
+/**
+ * The reporting period, shared by every bank and journal report so they cannot drift apart.
+ *
+ * Days are UTC calendar days. That is a known simplification: `void.service.ts` treats the
+ * business day as Asia/Jakarta, so a sale after 17:00 WIB falls on the next UTC day here.
+ */
+export function range(q: PeriodQuery, defaultDays: number) {
   const to = q.to ? new Date(`${q.to}T23:59:59.999Z`) : new Date();
   const from = q.from
     ? new Date(`${q.from}T00:00:00.000Z`)
     : new Date(to.getTime() - defaultDays * 86400000);
+  // A picker set "to" before "from" would otherwise return nothing, which reads as "no sales"
+  // rather than "you asked backwards". The response echoes the range actually used, so the swap
+  // is visible on screen rather than silent.
+  if (q.from && q.to && from > to) {
+    return { from: new Date(`${q.to}T00:00:00.000Z`), to: new Date(`${q.from}T23:59:59.999Z`) };
+  }
   return { from, to };
 }
 
-function isoRange(from: Date, to: Date) {
+export function isoRange(from: Date, to: Date) {
   return { from: from.toISOString().slice(0, 10), to: to.toISOString().slice(0, 10) };
 }
 

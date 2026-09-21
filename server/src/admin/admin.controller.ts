@@ -28,6 +28,7 @@ import {
   CreateBranchDto,
   CreateStaffDto,
   DashboardQuery,
+  JournalQuery,
   OutletQuery,
   SetPinDto,
   UpdateBranchDto,
@@ -237,13 +238,9 @@ export class JournalController {
   @Get('transactions')
   transactions(
     @CurrentUser() user: AuthUser,
-    @Query() q: DashboardQuery & { limit?: string; offset?: string },
+    @Query() q: JournalQuery,
   ) {
-    return this.journal.transactions(user.merchantId, {
-      ...q,
-      limit: q.limit ? Number(q.limit) : undefined,
-      offset: q.offset ? Number(q.offset) : undefined,
-    });
+    return this.journal.transactions(user.merchantId, q);
   }
 
   /** One row per day — the end-of-day recap. */

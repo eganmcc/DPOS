@@ -385,4 +385,66 @@ describe('Journal reporting', () => {
       expect(after.body.totals.debit).toBe(beforeDebit);
     });
   });
+
+  /**
+   * The date pickers on every report screen. These are filters over money, so "returned 200" is
+   * not the test — what is in and out of the window is.
+   */
+  describe('the date filter', () => {
+    const today = () => new Date().toISOString().slice(0, 10);
+    const dayBefore = (n: number) =>
+      new Date(Date.now() - n * 86400000).toISOString().slice(0, 10);
+
+    it('a malformed date is refused, not handed to the database', async () => {
+      // transactions/ took its query as an intersection type, which left the ValidationPipe no
+      // class to instantiate: nothing was checked and `new Date('10-09-2026')` reached Prisma.
+      for (const ep of ['transactions', 'daily', 'corrections', 'tax', 'general']) {
+        const res = await get(`${ep}?from=10-09-2026`);
+        expect([ep, res.status]).toEqual([ep, 400]);
+      }
+    });
+
+    it('keeps a sale inside its own day and out of every other', async () => {
+      await sell('CASH');
+      const inside = await get(`transactions?from=${today()}&to=${today()}`);
+      expect(inside.body.total).toBeGreaterThan(0);
+      expect(inside.body.range).toEqual({ from: today(), to: today() });
+
+      const before = await get(`transactions?from=${dayBefore(30)}&to=${dayBefore(20)}`);
+      expect(before.body.total).toBe(0);
+    });
+
+    it('a range asked backwards is swapped, not answered with nothing', async () => {
+      await sell('CASH');
+      // A picker fires on every change, so "to" gets set before "from" all the time. Returning
+      // zero rows there reads as "this merchant had no sales".
+      const res = await get(`transactions?from=${today()}&to=${dayBefore(3)}`);
+      expect(res.body.range).toEqual({ from: dayBefore(3), to: today() });
+      expect(res.body.total).toBeGreaterThan(0);
+    });
+
+    it('paging is validated and honoured', async () => {
+      await sell('CASH');
+      await sell('CASH');
+      const page = await get('transactions?limit=1&offset=0');
+      expect(page.body.limit).toBe(1);
+      expect(page.body.rows).toHaveLength(1);
+      const next = await get('transactions?limit=1&offset=1');
+      expect(next.body.rows[0].id).not.toBe(page.body.rows[0].id);
+      await get('transactions?limit=0').expect(400);
+      await get('transactions?limit=abc').expect(400);
+    });
+
+    it('the same window gives every report the same day', async () => {
+      await sell('CASH');
+      const [daily, tax, ledger] = await Promise.all([
+        get(`daily?from=${today()}&to=${today()}`),
+        get(`tax?from=${today()}&to=${today()}`),
+        get(`general?from=${today()}&to=${today()}`),
+      ]);
+      expect(daily.body.rows.map((r: { day: string }) => r.day)).toEqual([today()]);
+      expect(tax.body.rows.map((r: { day: string }) => r.day)).toEqual([today()]);
+      expect(ledger.body.entries.map((e: { day: string }) => e.day)).toEqual([today()]);
+    });
+  });
 });
