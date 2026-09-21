@@ -203,7 +203,14 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
                     _Stage.idle => const SizedBox.shrink(),
                     _Stage.reading => _readingIndicator(t),
                     _Stage.failed => _errorCard(t),
-                    _Stage.done => _ResultView(reading: _reading!),
+                    // A correction replaces the line in the reading itself, so the sum, the
+                    // difference and "Jadikan pesanan" all move together — the order is built
+                    // from what is on screen, not from what the camera first said.
+                    _Stage.done => _ResultView(
+                        reading: _reading!,
+                        onEditLine: (i, line) =>
+                            setState(() => _reading = _reading!.withLine(i, line)),
+                      ),
                   },
                 ],
               ),
@@ -389,8 +396,11 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
 
 /// The extraction, laid out the way the nota itself is: header fields, a line table, the total.
 class _ResultView extends StatelessWidget {
-  const _ResultView({required this.reading});
+  const _ResultView({required this.reading, this.onEditLine});
   final NotaReading reading;
+
+  /// Called with a corrected line. Null makes the table read-only.
+  final void Function(int index, NotaLine line)? onEditLine;
 
   @override
   Widget build(BuildContext context) {
@@ -399,7 +409,8 @@ class _ResultView extends StatelessWidget {
     final r = reading;
     final unreadable = t.notaUnreadable;
     final sum = r.linesSum;
-    final mismatch = r.total != null && sum != null && sum != r.total;
+    final diff = r.totalDifference;
+    final mismatch = diff != null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -485,7 +496,25 @@ class _ResultView extends StatelessWidget {
                 Text(t.notaLinesSum,
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
                 Text(formatRupiah(sum),
+                    key: const ValueKey('nota-lines-sum'),
                     style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant)),
+              ],
+            ),
+          ],
+          // The SIZE of the gap, not just that there is one. A cashier reads 25.000 as a whole
+          // item gone missing and 500 as somebody's rounding, and those want different actions.
+          if (diff != null) ...[
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(t.notaDifference,
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700, color: cs.error)),
+                Text(formatRupiah(diff.abs()),
+                    key: const ValueKey('nota-difference'),
+                    style: TextStyle(
+                        fontSize: 12, fontWeight: FontWeight.w700, color: cs.error)),
               ],
             ),
           ],
@@ -493,7 +522,11 @@ class _ResultView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 10),
               child: _banner(
-                  context, Icons.warning_amber_rounded, t.notaTotalMismatch),
+                context,
+                Icons.warning_amber_rounded,
+                '${diff > 0 ? t.notaDiffLinesMore(formatRupiah(diff.abs())) : t.notaDiffLinesLess(formatRupiah(diff.abs()))}'
+                '${onEditLine == null ? '' : ' ${t.notaFixHint}'}',
+              ),
             ),
         ]),
         if (r.unclear.isNotEmpty) ...[
@@ -552,26 +585,76 @@ class _ResultView extends StatelessWidget {
           Text(t.notaColPrice, style: head, textAlign: TextAlign.right),
           Text(t.notaColTotal, style: head, textAlign: TextAlign.right),
         ]),
-        for (final l in reading.items)
+        for (final (i, l) in reading.items.indexed)
           TableRow(children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              // Verbatim from the paper, so it reads like the paper.
-              child: Text(l.rawText,
-                  style: const TextStyle(
-                      fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+            // The whole row is the tap target — a pencil icon per line would crowd a table that
+            // has to stay readable as a nota.
+            _cell(
+              context,
+              i,
+              l,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(children: [
+                  Flexible(
+                    // Verbatim from the paper, so it reads like the paper.
+                    child: Text(l.rawText,
+                        style: const TextStyle(
+                            fontFamily: 'monospace', fontWeight: FontWeight.w600)),
+                  ),
+                  if (l.edited)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 6),
+                      child: Text('· ${t.notaEdited}',
+                          key: ValueKey('nota-edited-$i'),
+                          style: TextStyle(fontSize: 10, color: cs.primary)),
+                    ),
+                ]),
+              ),
             ),
-            Text(qty(l.qty), textAlign: TextAlign.center),
-            Text(money(l.unitPrice),
-                textAlign: TextAlign.right,
-                style: const TextStyle(fontSize: 12)),
-            Text(money(l.lineTotal),
-                textAlign: TextAlign.right,
-                style:
-                    const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            _cell(context, i, l, Text(qty(l.qty), textAlign: TextAlign.center)),
+            _cell(
+              context,
+              i,
+              l,
+              Text(money(l.unitPrice),
+                  textAlign: TextAlign.right, style: const TextStyle(fontSize: 12)),
+            ),
+            _cell(
+              context,
+              i,
+              l,
+              Text(money(l.lineTotal),
+                  key: ValueKey('nota-line-total-$i'),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+            ),
           ]),
       ],
     );
+  }
+
+  /// One table cell, tappable when corrections are allowed.
+  Widget _cell(BuildContext context, int index, NotaLine line, Widget child) {
+    if (onEditLine == null) return child;
+    return InkWell(
+      key: ValueKey('nota-line-$index'),
+      onTap: () => _editLine(context, index, line),
+      child: child,
+    );
+  }
+
+  /// Correct one line the reader got wrong.
+  ///
+  /// Name, quantity and unit price are editable; the line total is NOT — it is recomputed from
+  /// the other two. A cashier fixing a misread price should not also have to do the multiplication,
+  /// and a hand-typed total that disagrees with its own line is exactly the error being fixed.
+  Future<void> _editLine(BuildContext context, int index, NotaLine line) async {
+    final edited = await showDialog<NotaLine>(
+      context: context,
+      builder: (_) => _EditLineDialog(line: line),
+    );
+    if (edited != null) onEditLine!(index, edited);
   }
 
   Widget _card(BuildContext context, List<Widget> children) {
@@ -633,6 +716,118 @@ class _ResultView extends StatelessWidget {
           Expanded(child: Text(text, style: const TextStyle(fontSize: 12))),
         ],
       ),
+    );
+  }
+}
+
+/// Correcting one line of a reading.
+///
+/// Deliberately three fields and no total: quantity × price IS the total, and letting someone type
+/// a third number that disagrees with the other two would reintroduce the fault this screen exists
+/// to catch. An empty field means "still not readable" and stays null rather than becoming zero —
+/// a nota line with no price is a line nobody can be charged for, and the order screen blocks it.
+class _EditLineDialog extends StatefulWidget {
+  const _EditLineDialog({required this.line});
+  final NotaLine line;
+
+  @override
+  State<_EditLineDialog> createState() => _EditLineDialogState();
+}
+
+class _EditLineDialogState extends State<_EditLineDialog> {
+  late final TextEditingController _name =
+      TextEditingController(text: widget.line.rawText);
+  late final TextEditingController _qty = TextEditingController(
+      text: widget.line.qty == null ? '' : _plain(widget.line.qty!));
+  late final TextEditingController _price = TextEditingController(
+      text: widget.line.unitPrice == null ? '' : '${widget.line.unitPrice}');
+
+  static String _plain(num v) => v == v.roundToDouble() ? '${v.toInt()}' : '$v';
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _qty.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  num? get _parsedQty => parseQtyInput(_qty.text);
+  int? get _parsedPrice => parseRupiahInput(_price.text);
+
+  int? get _lineTotal {
+    final q = _parsedQty;
+    final p = _parsedPrice;
+    return (q == null || p == null) ? null : (q * p).round();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final t = AppLocalizations.of(context)!;
+    final cs = Theme.of(context).colorScheme;
+    final total = _lineTotal;
+    return AlertDialog(
+      title: Text(t.notaFixLine),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            key: const ValueKey('nota-edit-name'),
+            controller: _name,
+            autofocus: true,
+            decoration: InputDecoration(labelText: t.notaColItem),
+          ),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('nota-edit-qty'),
+                controller: _qty,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(labelText: t.notaColQty),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: TextField(
+                key: const ValueKey('nota-edit-price'),
+                controller: _price,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: t.notaColPrice),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          ]),
+          const SizedBox(height: 14),
+          Text(
+            t.notaLineTotalIs(total == null ? t.notaUnreadable : formatRupiah(total)),
+            key: const ValueKey('nota-edit-total'),
+            style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: total == null ? cs.error : cs.onSurface),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(t.actionCancel),
+        ),
+        FilledButton(
+          key: const ValueKey('nota-edit-save'),
+          onPressed: () => Navigator.of(context).pop(
+            widget.line.corrected(
+              rawText: _name.text.trim(),
+              qty: _parsedQty,
+              unitPrice: _parsedPrice,
+            ),
+          ),
+          child: Text(t.actionSave),
+        ),
+      ],
     );
   }
 }

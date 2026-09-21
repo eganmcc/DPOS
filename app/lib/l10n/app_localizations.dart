@@ -1730,6 +1730,54 @@ abstract class AppLocalizations {
   /// **'The lines don\'t add up to the written total — check the photo.'**
   String get notaTotalMismatch;
 
+  /// No description provided for @notaDifference.
+  ///
+  /// In en, this message translates to:
+  /// **'Difference'**
+  String get notaDifference;
+
+  /// No description provided for @notaDiffLinesMore.
+  ///
+  /// In en, this message translates to:
+  /// **'The lines come to {amount} more than the written total.'**
+  String notaDiffLinesMore(String amount);
+
+  /// No description provided for @notaDiffLinesLess.
+  ///
+  /// In en, this message translates to:
+  /// **'The lines come to {amount} less than the written total.'**
+  String notaDiffLinesLess(String amount);
+
+  /// No description provided for @notaFixLine.
+  ///
+  /// In en, this message translates to:
+  /// **'Correct line'**
+  String get notaFixLine;
+
+  /// No description provided for @notaFixHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap a line to correct it.'**
+  String get notaFixHint;
+
+  /// No description provided for @notaEdited.
+  ///
+  /// In en, this message translates to:
+  /// **'edited'**
+  String get notaEdited;
+
+  /// No description provided for @notaLineTotalIs.
+  ///
+  /// In en, this message translates to:
+  /// **'Total: {amount}'**
+  String notaLineTotalIs(String amount);
+
+  /// No description provided for @actionSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get actionSave;
+
   /// No description provided for @notaUnreadable.
   ///
   /// In en, this message translates to:

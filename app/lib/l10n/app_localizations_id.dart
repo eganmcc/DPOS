@@ -877,6 +877,36 @@ class AppLocalizationsId extends AppLocalizations {
       'Jumlah per baris tidak sama dengan total yang tertulis — periksa fotonya.';
 
   @override
+  String get notaDifference => 'Selisih';
+
+  @override
+  String notaDiffLinesMore(String amount) {
+    return 'Baris-barisnya $amount lebih banyak dari total yang tertulis.';
+  }
+
+  @override
+  String notaDiffLinesLess(String amount) {
+    return 'Baris-barisnya $amount lebih sedikit dari total yang tertulis.';
+  }
+
+  @override
+  String get notaFixLine => 'Perbaiki baris';
+
+  @override
+  String get notaFixHint => 'Ketuk baris untuk memperbaikinya.';
+
+  @override
+  String get notaEdited => 'diubah';
+
+  @override
+  String notaLineTotalIs(String amount) {
+    return 'Jumlah: $amount';
+  }
+
+  @override
+  String get actionSave => 'Simpan';
+
+  @override
   String get notaUnreadable => 'Tidak terbaca';
 
   @override

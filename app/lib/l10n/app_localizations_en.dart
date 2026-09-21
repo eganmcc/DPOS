@@ -877,6 +877,36 @@ class AppLocalizationsEn extends AppLocalizations {
       'The lines don\'t add up to the written total — check the photo.';
 
   @override
+  String get notaDifference => 'Difference';
+
+  @override
+  String notaDiffLinesMore(String amount) {
+    return 'The lines come to $amount more than the written total.';
+  }
+
+  @override
+  String notaDiffLinesLess(String amount) {
+    return 'The lines come to $amount less than the written total.';
+  }
+
+  @override
+  String get notaFixLine => 'Correct line';
+
+  @override
+  String get notaFixHint => 'Tap a line to correct it.';
+
+  @override
+  String get notaEdited => 'edited';
+
+  @override
+  String notaLineTotalIs(String amount) {
+    return 'Total: $amount';
+  }
+
+  @override
+  String get actionSave => 'Save';
+
+  @override
   String get notaUnreadable => 'Not readable';
 
   @override
