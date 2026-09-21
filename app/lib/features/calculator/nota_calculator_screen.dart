@@ -18,6 +18,7 @@ import '../reports/reports_screen.dart';
 import '../scanner/rongta_printer.dart';
 import '../settings/settings_screen.dart';
 import '../transactions/transactions_screen.dart';
+import '../stt/voice_order_screen.dart';
 import 'nota_calculator.dart';
 import 'nota_counter.dart';
 import 'nota_draft_store.dart';
@@ -90,6 +91,18 @@ class NotaCalculatorScreen extends ConsumerWidget {
       appBar: BrandAppBar(
         title: Text(t.calcTitle),
         actions: [
+          // This merchant never sees the till, so the microphone has to live here. Open-price
+          // mode by default — there is no catalogue to check anything against.
+          if (VoiceOrderScreen.isAvailable)
+            IconButton(
+              tooltip: t.voiceOrderTitle,
+              icon: const Icon(Icons.mic_none_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const VoiceOrderScreen(mode: VoiceOrderMode.openPrice),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: t.historyLabel,
             icon: const Icon(Icons.receipt_long_outlined),

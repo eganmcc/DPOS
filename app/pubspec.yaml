@@ -1,7 +1,7 @@
 name: dpos
 description: "DPOS — Indonesian mobile POS (phone + tablet)."
 publish_to: "none"
-version: 0.3.1+1
+version: 0.4.0+1
 
 environment:
   sdk: ">=3.5.0 <4.0.0"
@@ -40,6 +40,12 @@ dependencies:
   mobile_scanner: ^5.2.3
   print_bluetooth_thermal: ^1.1.1
   esc_pos_utils_plus: ^2.0.4
+  # Speech-to-text (Bahasa Indonesia), ANDROID ONLY for now — see lib/features/stt/.
+  speech_to_text: ^7.4.0
+
+  # Keep BELOW 12.0.0. permission_handler 13.x resolves permission_handler_android 14.1.0, whose
+  # build.gradle.kts uses the newer Kotlin DSL (kotlin { compilerOptions { … } }) and fails to
+  # resolve against this project's Kotlin 2.2.20 / AGP 8.11.1 with android.newDsl=false.
   permission_handler: ^11.3.1
 
   # App version for the Settings screen

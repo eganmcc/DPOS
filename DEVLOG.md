@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-19._
+_Last updated: 2026-09-21._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -15,14 +15,81 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
-> ### ⚠ 2026-09-21 — the newest work is NOT on this branch
+> ### 2026-09-21 — speech to text is ON `main` (app 0.4.0). PICK UP HERE.
 >
-> Speech to text (a tuning bench + voice order entry, `specs/010-voice-order-entry/`) lives on
-> **`feat/stt`**, 18 commits ahead of here and deliberately unmerged — voice creates real orders and
-> `main` is what EC2 ships. **`git checkout feat/stt` and read ITS `DEVLOG.md`**, which carries the
-> full handoff, the four commands to get running, and the merge decision that is still open.
+> **`feat/stt` was merged into `main` (18 commits) and deleted.** Everything below is on the trunk;
+> there is no branch to check out.
 >
-> `main` itself is unchanged and still deployable: nothing is pending for EC2.
+> ```bash
+> git checkout main && git pull --ff-only
+> cd app && flutter pub get && flutter test      # 214 pass
+> cd ../server && npm ci && npm test             # 14 suites / 107 pass
+> ```
+>
+> Verified green on `main` after the merge: `flutter analyze` clean, **214 Dart tests**,
+> **107 server tests**. Phone carries build **2110** (`dist/DIKASIR-0.3.1-2110.apk`), built from
+> the branch tip — identical code, older version string.
+>
+> **EC2 needs nothing.** The only server change in the merge is a new test file; no runtime code,
+> no migration. App 0.3.1 → **0.4.0** (voice is user-visible, so the version moves on merge).
+>
+> **Merged before a merchant trial, on your call** — the bench is harmless, but voice creates real
+> orders and now ships to every cashier on the next build. It has been driven only by me, from the
+> device log. Item 2 of Next steps is the end-to-end pass that has not happened yet.
+>
+> **What the branch adds — speech to text, two surfaces (`specs/010-voice-order-entry/spec.md`):**
+>
+> - **A tuning bench** — Settings → *Uji coba suara*. Android only. Every dial the plugin actually
+>   honours, a live log, counters, and a *Salin diagnostik* button. It exists because the device
+>   answers questions the docs get wrong; leave it in until voice ships.
+> - **Voice order entry** — a mic on the till's app bar (and on the calculator screen, whose
+>   merchants never see the till). Two modes: **from the catalogue** (matched to product, named
+>   variant and stock) and **at a spoken price** ("Pecel lele 100" = one at 100.000). Four columns,
+>   no keypad, lines removable, Selesai finishes through the EXISTING open-bill or payment flow —
+>   voice adds no money path. The till app bar was also rearranged: words (Pesanan, Riwayat) then
+>   icons (mic, nota, laporan, pengaturan); the nota icon now only shows for F&B/HHI.
+>
+> **What the device taught us (all of it cost real debugging — don't re-derive):**
+>
+> - Android reports Indonesian as legacy **`in_ID`**, never `id_ID`. Ask the device, never assume.
+> - **`pauseFor` counts from `listen()`, not from the first word.** A silent session dies at exactly
+>   that many seconds (measured: 3.010s). The till therefore floors it at 6s and forces continuous;
+>   the bench keeps whatever you set.
+> - `speech_to_text` **swallows a refused start**: it asks the platform, gets false, and returns
+>   with no timers, no status, no error. The only honest answer to "is the mic open" is polling
+>   `engine.isListening` — that is what the watchdog does.
+> - `SpeechToText.initialize()` **returns early once it has worked**, so a second screen's callbacks
+>   were never registered and statuses kept going to a dead screen (stop button stuck on). The
+>   engine now forwards through a stable pair of listeners; the newest caller always wins.
+> - An utterance is committed **five different ways** (final result, status, error, user stop, next
+>   session finding leftovers). Listening to only one of them is how a heard line never got listed.
+> - The recognizer **splits an utterance**: "ayam geprek keju" … 5.9s … "5", and "pesanan"/"selesai"
+>   across two results. Hence: a lone number joins the line before it, and a line of only command
+>   words is the stop instruction.
+> - **Open-amount lines must have `qty: 1`** (server invariant), so a spoken quantity is expanded
+>   into repeated lines. That is also what the receipt should read.
+> - **The restart seam still loses syllables** spoken between sessions. Structural, not a bug we can
+>   fix — Android has no continuous API. If it bites in a demo, **push-to-talk** is the answer and
+>   `voice_order_screen.dart` is where it goes.
+>
+> **Shape of the code:** `app/lib/features/stt/` — `stt_runner.dart` is the ONE listening machine
+> (both screens use it; it was duplicated once and the copy was immediately buggy). `stt_engine`,
+> `stt_transcript`, `stt_commands`, `stt_stock_check`, `voice_order_parse` are pure and unit-tested;
+> the two screens are Screen + injectable Body as usual.
+>
+> **Not done / open:** push-to-talk; tuning for a noisy warung; any merchant trial of voice;
+> correcting a misread nota. Still blocking a real merchant on nota reading: the photo leaves
+> Indonesia, and `NOTA_RESULT` holds customer names. The STT notes now reach logcat too (gated on
+> the bench's `debugLogging`) — same rule, they are a customer's order and must not be in a real
+> merchant's logs.
+>
+> **Two pitch decks exist outside the repo** (investor/partner, EN + ID), with placeholders for
+> pilot numbers, pricing, the ask and contact details. Links are in the 2026-09-21 chat; they are
+> private until shared.
+>
+> **Mac gotcha, recurring:** a Flutter build regenerates `app/windows/flutter/generated_plugin*`
+> because the speech plugin declares a Windows target. This branch is Android-only by decision —
+> `git checkout -- app/windows` before committing, every time.
 
 > **2026-09-19 (later) — nota reading mode, live on `main` + EC2 (server 0.4.0, app 0.3.0, portal
 > 0.3.0).** New business TYPE `HIGH_HUMAN_INTERACTION` ("High Human Interactions") for trades whose
@@ -349,7 +416,20 @@ the emulator as the **Laba Kotor** card.
 - **Deployed** — API live at **https://dikapos.ptdika.com** (see below). The app's release build points at it.
 - **Spec Kit artifacts** complete: constitution **v1.0.2**, `spec.md`, `plan.md`, `research.md`, `data-model.md`, `contracts/openapi.yaml`, `quickstart.md`, `tasks.md`, plus design handoff in `specs/001-pos-mvp/design/`.
 
-## Next steps (board scope = US1 + US3 + US6 + US7)
+## Next steps
+
+**First, on the Mac (2026-09-21):**
+1. Build from `main` and put it on the phone — the installed 2110 came from the branch tip, so the
+   code matches but the version string still reads 0.3.1.
+2. Run voice on the device end to end: catalogue mode with real stock, then spoken-price mode on
+   the calculator account. Everything since build 2107 was fixed from logs, not from a clean run.
+3. If the restart seam loses words in front of a real merchant, build **push-to-talk** — hold to
+   speak, release to commit. It removes the seam, the `pauseFor` guillotine and the give-up loop
+   in one move, and the sheet is already the right place for it.
+4. Fill the five placeholders in the pitch decks before showing either: pilot status, commercial
+   model, next commercial milestone, the investment ask, contact details.
+
+**Older board scope (US1 + US3 + US6 + US7):**
 1. **US3 on-device pass**: as owner, walk history → detail → void; confirm the sale shows as *Dibatalkan*, the reversal row appears, and stock comes back.
 2. **US6** — multi-outlet switcher + reports (daily total, payment split, top items). T046–T048.
 3. **US7** — Vue 3 web admin (products/variants, outlets, staff, dashboard). T049–T050.
@@ -488,9 +568,13 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 
 | Branch | What it is | Status |
 |---|---|---|
-| `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current |
-| `features/UMI` | UMI (Ultra Mikro) business size — 7 commits off `main` @ `1fc071f` | **ahead of `main`**, 2026-09-08 |
-| `feat/payment-methods` | Card (EDC) + e-wallet tenders — cut from `features/UMI` | **ahead of `features/UMI`**, 2026-09-10 |
+| `main` | **trunk — the only branch** (trunk-based dev; commit here, deploy here) | current, 2026-09-19 |
+| `feat/nota-reader` | Nota photo reading — its work shipped via `main` on 2026-09-19 | behind `main`, safe to delete, 2026-09-16 |
+| `features/UMI` | UMI (Ultra Mikro) business size — 7 commits off `main` @ `1fc071f` | behind `main` (shipped), 2026-09-08 |
+| `feat/payment-methods` | Card (EDC) + e-wallet tenders — cut from `features/UMI` | behind `main` (shipped), 2026-09-10 |
+
+> Nothing is ahead of the trunk. `feat/stt` ran two days and 18 commits — longer than this
+> project's rule likes — and was merged and deleted on 2026-09-21 rather than left to drift.
 
 **Workflow:** trunk-based on `main` — `main` is always deployable and is what EC2 ships. Cut a
 **short-lived** feature branch only for risky/parallel work, then merge back and delete it. Keep
@@ -498,6 +582,7 @@ about "the code"; the SessionStart hook prints this table live at the start of e
 rather than keeping long-lived release branches.
 
 _Deleted (fully merged into `main`; commits live on in `main` history + reflog — recreate with `git branch <name> <sha>`):_
+- _2026-09-21: `feat/stt` (was `b1d95e8`) — speech to text, `specs/010`_
 - _2026-09-05: `beta-1` (was `0d0f2e9`), `claude/correction-path-tests` (was `71f2a5d`), `claude/us3-void-implementation-3zl5oh` (was `8551d36`)_
 - _2026-09-04: `beta-with-SDP-printer` (was `7517303`), `customer-portal` (was `8514286`)_
 

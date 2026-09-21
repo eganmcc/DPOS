@@ -1113,4 +1113,209 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get detailNote => 'Note';
+
+  @override
+  String get sttLabTitle => 'Voice test';
+
+  @override
+  String get sttSettingsRow => 'Voice test (speech-to-text)';
+
+  @override
+  String get sttSettingsHint => 'Android only — for testing and tuning';
+
+  @override
+  String get sttStatus => 'Status';
+
+  @override
+  String get sttFirstWord => 'First word';
+
+  @override
+  String get sttSaySomething => 'Tap Listen and say something…';
+
+  @override
+  String get sttListen => 'Listen';
+
+  @override
+  String get sttStop => 'Stop';
+
+  @override
+  String get sttClear => 'Clear results';
+
+  @override
+  String get sttCopyDiagnostics => 'Copy diagnostics';
+
+  @override
+  String get sttCopied => 'Copied';
+
+  @override
+  String get sttResultsLabel => 'Results';
+
+  @override
+  String get sttNoResults => 'Nothing heard yet.';
+
+  @override
+  String get sttTuning => 'Per listen';
+
+  @override
+  String get sttTuningInit => 'Per engine start';
+
+  @override
+  String get sttTuningInitHint =>
+      'Changing one of these restarts the recognizer.';
+
+  @override
+  String get sttLocaleAuto => 'Automatic';
+
+  @override
+  String sttIndonesianFound(String id) {
+    return 'Indonesian on this device: $id';
+  }
+
+  @override
+  String get sttNoIndonesian => 'This device offers no Indonesian recognition.';
+
+  @override
+  String get sttNoRecognizer =>
+      'No speech recognizer available on this device. On some Android builds, turning on androidIntentLookup below helps.';
+
+  @override
+  String get sttAndroidOnly => 'Voice input is Android only for now.';
+
+  @override
+  String get sttMicDeniedTitle => 'Microphone needed';
+
+  @override
+  String get sttMicDeniedBody =>
+      'Voice input needs permission to use the microphone.';
+
+  @override
+  String get sttOpenSettings => 'Open settings';
+
+  @override
+  String get sttPauseForHint =>
+      'Silence that ends the session. Counted from the moment listening starts, NOT from the first word — below 2s it can end before you speak.';
+
+  @override
+  String get sttOnDeviceHint =>
+      'Forces offline recognition; listening fails outright if this device cannot.';
+
+  @override
+  String get sttNoBluetoothHint =>
+      'Ignore Bluetooth audio routing. Worth testing with the thermal printer paired.';
+
+  @override
+  String get sttIntentLookupHint =>
+      'Workaround for Android builds that do not declare a recognizer properly.';
+
+  @override
+  String get sttDebugLoggingHint =>
+      'Writes the plugin\'s own trace to logcat (tag SpeechToText).';
+
+  @override
+  String get sttIosOnlyNote =>
+      'listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.';
+
+  @override
+  String get sttLog => 'Event log';
+
+  @override
+  String get sttListenContinuous => 'Listen (keeps going)';
+
+  @override
+  String get sttContinuousHint =>
+      'Keep listening until you press stop. Each pause ends one utterance and the next session starts by itself — the recognizer has no continuous mode of its own.';
+
+  @override
+  String get sttRestarting => 'Still listening — starting the next stretch…';
+
+  @override
+  String get sttModeLabel => 'What to do with what it hears';
+
+  @override
+  String get sttModePlain => 'Text only';
+
+  @override
+  String get sttModeStock => 'Check against stock';
+
+  @override
+  String get sttStockNotFound => 'Not in the catalogue';
+
+  @override
+  String sttStockUnavailable(String name) {
+    return '$name is switched off';
+  }
+
+  @override
+  String sttStockOut(String name) {
+    return '$name — out of stock (0 left)';
+  }
+
+  @override
+  String sttStockShort(String name, int left, int asked) {
+    return '$name — only $left left, $asked asked for';
+  }
+
+  @override
+  String sttStockOk(String name, int asked, int left) {
+    return '$name ×$asked — $left left';
+  }
+
+  @override
+  String sttStockOkUntracked(String name, int asked) {
+    return '$name ×$asked — stock not tracked';
+  }
+
+  @override
+  String get voiceOrderTitle => 'Voice order';
+
+  @override
+  String get voiceModeCatalogue => 'From catalogue';
+
+  @override
+  String get voiceModeOpenPrice => 'Spoken price';
+
+  @override
+  String get voiceEmpty => 'Press the microphone, then read the order out.';
+
+  @override
+  String get voiceColItem => 'Item';
+
+  @override
+  String get voiceColQty => 'Qty';
+
+  @override
+  String get voiceColPrice => 'Price';
+
+  @override
+  String get voiceColTotal => 'Total';
+
+  @override
+  String get voiceAddToCart => 'Add to cart';
+
+  @override
+  String get voiceNeedsPrice => 'No price said';
+
+  @override
+  String get voiceRepeatIgnored =>
+      'Heard again within seconds — treated as a repeat, not added.';
+
+  @override
+  String voiceFixLines(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Fix $count marked lines first.',
+      one: 'Fix 1 marked line first.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get sttStockNoCatalog =>
+      'This account has no catalogue to check against.';
+
+  @override
+  String sttStopPhraseHint(String phrase) {
+    return 'Say “$phrase” to stop listening.';
+  }
 }

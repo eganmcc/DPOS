@@ -2125,6 +2125,348 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Note'**
   String get detailNote;
+
+  /// No description provided for @sttLabTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice test'**
+  String get sttLabTitle;
+
+  /// No description provided for @sttSettingsRow.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice test (speech-to-text)'**
+  String get sttSettingsRow;
+
+  /// No description provided for @sttSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Android only — for testing and tuning'**
+  String get sttSettingsHint;
+
+  /// No description provided for @sttStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get sttStatus;
+
+  /// No description provided for @sttFirstWord.
+  ///
+  /// In en, this message translates to:
+  /// **'First word'**
+  String get sttFirstWord;
+
+  /// No description provided for @sttSaySomething.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap Listen and say something…'**
+  String get sttSaySomething;
+
+  /// No description provided for @sttListen.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen'**
+  String get sttListen;
+
+  /// No description provided for @sttStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get sttStop;
+
+  /// No description provided for @sttClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear results'**
+  String get sttClear;
+
+  /// No description provided for @sttCopyDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy diagnostics'**
+  String get sttCopyDiagnostics;
+
+  /// No description provided for @sttCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get sttCopied;
+
+  /// No description provided for @sttResultsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Results'**
+  String get sttResultsLabel;
+
+  /// No description provided for @sttNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing heard yet.'**
+  String get sttNoResults;
+
+  /// No description provided for @sttTuning.
+  ///
+  /// In en, this message translates to:
+  /// **'Per listen'**
+  String get sttTuning;
+
+  /// No description provided for @sttTuningInit.
+  ///
+  /// In en, this message translates to:
+  /// **'Per engine start'**
+  String get sttTuningInit;
+
+  /// No description provided for @sttTuningInitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Changing one of these restarts the recognizer.'**
+  String get sttTuningInitHint;
+
+  /// No description provided for @sttLocaleAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic'**
+  String get sttLocaleAuto;
+
+  /// No description provided for @sttIndonesianFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Indonesian on this device: {id}'**
+  String sttIndonesianFound(String id);
+
+  /// No description provided for @sttNoIndonesian.
+  ///
+  /// In en, this message translates to:
+  /// **'This device offers no Indonesian recognition.'**
+  String get sttNoIndonesian;
+
+  /// No description provided for @sttNoRecognizer.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech recognizer available on this device. On some Android builds, turning on androidIntentLookup below helps.'**
+  String get sttNoRecognizer;
+
+  /// No description provided for @sttAndroidOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input is Android only for now.'**
+  String get sttAndroidOnly;
+
+  /// No description provided for @sttMicDeniedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone needed'**
+  String get sttMicDeniedTitle;
+
+  /// No description provided for @sttMicDeniedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice input needs permission to use the microphone.'**
+  String get sttMicDeniedBody;
+
+  /// No description provided for @sttOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get sttOpenSettings;
+
+  /// No description provided for @sttPauseForHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Silence that ends the session. Counted from the moment listening starts, NOT from the first word — below 2s it can end before you speak.'**
+  String get sttPauseForHint;
+
+  /// No description provided for @sttOnDeviceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Forces offline recognition; listening fails outright if this device cannot.'**
+  String get sttOnDeviceHint;
+
+  /// No description provided for @sttNoBluetoothHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignore Bluetooth audio routing. Worth testing with the thermal printer paired.'**
+  String get sttNoBluetoothHint;
+
+  /// No description provided for @sttIntentLookupHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Workaround for Android builds that do not declare a recognizer properly.'**
+  String get sttIntentLookupHint;
+
+  /// No description provided for @sttDebugLoggingHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Writes the plugin\'s own trace to logcat (tag SpeechToText).'**
+  String get sttDebugLoggingHint;
+
+  /// No description provided for @sttIosOnlyNote.
+  ///
+  /// In en, this message translates to:
+  /// **'listenMode, sampleRate, autoPunctuation and haptics are iOS-only in this plugin version, so they are not offered here.'**
+  String get sttIosOnlyNote;
+
+  /// No description provided for @sttLog.
+  ///
+  /// In en, this message translates to:
+  /// **'Event log'**
+  String get sttLog;
+
+  /// No description provided for @sttListenContinuous.
+  ///
+  /// In en, this message translates to:
+  /// **'Listen (keeps going)'**
+  String get sttListenContinuous;
+
+  /// No description provided for @sttContinuousHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep listening until you press stop. Each pause ends one utterance and the next session starts by itself — the recognizer has no continuous mode of its own.'**
+  String get sttContinuousHint;
+
+  /// No description provided for @sttRestarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Still listening — starting the next stretch…'**
+  String get sttRestarting;
+
+  /// No description provided for @sttModeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'What to do with what it hears'**
+  String get sttModeLabel;
+
+  /// No description provided for @sttModePlain.
+  ///
+  /// In en, this message translates to:
+  /// **'Text only'**
+  String get sttModePlain;
+
+  /// No description provided for @sttModeStock.
+  ///
+  /// In en, this message translates to:
+  /// **'Check against stock'**
+  String get sttModeStock;
+
+  /// No description provided for @sttStockNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in the catalogue'**
+  String get sttStockNotFound;
+
+  /// No description provided for @sttStockUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is switched off'**
+  String sttStockUnavailable(String name);
+
+  /// No description provided for @sttStockOut.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — out of stock (0 left)'**
+  String sttStockOut(String name);
+
+  /// No description provided for @sttStockShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} — only {left} left, {asked} asked for'**
+  String sttStockShort(String name, int left, int asked);
+
+  /// No description provided for @sttStockOk.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ×{asked} — {left} left'**
+  String sttStockOk(String name, int asked, int left);
+
+  /// No description provided for @sttStockOkUntracked.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ×{asked} — stock not tracked'**
+  String sttStockOkUntracked(String name, int asked);
+
+  /// No description provided for @voiceOrderTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice order'**
+  String get voiceOrderTitle;
+
+  /// No description provided for @voiceModeCatalogue.
+  ///
+  /// In en, this message translates to:
+  /// **'From catalogue'**
+  String get voiceModeCatalogue;
+
+  /// No description provided for @voiceModeOpenPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Spoken price'**
+  String get voiceModeOpenPrice;
+
+  /// No description provided for @voiceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Press the microphone, then read the order out.'**
+  String get voiceEmpty;
+
+  /// No description provided for @voiceColItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Item'**
+  String get voiceColItem;
+
+  /// No description provided for @voiceColQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get voiceColQty;
+
+  /// No description provided for @voiceColPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Price'**
+  String get voiceColPrice;
+
+  /// No description provided for @voiceColTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get voiceColTotal;
+
+  /// No description provided for @voiceAddToCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Add to cart'**
+  String get voiceAddToCart;
+
+  /// No description provided for @voiceNeedsPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'No price said'**
+  String get voiceNeedsPrice;
+
+  /// No description provided for @voiceRepeatIgnored.
+  ///
+  /// In en, this message translates to:
+  /// **'Heard again within seconds — treated as a repeat, not added.'**
+  String get voiceRepeatIgnored;
+
+  /// No description provided for @voiceFixLines.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{Fix 1 marked line first.} other{Fix {count} marked lines first.}}'**
+  String voiceFixLines(int count);
+
+  /// No description provided for @sttStockNoCatalog.
+  ///
+  /// In en, this message translates to:
+  /// **'This account has no catalogue to check against.'**
+  String get sttStockNoCatalog;
+
+  /// No description provided for @sttStopPhraseHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Say “{phrase}” to stop listening.'**
+  String sttStopPhraseHint(String phrase);
 }
 
 class _AppLocalizationsDelegate

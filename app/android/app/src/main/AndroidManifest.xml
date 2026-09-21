@@ -10,6 +10,10 @@
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
 
+    <!-- Speech-to-text (Bahasa Indonesia), Android only — Settings → "Uji coba suara".
+         Asked for at the moment the mic button is first tapped, never at launch. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
     <!-- Bluetooth: detect + print to the paired "DPOSP" thermal printer. -->
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.BLUETOOTH_SCAN"
@@ -65,6 +69,12 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Package visibility for the speech recognizer (e.g. "Speech Services by Google").
+             Without this, Android 11+ hides it and speech_to_text reports no recognizer at all.
+             It belongs INSIDE this single <queries> element — a second one would not merge. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>
