@@ -1748,6 +1748,12 @@ abstract class AppLocalizations {
   /// **'The lines come to {amount} less than the written total.'**
   String notaDiffLinesLess(String amount);
 
+  /// No description provided for @notaTable.
+  ///
+  /// In en, this message translates to:
+  /// **'Table'**
+  String get notaTable;
+
   /// No description provided for @notaFixLine.
   ///
   /// In en, this message translates to:

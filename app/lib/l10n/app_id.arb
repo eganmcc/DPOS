@@ -317,6 +317,7 @@
   "@notaDiffLinesMore": {"placeholders":{"amount":{"type":"String"}}},
   "notaDiffLinesLess": "Baris-barisnya {amount} lebih sedikit dari total yang tertulis.",
   "@notaDiffLinesLess": {"placeholders":{"amount":{"type":"String"}}},
+  "notaTable": "Meja",
   "notaFixLine": "Perbaiki baris",
   "notaFixHint": "Ketuk baris untuk memperbaikinya.",
   "notaEdited": "diubah",

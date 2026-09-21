@@ -16,6 +16,7 @@ import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
 import 'nota_models.dart';
+import 'nota_order.dart';
 import 'nota_order_screen.dart';
 import 'nota_photo_viewer.dart';
 
@@ -208,6 +209,7 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
                     // from what is on screen, not from what the camera first said.
                     _Stage.done => _ResultView(
                         reading: _reading!,
+                        isFnb: _canMakeOrder(),
                         onEditLine: (i, line) =>
                             setState(() => _reading = _reading!.withLine(i, line)),
                       ),
@@ -396,8 +398,11 @@ class _NotaReaderScreenState extends ConsumerState<NotaReaderScreen> {
 
 /// The extraction, laid out the way the nota itself is: header fields, a line table, the total.
 class _ResultView extends StatelessWidget {
-  const _ResultView({required this.reading, this.onEditLine});
+  const _ResultView({required this.reading, this.onEditLine, this.isFnb = false});
   final NotaReading reading;
+
+  /// Only an F&B till has tables, and only there does a number in the name field mean one.
+  final bool isFnb;
 
   /// Called with a corrected line. Null makes the table read-only.
   final void Function(int index, NotaLine line)? onEditLine;
@@ -410,6 +415,7 @@ class _ResultView extends StatelessWidget {
     final unreadable = t.notaUnreadable;
     final sum = r.linesSum;
     final diff = r.totalDifference;
+    final seatsAtTable = isFnb && notaSeating(r.customerName).type == 'DINE_IN';
     final mismatch = diff != null;
 
     return Column(
@@ -460,7 +466,15 @@ class _ResultView extends StatelessWidget {
                 : DateFormat('dd-MM-yyyy').format(r.notaDate!),
             unreadable,
           ),
-          _field(context, t.notaCustomer, r.customerName, unreadable),
+          // Same box on the paper, two meanings. Once a number there has been read as a table,
+          // calling it "Nama" would describe the slip rather than what the till is about to do
+          // with it — and this is the only place the cashier can catch a wrong reading early.
+          _field(
+            context,
+            seatsAtTable ? t.notaTable : t.notaCustomer,
+            r.customerName,
+            unreadable,
+          ),
         ]),
         const SizedBox(height: 12),
         _card(context, [

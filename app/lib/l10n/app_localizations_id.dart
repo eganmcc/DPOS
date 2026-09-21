@@ -890,6 +890,9 @@ class AppLocalizationsId extends AppLocalizations {
   }
 
   @override
+  String get notaTable => 'Meja';
+
+  @override
   String get notaFixLine => 'Perbaiki baris';
 
   @override

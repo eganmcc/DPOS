@@ -411,6 +411,7 @@
   "@notaDiffLinesMore": {"placeholders":{"amount":{"type":"String"}}},
   "notaDiffLinesLess": "The lines come to {amount} less than the written total.",
   "@notaDiffLinesLess": {"placeholders":{"amount":{"type":"String"}}},
+  "notaTable": "Table",
   "notaFixLine": "Correct line",
   "notaFixHint": "Tap a line to correct it.",
   "notaEdited": "edited",

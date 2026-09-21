@@ -890,6 +890,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get notaTable => 'Table';
+
+  @override
   String get notaFixLine => 'Correct line';
 
   @override
