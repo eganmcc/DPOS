@@ -21,14 +21,17 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 >   app **0.5.1**, `flutter analyze` clean, **246 Dart tests**; server unchanged today, still 14
 >   suites / 107. Tree clean, nothing unpushed. Re-run the suites when you change code, not to
 >   confirm this line.
-> - **The phone's signature changed today — read this before installing anything on it.** The
->   Xiaomi (Redmi Note 14 Pro+, wireless adb) now has **0.5.1 / build 2113, signed with the Mac's
->   DEBUG key**, because this Mac has no release keystore. The PC's release-signed build will fail
->   with `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; it must be **uninstalled first**, which wipes the
->   app's local data (login, cached catalogue, bench tuning, unsynced sales). The user chose that
->   trade-off today. **Next build number: 2114 or higher.**
+> - **The phone is back on the RELEASE key (resolved 2026-09-21, PC).** The Xiaomi (Redmi Note 14
+>   Pro+, wireless adb) carries **0.5.1 / build 2114**, release-signed from the PC. Getting there
+>   meant uninstalling the Mac's debug-signed 2113 — the signatures do not match, and there is no
+>   way round it — which wiped login, cached catalogue, bench tuning and anything left in the sync
+>   queue. The user accepted that. **Next build: 2115 or higher.**
+> - **Only the PC has the release keystore.** A Mac build is debug-signed, so every PC ⇄ Mac
+>   handover of the *phone* costs an uninstall. Hand out release builds from the PC, or put the
+>   keystore on the Mac.
 > - **A debug-signed 0.4.0 / 2111 APK may have been sent out on WhatsApp** (`dist/`, Mac only,
->   gitignored). Anyone who installed it has the same problem on the next real release.
+>   gitignored). Anyone who installed it hits `INSTALL_FAILED_UPDATE_INCOMPATIBLE` on the next real
+>   release and has to uninstall first — worth warning them before they lose anything.
 > - **Two things changed behaviour on the till today** (entries below): a read nota can become an
 >   order on an F&B till, and **short or sold-out stock now blocks Selesai in voice too** — spec 010
 >   § 12 was reversed on purpose, because the server refuses to oversell. A refused sale now says why
@@ -36,6 +39,11 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 > - **Not yet confirmed on the device:** the stock fix was installed but the user had not re-run
 >   the nota from the first failure when the Mac session ended. Warung Kopi Demo's **Outlet Cabang
 >   has every tracked item at 0 or 1** — test on Outlet Pusat, or restock.
+> - **The online-order queue was cleared for demos (2026-09-21, PC).** Warung Kopi Demo had 74
+>   active on Outlet Pusat and 21 on Cabang; **2 NEW are left on each**, the rest marked COMPLETED
+>   through the app's own `POST /online-orders/:id/complete`. Nothing was deleted — they are real
+>   orders with payments and stock behind them, and they stay in history and reports. If they pile
+>   up again, that is the way to clear them; a direct DB write is both wrong and blocked.
 > - **Read "What the device taught us" below before touching `app/lib/features/stt/`.**
 > - **Diagnose from the device log, never from a plausible story.** If the log cannot answer it, say
 >   so and ask. Today's stock bug was traced through the phone log, the live catalogue and the server
