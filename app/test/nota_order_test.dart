@@ -156,4 +156,44 @@ void main() {
       expect(lines.last.notFound, isTrue);
     });
   });
+
+  /// The nota's name field does double duty in a warung: a customer's name, or the table they are
+  /// sitting at. A number there means dine-in.
+  group('where the customer is sitting', () {
+    test('a bare number is a table', () {
+      expect(notaSeating('7'), (type: 'DINE_IN', tableLabel: '7'));
+    });
+
+    test('a number inside a phrase is the table, and stays one number', () {
+      expect(notaSeating('Meja 12'), (type: 'DINE_IN', tableLabel: '12'),
+          reason: 'twelve, not one and two');
+    });
+
+    test('a name with no number is carried out', () {
+      // Nota #07's own name field, which is a person.
+      expect(notaSeating('Ahmad'), (type: 'TAKEAWAY', tableLabel: null));
+    });
+
+    test('nothing written is carried out too', () {
+      expect(notaSeating(null), (type: 'TAKEAWAY', tableLabel: null));
+      expect(notaSeating(''), (type: 'TAKEAWAY', tableLabel: null));
+      expect(notaSeating('   '), (type: 'TAKEAWAY', tableLabel: null));
+    });
+
+    test('a leading zero is how a nota writes a table, not a different table', () {
+      expect(notaSeating('07').tableLabel, '7');
+      expect(notaSeating('Meja 007').tableLabel, '7');
+    });
+
+    test('the FIRST number wins when a nota carries two', () {
+      expect(notaSeating('Meja 4 / 2 orang').tableLabel, '4');
+    });
+
+    test('a name that happens to carry a digit is still read as a table', () {
+      // Blunt on purpose: the cashier sees the result on screen before anything is charged, and a
+      // wrong dine-in is one tap to fix on the till. The opposite mistake leaves an open bill at a
+      // table nobody is sitting at.
+      expect(notaSeating('Ahmad 2'), (type: 'DINE_IN', tableLabel: '2'));
+    });
+  });
 }

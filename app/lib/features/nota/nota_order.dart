@@ -108,3 +108,21 @@ List<NotaOrderLine> stageNotaReading(NotaReading reading, List<Product> products
   }
   return out;
 }
+
+/// Where the customer is sitting, read off the nota's name field.
+///
+/// A warung writes the table on the "Tuan/Toko" line as often as it writes a name: "7", "Meja 12",
+/// sometimes a name with a number beside it. So a number there means **dine-in at that table**,
+/// and anything without one means the order is being carried out.
+///
+/// The FIRST run of digits wins, so "Meja 12" is table 12 and not 1 and 2. Deliberately blunt:
+/// the cashier sees the result on screen before anything is charged, and a wrong guess is one tap
+/// to change on the till — whereas a takeaway silently recorded as dine-in leaves an open bill
+/// nobody is sitting at.
+({String type, String? tableLabel}) notaSeating(String? customerName) {
+  final digits = RegExp(r'\d+').firstMatch(customerName ?? '')?.group(0);
+  if (digits == null) return (type: 'TAKEAWAY', tableLabel: null);
+  // Leading zeros are how a nota writes a table, not a different table: "07" is table 7.
+  final trimmed = digits.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+  return (type: 'DINE_IN', tableLabel: trimmed);
+}

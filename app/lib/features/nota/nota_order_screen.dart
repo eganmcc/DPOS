@@ -8,6 +8,7 @@ import '../../data/models.dart';
 import '../../data/providers.dart';
 import '../../data/session.dart';
 import '../../l10n/app_localizations.dart';
+import '../order/cart.dart';
 import '../order/staged_order.dart';
 import '../stt/stt_stock_check.dart';
 import 'nota_models.dart';
@@ -33,6 +34,19 @@ class NotaOrderScreen extends ConsumerWidget {
     final catalog = session == null
         ? null
         : ref.watch(catalogProvider(session.outletId)).valueOrNull;
+    // Where they are sitting, from the nota's own name field — F&B only, because nobody else has
+    // tables. Applied to the cart at the moment the lines are, so the till, the open bill and the
+    // receipt all carry it.
+    final seating = (catalog?.isFnb ?? false)
+        ? notaSeating(reading.customerName)
+        : (type: 'TAKEAWAY', tableLabel: null);
+    void applySeating() {
+      if (!(catalog?.isFnb ?? false)) return;
+      final cart = ref.read(cartProvider.notifier);
+      cart.setType(seating.type);
+      cart.setTableLabel(seating.tableLabel);
+    }
+
     return Scaffold(
       appBar: BrandAppBar(title: Text(t.notaOrderTitle)),
       body: SafeArea(
@@ -40,8 +54,15 @@ class NotaOrderScreen extends ConsumerWidget {
           lines: stageNotaReading(reading, catalog?.products ?? const []),
           notaNumber: reading.notaNumber,
           taxRule: catalog?.taxRule,
-          onAddToCart: (checks) => addStagedToCart(ref, checks),
-          onFinish: (checks) => finishStagedOrder(context, ref, checks),
+          seating: seating,
+          onAddToCart: (checks) {
+            applySeating();
+            addStagedToCart(ref, checks);
+          },
+          onFinish: (checks) {
+            applySeating();
+            return finishStagedOrder(context, ref, checks);
+          },
         ),
       ),
     );
@@ -57,11 +78,15 @@ class NotaOrderBody extends StatefulWidget {
     required this.onAddToCart,
     required this.onFinish,
     this.notaNumber,
+    this.seating = (type: 'TAKEAWAY', tableLabel: null),
   });
 
   final List<NotaOrderLine> lines;
   final String? notaNumber;
   final TaxRule? taxRule;
+
+  /// Dine-in and its table, or takeaway — decided from the nota's name field by [notaSeating].
+  final ({String type, String? tableLabel}) seating;
   final void Function(List<SttStockCheck>) onAddToCart;
   final Future<bool> Function(List<SttStockCheck>) onFinish;
 
@@ -116,6 +141,29 @@ class _NotaOrderBodyState extends State<NotaOrderBody> {
             child: Text(t.notaOrderFrom(widget.notaNumber!),
                 style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
           ),
+        // Said out loud, because it was decided FOR the cashier. A takeaway recorded as dine-in
+        // leaves an open bill at a table nobody is sitting at.
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(children: [
+            Icon(
+              widget.seating.type == 'DINE_IN'
+                  ? Icons.restaurant_outlined
+                  : Icons.shopping_bag_outlined,
+              size: 16,
+              color: cs.primary,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              widget.seating.type == 'DINE_IN'
+                  ? '${t.typeDineIn} · ${t.tableLabelShort(widget.seating.tableLabel ?? '')}'
+                  : t.typeTakeaway,
+              key: const ValueKey('nota-order-seating'),
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: cs.primary),
+            ),
+          ]),
+        ),
         const SizedBox(height: 8),
         _headerRow(context),
         Expanded(

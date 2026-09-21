@@ -51,7 +51,9 @@ void main() {
     finishSucceeds = true;
   });
 
-  Future<void> pump(WidgetTester tester, List<NotaOrderLine> lines, {TaxRule? tax}) async {
+  Future<void> pump(WidgetTester tester, List<NotaOrderLine> lines,
+      {TaxRule? tax,
+      ({String type, String? tableLabel}) seating = (type: 'TAKEAWAY', tableLabel: null)}) async {
     await tester.pumpWidget(MaterialApp(
       theme: buildLightTheme(),
       locale: const Locale('id'),
@@ -62,6 +64,7 @@ void main() {
           lines: lines,
           notaNumber: '1234',
           taxRule: tax,
+          seating: seating,
           onAddToCart: (checks) => addedToCart.add(checks),
           onFinish: (checks) async {
             finished.add(checks);
@@ -210,5 +213,20 @@ void main() {
     );
     expect(find.text('Pajak'), findsOneWidget);
     expect(find.text('Rp 16.500'), findsOneWidget);
+  });
+
+  group('the seating it decided', () {
+    testWidgets('dine-in names the table, so the cashier sees it before Selesai', (tester) async {
+      await pump(tester, read([const NotaLine(rawText: 'Nasi Goreng', qty: 1, unitPrice: 15000, lineTotal: 15000)]),
+          seating: (type: 'DINE_IN', tableLabel: '7'));
+
+      expect(find.byKey(const ValueKey('nota-order-seating')), findsOneWidget);
+      expect(find.text('Makan di tempat · Meja 7'), findsOneWidget);
+    });
+
+    testWidgets('takeaway says so too — it is never left to be assumed', (tester) async {
+      await pump(tester, read([const NotaLine(rawText: 'Nasi Goreng', qty: 1, unitPrice: 15000, lineTotal: 15000)]));
+      expect(find.text('Bawa pulang'), findsOneWidget);
+    });
   });
 }
