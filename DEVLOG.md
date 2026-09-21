@@ -15,6 +15,15 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 
 ## Current status
 
+> ### ⚠ 2026-09-21 — the newest work is NOT on this branch
+>
+> Speech to text (a tuning bench + voice order entry, `specs/010-voice-order-entry/`) lives on
+> **`feat/stt`**, 18 commits ahead of here and deliberately unmerged — voice creates real orders and
+> `main` is what EC2 ships. **`git checkout feat/stt` and read ITS `DEVLOG.md`**, which carries the
+> full handoff, the four commands to get running, and the merge decision that is still open.
+>
+> `main` itself is unchanged and still deployable: nothing is pending for EC2.
+
 > **2026-09-19 (later) — nota reading mode, live on `main` + EC2 (server 0.4.0, app 0.3.0, portal
 > 0.3.0).** New business TYPE `HIGH_HUMAN_INTERACTION` ("High Human Interactions") for trades whose
 > sale is handwritten on a nota. The app opens on the **nota chat** for every role: send a photo →
