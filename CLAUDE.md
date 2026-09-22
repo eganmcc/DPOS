@@ -61,6 +61,14 @@ Work flows Constitution → Spec → Plan → Tasks → Implement, with artifact
 When behaviour changes, amend the artifact **before or with** the code, not after — the constitution
 bump for open bills (v1.2.0) is the pattern to follow.
 
+**The QA spec is one of those artifacts.** `docs/qa/fsd.md` is what the QA team tests the app and
+the portal against. Any change to user-visible behaviour — a screen, a message, a rule, a report —
+updates it **in the same commit**: add, change or retire its test cases and list them under
+*Changes since the last QA cycle*. New features write their cases in the spec's *QA Cases* section
+first (`.specify/templates/overrides/spec-template.md`) and copy them across. Test IDs are
+permanent: never renumber or reuse one. The Claude Doc QA reads is a published copy of this file,
+refreshed on release — never edit the doc instead of the file; the next publish overwrites it.
+
 ## Testing
 
 ```bash
