@@ -58,7 +58,7 @@ describe('Demo login directory', () => {
       .post(`/api/v1/admin/staff/${fx.cashierId}/pin`)
       .set('Authorization', `Bearer ${fx.ownerToken}`)
       .send({ pin: '5566' })
-      .expect(200);
+      .expect(201); // Nest's default for a POST
 
     const res = await get().expect(200);
     const mine = (res.body as { merchantId: string; logins: { pin: string }[] }[]).find(

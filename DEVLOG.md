@@ -89,11 +89,21 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 > 011 gained §G for the whole Laporan journal suite (shipped 21 Sep, previously in no spec) plus a
 > Known-gaps list; 004, 009, 010 gained amendment notes. `docs/qa/fsd.md` has 6 new cases.
 >
-> **NOT VERIFIED: the server suite did not run.** RDS refused TCP 5432 from this PC all afternoon
-> (it worked that morning), there is no local Postgres and no Docker here. `npx tsc --noEmit` is
-> clean and the new tests are written (`demo.directory.e2e-spec.ts` + cases in bank.reporting,
-> orders.void, orders.refund) but **unrun** — run `cd server && npm test` before merging.
-> Flutter is green: `flutter analyze` clean, **278 tests**, including 7 new flusher tests.
+> **Verified.** Server: **139 tests / 16 suites green**, including the new
+> `demo.directory.e2e-spec.ts` and the new cases in bank.reporting, orders.void and orders.refund.
+> Flutter: `flutter analyze` clean, **278 tests**, including 7 new flusher tests.
+>
+> **RDS is unreachable from this PC** (TCP 5432 times out; it worked that morning, EC2:22 and the
+> live API are both fine — so the RDS security group has a stale IP allow-list). The suite was run
+> through an SSH tunnel instead, which is worth knowing next time:
+>
+> ```bash
+> ssh -i <key> -f -N -L 5433:dpos.cjcm0wuu2mj5.ap-southeast-3.rds.amazonaws.com:5432 ec2-user@16.78.176.250
+> cd server && DATABASE_URL="<.env url with host 127.0.0.1 and port 5433>" npm test
+> ```
+>
+> That runs the suite **on this machine**, not on the deploy box — CLAUDE.md rules out a shared
+> runner, and the per-run `Test <uuid>` tenant plus self-cleanup is what makes RDS tolerable.
 >
 > **Backlog the audit found and nobody has built** (recorded in the specs, not fixed): shifts and the
 > cash drawer, discounts in the app, tax-rule editing, product photos, outlet switching in the app,
