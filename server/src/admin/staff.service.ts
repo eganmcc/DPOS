@@ -72,7 +72,10 @@ export class StaffService {
     await this.assertStaff(merchantId, id);
     await this.prisma.staff.update({
       where: { id },
-      data: { pinHash: await bcrypt.hash(dto.pin, 10) },
+      // `demoPin` is published in plaintext by /demo/directory, so it must die with the PIN it
+      // mirrors — otherwise rotating a PIN here leaves the OLD one on a public endpoint, and the
+      // account stays in the login picker advertising a PIN that no longer opens it.
+      data: { pinHash: await bcrypt.hash(dto.pin, 10), demoPin: null },
     });
     return { ok: true };
   }

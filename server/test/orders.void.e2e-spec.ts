@@ -286,4 +286,34 @@ describe('Order void integrity (T035)', () => {
     const times = body.map((o) => new Date(o.createdAt).getTime());
     expect([...times].sort((a, b) => b - a)).toEqual(times);
   });
+
+  it('refuses to void a sale that has already been partly refunded', async () => {
+    // A partial refund leaves the order COMPLETED, so the status check let this through: the void
+    // then restored the FULL sale movements and reversed the WHOLE charge, on top of what the
+    // refund had already returned — the customer paid back twice and the shelf credited twice.
+    const order = await sell(2);
+    const stockBefore = await stockOf(fx.variantRegularId);
+
+    await request(ctx.app.getHttpServer())
+      .post(`/api/v1/orders/${order.id}/refund`)
+      .set('Authorization', `Bearer ${fx.ownerToken}`)
+      .send({
+        clientRefundId: uuidv4(),
+        reason: 'one came back',
+        lines: [{ orderLineId: order.lines[0].id, qty: 1 }],
+      })
+      .expect(200);
+
+    const res = await request(ctx.app.getHttpServer())
+      .post(`/api/v1/orders/${order.id}/void`)
+      .set('Authorization', `Bearer ${fx.ownerToken}`)
+      .send({ clientVoidId: uuidv4(), reason: 'changed my mind' });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('VOID_AFTER_REFUND');
+    expect(await ctx.prisma.orderVoid.count({ where: { orderId: order.id } })).toBe(0);
+    // Exactly the one unit the refund returned — not the two a void would have restored.
+    expect(await stockOf(fx.variantRegularId)).toBe(stockBefore + 1);
+  });
+
 });

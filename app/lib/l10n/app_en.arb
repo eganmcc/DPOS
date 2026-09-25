@@ -1,5 +1,10 @@
 {
   "@@locale": "en",
+  "voiceFinishFailed": "Could not finish — check History before trying again.",
+  "syncPending": "{count} sales not yet sent — tap to retry",
+  "@syncPending": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "appTitle": "DPOS",
   "loginTitle": "Cashier login",
   "loginSubtitle": "Sign in to start selling",

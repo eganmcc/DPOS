@@ -1,3 +1,9 @@
+# HISTORICAL (audited 2026-09-25). This contract describes the MVP as designed, not the API as
+# shipped. Known divergences: /outlets, /inventory/stock, /inventory/movements and /reports/daily
+# were never built (reporting became /admin/dashboard with a different response shape);
+# Payment.method lists two values where the enum now has nine (specs/007); and the correction,
+# open-bill, nota, bank and journal endpoints are absent entirely (specs/004-011). Treat the
+# running server as the contract and this file as the record of what was first agreed.
 openapi: 3.0.3
 info:
   title: DPOS API

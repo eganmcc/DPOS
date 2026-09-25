@@ -1,5 +1,10 @@
 {
   "@@locale": "id",
+  "voiceFinishFailed": "Gagal menyelesaikan — periksa Riwayat sebelum mengulang.",
+  "syncPending": "{count} penjualan belum terkirim — ketuk untuk coba lagi",
+  "@syncPending": {
+    "placeholders": { "count": { "type": "int" } }
+  },
   "appTitle": "DPOS",
   "loginTitle": "Masuk kasir",
   "loginSubtitle": "Masuk untuk mulai berjualan",

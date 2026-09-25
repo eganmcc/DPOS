@@ -98,6 +98,18 @@ abstract class AppLocalizations {
     Locale('id')
   ];
 
+  /// No description provided for @voiceFinishFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not finish — check History before trying again.'**
+  String get voiceFinishFailed;
+
+  /// No description provided for @syncPending.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sales not yet sent — tap to retry'**
+  String syncPending(int count);
+
   /// No description provided for @appTitle.
   ///
   /// In en, this message translates to:

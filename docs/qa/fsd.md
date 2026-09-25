@@ -1,6 +1,6 @@
 # DIKASIR — Functional Specification for QA
 
-**As of:** app 0.5.1 (build 2119) · `main` @ `2b0c81f` · 22 Sep 2026
+**As of:** app 0.5.1 (build 2119) · `fix/spec-gaps` · 25 Sep 2026 (was `main` @ `2b0c81f`, 22 Sep)
 **Published copy for QA:** https://claude.ai/artifact/3DjTRFHoZxkanJxbyo9s3C (Claude Doc — QA reads, comments and records results there)
 
 > **This file is the source of truth; the Claude Doc is a published copy.**
@@ -18,7 +18,16 @@
 
 ## Changes since the last QA cycle
 
-_None yet — 22 Sep 2026 is the baseline (211 cases: APP-*, POR-*, BR-*)._
+**25 Sep 2026 — spec-gap audit fixes** (branch `fix/spec-gaps`, not yet merged).
+
+- **Added:** APP-D15, APP-D16 (offline queue actually sends, and a refused sale is not replayed),
+  APP-C16 (void refused after a refund), APP-C17 (online order cannot be refunded via the API),
+  APP-V17 (a refused spoken-price sale says why and the button comes back), POR-L23 (every bank
+  report refuses without data-sharing consent).
+- **Changed:** APP-D10 — the sale now really does sync on reconnect, and a pending badge appears
+  on the till while anything is queued. APP-C13 — voiding a partly refunded sale is now refused
+  by the server with a named code rather than being merely hidden in the app.
+- **Retired:** none.
 
 This is what the DIKASIR Android app and the Customer Portal do today, written so QA can test each function against an expected result.
 
@@ -197,6 +206,8 @@ A completed sale is never edited or deleted. A void or refund adds a new record 
 | APP-C11 | Over-refund | Refund the same item again beyond what was sold | Refused: cannot refund more than remains |
 | APP-C12 | Nothing left | Fully refunded sale → Refund | *Tidak ada yang bisa direfund lagi.* |
 | APP-C13 | Void after refund / refund after void | Try each on the same sale | A voided sale cannot be refunded; a refunded sale can no longer be voided |
+| APP-C16 | Void after a partial refund is refused | Refund 1 of 3 items, then try to void the sale — in the app and, if you can, by calling the API directly | App: no Void button. API: refused (`VOID_AFTER_REFUND`). Stock shows only the one refunded unit back, never all three |
+| APP-C17 | An online order cannot be refunded | Call the refund API on a completed online order | Refused (`REFUND_NOT_IN_APP`); no refund record, no stock movement |
 | APP-C14 | Online orders | Try to refund an online order | Refund is not offered |
 | APP-C15 | Audit trail | Portal → Laporan → Jurnal Koreksi | Every void and refund above is listed with reason, who did it and who approved it |
 
@@ -328,6 +339,7 @@ The mode can only be switched while the list is empty.
 | APP-V14 | Missing price | Harga diucapkan: "pecel lele" only | Row marked **Harga belum disebut**; blocks Selesai until fixed |
 | APP-V15 | Selesai (calculator) | Kios Pak Darto, Harga diucapkan → Selesai → cash | Payment dialog; sale saved with the spoken names and prices |
 | APP-V16 | Continuous listening | Keep talking across several pauses | Listening continues; no utterance silently dropped |
+| APP-V17 | A refused spoken-price sale | Harga diucapkan, force a refusal (e.g. sell out the item first), tap Selesai | The reason is shown, the lines stay on screen, and **Selesai works again**. It never spins for ever |
 
 **Test tips:** speak at normal pace in a quiet room first, then with background noise. Record the phrase you said and what appeared. If a row is wrong or missing, note the time so the developer can match it to the device log.
 
@@ -360,6 +372,8 @@ The app keeps the catalogue on the phone and queues sales made without a connect
 | APP-D12 | Unstable network | Toggle data on and off while paying | No duplicate sale in Riwayat or Portal |
 | APP-D13 | Stock conflict on sync | Sell the last unit offline on phone A and online on phone B, then reconnect A | A's sale is refused by the server with the stock message; stock never goes below 0 |
 | APP-D14 | Features that need a connection | Offline: open Baca nota and online orders | Each reports it cannot connect; nothing is recorded half-way |
+| APP-D15 | The queue drains by itself | Airplane mode, take 2 sales, leave the till screen, restore the connection, wait | Both sales reach Riwayat and the Portal without reopening any screen; the badge clears |
+| APP-D16 | A refused sale is not replayed | Offline-queue a sale for an item that goes out of stock before the connection returns | The server refuses it once; it is **not** retried later. The sale never appears minutes after the cashier was told it failed |
 
 ## 12. App — reports, history, items and settings
 
@@ -510,6 +524,7 @@ Six read-only reports sit under **Laporan** in the sidebar. The group opens by i
 | POR-L20 | Credit profile | Laporan Bank → Profil kredit | Months of history, average monthly turnover, lowest month, trading days per month |
 | POR-L21 | No consent | Laporan Bank on a merchant without data-sharing consent | Credit profile says consent is missing instead of an empty card |
 | POR-L22 | Activation | Laporan Bank → Aktivasi pedagang | Hidden or empty unless the bank portfolio key is configured (not configured today) |
+| POR-L23 | Consent gates the bank reports | Have consent revoked for a test merchant, then open Rekonsiliasi, Profil kredit, Laba rugi and Integritas | All four refuse with a consent message. The five Laporan journal reports still work — they are the merchant’s own books, not a bank export |
 
 ## 15. Business rules every tester should verify
 
@@ -542,7 +557,7 @@ The items below are known and expected today. Do not log them as new defects; do
 | Online orders | Simulated by the demo toggle. No live delivery-platform integration |
 | Dates and times | Reports and the Portal use **UTC** calendar days, and Jurnal Transaksi shows times in UTC (7 hours behind Jakarta). A sale made after 00:00 and before 07:00 WIB appears under the previous day. A fix is planned |
 | Grocery till | The barcode Scanner screen has no voice or Baca nota icon, and Baca nota is hidden on Grocery. Under review |
-| Voice order | Android only. A full end-to-end device pass has not been completed yet, so QA findings here are especially useful. The **Harga diucapkan** mode is offered on catalogue merchants too, but saving it needs an open-amount item that only Calculator and Nota merchants have: record what Selesai does there |
+| Voice order | Android only. A full end-to-end device pass has not been completed yet, so QA findings here are especially useful. The **Harga diucapkan** mode is offered on catalogue merchants too, but saving it needs an open-amount item that only Calculator and Nota merchants have: record what Selesai does there. (A refused sale now reports its reason instead of hanging — fixed 25 Sep.) |
 | Calculator mode | Cash only. A committed line cannot be deleted on its own. Nota # is kept on the phone and resets daily and on logout |
 | Nota chat | **Ya, perbaiki** (correcting a reading) is not built: re-take the photo instead |
 | Receipts | **Bagikan** (share) is not built |

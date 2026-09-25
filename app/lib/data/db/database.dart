@@ -62,9 +62,19 @@ class AppDatabase extends _$AppDatabase {
         ),
       );
 
+  /// Send failed but the order is still OURS to retry — it never reached the server.
+  /// Stays `pending`, so the flusher picks it up on the next connection.
   Future<void> markFailed(String clientOrderId, String error) =>
       (update(pendingOrders)..where((o) => o.clientOrderId.equals(clientOrderId))).write(
         PendingOrdersCompanion(lastError: Value(error)),
+      );
+
+  /// The server ANSWERED and refused it. Never retried: the cashier was told it failed, and a
+  /// silent replay minutes later (after a restock, say) would create a sale nobody rang up.
+  /// Re-ringing it is the cashier's decision, and that makes a new `clientOrderId`.
+  Future<void> markRejected(String clientOrderId, String error) =>
+      (update(pendingOrders)..where((o) => o.clientOrderId.equals(clientOrderId))).write(
+        PendingOrdersCompanion(status: const Value('rejected'), lastError: Value(error)),
       );
 
   Future<List<PendingOrder>> pendingToSync() =>

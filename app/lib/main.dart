@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/settings.dart';
 import 'core/theme.dart';
 import 'data/session.dart';
+import 'data/sync_flusher.dart';
 import 'features/auth/login_screen.dart';
 import 'features/scanner/home_gate.dart';
 import 'features/splash/splash_screen.dart';
@@ -51,6 +52,10 @@ class _RootGateState extends ConsumerState<_RootGate> {
   @override
   void initState() {
     super.initState();
+    // The offline queue drains for as long as the app is alive, not just while a till screen is
+    // mounted: a sale queued in airplane mode must go up even if the cashier never reopens the
+    // screen it was taken on.
+    ref.read(syncFlusherProvider).start();
     Future.delayed(const Duration(milliseconds: 2200), () {
       if (mounted) setState(() => _showSplash = false);
     });

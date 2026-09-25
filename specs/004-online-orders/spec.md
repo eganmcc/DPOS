@@ -72,3 +72,16 @@ Server: `POST /online-orders/simulate` (F&B cashier) → COMPLETED online order;
 lists it NEW; `POST /:id/accept` → ACCEPTED; `GET /orders` shows it with `payment.method=ONLINE`;
 inventory decremented. App (F&B): within 1–3 min the badge + TTS fire; Pesanan → Online list; Terima
 clears the badge; Settings toggle Off stops it; grocery login → feature absent.
+
+## Amendments _(audited 2026-09-25)_
+
+- **Order of the Pesanan screen was reversed on purpose.** This spec says online orders sit *above*
+  the open bills; the till lists **the shop's own bills first**, online orders under them. The
+  merchant's own tables are what the cashier is working from all day.
+- **A processed order leaves the queue.** This spec says processed orders remain in the list. In the
+  shipped flow, printing the receipt from the order's detail screen calls
+  `POST /online-orders/:id/complete` and the order drops out of the queue — it stays in Riwayat and
+  in every report. The endpoint is a fourth one, beyond the three listed above.
+- **`POST /online-orders/simulate` has no business-type or role guard on the server.** "Nothing runs
+  on a grocery session" is enforced in the app only. It injects a real COMPLETED sale that moves
+  stock, so it must not exist on a deployment that is not a demo one. Not fixed.

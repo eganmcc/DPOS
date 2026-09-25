@@ -114,3 +114,16 @@ any future accuracy work.
 cd app && flutter analyze && flutter test     # includes voice_order_parse_test, voice_order_screen_test
 cd server && npm test                          # 14 suites; open-amount adds "a spoken sale"
 ```
+
+## Amendments _(audited 2026-09-25)_
+
+- **The till overrides the bench's recogniser tuning.** Whatever *Uji coba suara* is set to, the
+  voice order screen forces continuous listening and a minimum 6-second pause — an order has
+  thinking in it, and a 3-second cut-off ended the session between items.
+- **A stranded number attaches to the line above it.** "ayam geprek keju" … pause … "lima" is one
+  line of five, not a new line.
+- **A repeat within a few seconds is suppressed** and says so, rather than silently adding a second
+  line.
+- **A refused sale now says why** (fixed 2026-09-25). The spoken-price path had no error handling:
+  the exception escaped, Selesai stayed spinning and disabled, and the bill was stranded with no
+  message. It now shows the server's reason and the button comes back.

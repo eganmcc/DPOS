@@ -1,3 +1,4 @@
+import '../../core/sync_badge.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,6 +91,8 @@ class OrderScreen extends ConsumerWidget {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          // Only visible when the offline queue is not empty.
+          const SyncPendingBadge(),
           // Words first, then icons — mic first among them, because it is the one reached for
           // mid-service with both hands full.
           //

@@ -127,6 +127,7 @@ export class BankService {
    * reported, never reconciled away.
    */
   async reconciliation(merchantId: string, q: PeriodQuery) {
+    await this.assertConsent(merchantId);
     const { from, to } = range(q, 30);
 
     const [orders, settled] = await Promise.all([
@@ -238,6 +239,11 @@ export class BankService {
    * report happens to be bank-shaped would be a tenancy breach whatever the screen is called.
    */
   async activation(merchantId: string, opts: { portfolio: boolean; bankBranch?: string }) {
+    // Consent is handled per row rather than at the door, because this one report has to be able
+    // to COUNT the merchants who never consented — "how many of the ones we handed this to are
+    // trading" is the question, and dropping the silent ones would answer a different one. So a
+    // merchant without consent is counted in the funnel but not NAMED: no name, no CIF (A3).
+    // Asking about your own merchant is not an export, so the single-merchant view is not gated.
     const scope = opts.portfolio
       ? opts.bankBranch
         ? { bankBranch: opts.bankBranch }
@@ -281,14 +287,17 @@ export class BankService {
         }),
       ]);
       const onboarded = m.onboardedAt ?? m.createdAt;
+      const consented = m.dataConsentAt != null && m.dataConsentRevokedAt == null;
+      // Withheld, not blank: a reader must be able to tell "did not consent" from "no data".
+      const named = consented || !opts.portfolio;
       rows.push({
         merchantId: m.id,
-        name: m.name,
+        name: named ? m.name : 'Tanpa persetujuan berbagi data',
         bankBranch: m.bankBranch,
-        bankCif: m.bankCif,
+        bankCif: named ? m.bankCif : null,
         hasQris: !!m.qrisNmid,
         hasEdc: !!m.edcTid,
-        consented: m.dataConsentAt != null && m.dataConsentRevokedAt == null,
+        consented,
         onboardedAt: onboarded.toISOString().slice(0, 10),
         firstSaleAt: first?.createdAt.toISOString().slice(0, 10) ?? null,
         daysToFirstSale: first
@@ -494,6 +503,7 @@ export class BankService {
 
   /** Laporan Laba Rugi Sederhana — the three figures DPOS can prove, plus what the merchant adds. */
   async profitAndLoss(merchantId: string, q: PeriodQuery & { expenses?: number }) {
+    await this.assertConsent(merchantId);
     const { from, to } = range(q, 30);
     const orders = await this.prisma.order.findMany({
       where: {
@@ -552,6 +562,7 @@ export class BankService {
    * correction trail, and patterns that betray editing after the fact.
    */
   async integrity(merchantId: string, q: PeriodQuery) {
+    await this.assertConsent(merchantId);
     const { from, to } = range(q, 90);
     const orders = await this.prisma.order.findMany({
       where: { merchantId, createdAt: { gte: from, lte: to } },

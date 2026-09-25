@@ -85,6 +85,40 @@ that does the joining, and the figures a scorecard actually eats.
     report offers is the anchor, the patterns that betray tampering, and an audit trail — and it
     says which of the three it is relying on.
 
+### G. Laporan — the journal reports _(added 2026-09-25; shipped 2026-09-21)_
+
+The bank reports above answer "can this merchant repay". The merchant's own accountant asks a
+different question — **show me the transactions** — and these answer it. They ship as five
+merchant-facing reports under one **Laporan** menu in the portal:
+
+| Report | Endpoint | What it is |
+|---|---|---|
+| Jurnal Transaksi | `GET /admin/journal/transactions` | Every sale, newest first, corrections included and labelled, paged, exportable as CSV |
+| Rekap Harian | `GET /admin/journal/daily` | One row per day: transactions, subtotal, tax, cash, non-cash, gross, voided count |
+| Jurnal Koreksi | `GET /admin/journal/corrections` | Every void, refund and cancelled bill with reason, actor and approver; self-approved counted separately |
+| Rekap Pajak | `GET /admin/journal/tax` | Base, tax and service per day, at the rate snapshotted on the sale |
+| Jurnal Umum | `GET /admin/journal/general` | Double-entry postings per day: Kas / Bank against Pendapatan, Pajak Terutang, Service Charge; HPP against Persediaan |
+
+**G19.** A voided sale stays in Jurnal Transaksi, labelled. A journal that filters out its own
+corrections is the one nobody can audit.
+
+**G20.** Jurnal Umum states whether each day balances, and the response carries the check rather
+than the screen assuming it. A day that does not balance says **TIDAK SEIMBANG** instead of showing
+a tidy total. A voided sale posts nowhere at all.
+
+**G21.** These are **OWNER and MANAGER**, unlike the bank reports above, which are OWNER only — a
+manager closing a till needs the day's own figures.
+
+**G22. They are NOT consent-gated, and that is deliberate** _(decided 2026-09-25)_. Consent in A3
+governs sharing this merchant's data **with the bank**. These five serve a merchant its own
+transactions to its own staff; gating them would leave every merchant that never onboarded through
+a bank unable to read its own books. The four bank-facing reports — reconciliation, credit profile,
+laba rugi and integritas — do carry the gate.
+
+**G23.** The activation funnel (C) is the one report consent cannot gate at the door: its job is to
+count the merchants who never traded, including those who never consented. A merchant without
+consent is **counted but not named** — no name, no CIF — when the report is read across a portfolio.
+
 ## Constitution
 
 - **III — the server owns money math.** Nothing here computes money on a client. Every figure is
@@ -109,6 +143,27 @@ Every report here is a flat line on two days of sales. A seed writes **six month
 history** for the demo merchant — weekday/weekend rhythm, a Ramadan-Lebaran lift, closed days, a
 payment mix that moves toward QRIS, matching settlement rows with a deliberate handful of
 mismatches, and a few voids. It is clearly marked demo data and touches no other merchant.
+
+
+## Known gaps _(audited 2026-09-25)_
+
+Specified above, not built. Recorded here so the next session does not rediscover them:
+
+- **A3 consent can be read but never written.** The columns exist; no endpoint records or withdraws
+  consent. It is set by seed or by hand in the database.
+- **A1 outlet-level bank identifiers.** NMID, MPAN, TID and MID live on the merchant only, so
+  reconciliation filters DPOS orders by outlet while the settlement side cannot be filtered at all —
+  a per-outlet reconciliation on a multi-outlet merchant will report mismatches that are not real.
+- **A2 onboarding fields** (officer, branch, date) likewise have no write path.
+- **C9 "first login"** stage of the funnel: nothing records a last-seen or first-login time.
+- **F18** three of the six integrity metrics: corrections per 100 sales, voids by cashier, and the
+  offline-queued share (no order carries an offline marker, so the last one is unbuildable as
+  specified).
+- **E17** the laba rugi does not state which outlet it covers.
+- **`BANK_PORTFOLIO_KEY`** — the header key that widens the activation funnel across a portfolio
+  (`x-bank-key`) is set in no environment, so the funnel is a funnel of one in production.
+- An acquirer settlement row whose method reads **EWALLET** (the word the ingest DTO documents) can
+  never match: reconciliation folds wallets into the QRIS rail and compares the words verbatim.
 
 ## Verification
 

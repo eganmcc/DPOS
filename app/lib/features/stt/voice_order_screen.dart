@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -9,6 +10,7 @@ import '../../core/app_dialog.dart';
 import '../../core/brand.dart';
 import '../../core/money.dart';
 import '../../core/order_math.dart';
+import '../../core/submit_error.dart';
 
 import '../../data/models.dart';
 import '../../data/providers.dart';
@@ -134,18 +136,31 @@ class VoiceOrderScreen extends ConsumerWidget {
       lines: usable,
       tendered: outcome.tendered!,
     );
-    final result = await ref.read(syncQueueProvider).submit(payload);
-    await ref.read(notaCounterProvider.notifier).finished();
-    if (result == null) {
-      messenger.showSnackBar(SnackBar(content: Text(t.msgQueuedOffline)));
+    // A refused sale reaches here as a thrown DioException (SyncQueue rethrows anything the server
+    // answered). Uncaught, it escaped past `_submitting = false` and left Selesai spinning for
+    // good, with no reason on screen — the keypad has caught this since 2026-09-21; this path
+    // never did.
+    try {
+      final result = await ref.read(syncQueueProvider).submit(payload);
+      await ref.read(notaCounterProvider.notifier).finished();
+      if (result == null) {
+        messenger.showSnackBar(SnackBar(content: Text(t.msgQueuedOffline)));
+        return true;
+      }
+      // Change from the SERVER's grand total — the figure the customer was actually charged.
+      messenger.showSnackBar(SnackBar(
+        content: Text(t.calcPaid(formatRupiah(outcome.tendered! - result.grandTotal))),
+        duration: const Duration(seconds: 4),
+      ));
       return true;
+    } on DioException catch (e) {
+      // Keep the lines on screen: nothing was recorded, so nothing should be lost.
+      messenger.showSnackBar(SnackBar(
+        content: Text(describeSubmitError(t, e)),
+        duration: const Duration(seconds: 5),
+      ));
+      return false;
     }
-    // Change from the SERVER's grand total — the figure the customer was actually charged.
-    messenger.showSnackBar(SnackBar(
-      content: Text(t.calcPaid(formatRupiah(outcome.tendered! - result.grandTotal))),
-      duration: const Duration(seconds: 4),
-    ));
-    return true;
   }
 }
 
@@ -384,15 +399,34 @@ class _VoiceOrderBodyState extends State<VoiceOrderBody> {
   Future<void> _finish() async {
     if (_isEmpty || _blocking > 0 || _submitting) return;
     setState(() => _submitting = true);
-    final ok = await widget.onFinish(_mode, List.of(_checks), List.of(_priced));
-    if (!mounted) return;
-    setState(() {
-      _submitting = false;
-      if (ok) {
-        _checks.clear();
-        _priced.clear();
+    var ok = false;
+    try {
+      ok = await widget.onFinish(_mode, List.of(_checks), List.of(_priced));
+    } catch (e, st) {
+      // `onFinish` reports its own refusals; anything reaching here is unexpected. It must not
+      // escape a tap handler, and it must not be silent either — so: logged for the developer,
+      // and a line for the cashier that does not claim more than we know. Whether the sale was
+      // recorded is exactly what Riwayat can answer and we cannot.
+      FlutterError.reportError(FlutterErrorDetails(exception: e, stack: st, library: 'voice order'));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(AppLocalizations.of(context)!.voiceFinishFailed)),
+        );
       }
-    });
+    } finally {
+      // Whatever happens, the button comes back. An escaping exception used to leave it spinning
+      // and disabled with the bill stranded on screen, so the cashier could neither retry nor
+      // leave. `onFinish` reports its own failures; this is the backstop.
+      if (mounted) {
+        setState(() {
+          _submitting = false;
+          if (ok) {
+            _checks.clear();
+            _priced.clear();
+          }
+        });
+      }
+    }
     if (ok && mounted) Navigator.of(context).maybePop();
   }
 

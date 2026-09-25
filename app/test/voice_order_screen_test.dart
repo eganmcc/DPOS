@@ -78,6 +78,7 @@ void main() {
   late List<PricedLine> finishedPriced;
   late VoiceOrderMode? finishedMode;
   late bool finishSucceeds;
+  late bool finishThrows;
 
   Variant v(String n, {int? stock, int price = 10000}) => Variant(
       id: 'v-$n', name: n, price: price, sku: null,
@@ -107,6 +108,7 @@ void main() {
             finishedMode = m;
             finishedChecks = checks;
             finishedPriced = priced;
+            if (finishThrows) throw Exception('server refused it');
             return finishSucceeds;
           },
           restartDelay: Duration.zero,
@@ -133,6 +135,7 @@ void main() {
     finishedPriced = [];
     finishedMode = null;
     finishSucceeds = true;
+    finishThrows = false;
     catalog = [
       Product(id: 'p1', name: 'Nasi Goreng', categoryName: 'Makanan', isAvailable: true,
           variants: [v('Porsi', stock: 5, price: 25000)], modifierGroups: const []),
@@ -443,6 +446,24 @@ void main() {
 
       expect(find.text('Nasi Goreng'), findsOneWidget,
           reason: 'nothing was recorded, so nothing may be cleared');
+    });
+
+    testWidgets('a submit that THROWS leaves Selesai usable and the bill intact', (tester) async {
+      // Until 2026-09-25 the exception escaped past the _submitting reset: the button spun for
+      // ever, disabled, with the bill stranded — the cashier could neither retry nor leave.
+      finishThrows = true;
+      await pump(tester, mode: VoiceOrderMode.openPrice);
+      await say(tester, 'pecel lele 100');
+      await tester.tap(find.byKey(const ValueKey('voice-selesai')));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isA<Exception>(),
+          reason: 'reported for the developer, not swallowed');
+      expect(find.text('pecel lele'), findsOneWidget, reason: 'nothing recorded, nothing lost');
+      final button = tester.widget<FilledButton>(find.byKey(const ValueKey('voice-selesai')));
+      expect(button.onPressed, isNotNull, reason: 'the button must come back');
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(find.textContaining('Gagal menyelesaikan'), findsOneWidget);
     });
 
     testWidgets('the till keeps listening through a pause, whatever the bench is set to',

@@ -4,7 +4,7 @@
 > Update the **Current status** and **Next steps** at the end of each working session, then commit.
 > Full design/decisions live in [`specs/001-pos-mvp/`](specs/001-pos-mvp/) (Spec Kit artifacts).
 
-_Last updated: 2026-09-21._
+_Last updated: 2026-09-25._
 
 ## What this project is
 Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub Spec Kit)**.
@@ -56,6 +56,51 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 >   assertion to the new contract, explicitly (as done today in `voice_order_screen_test.dart`).
 >
 > Still the biggest gap: voice has never had a clean end-to-end run on a device. Item 2 of Next steps.
+
+> ### 2026-09-25 (PC) — spec↔code audit: six defects fixed on `fix/spec-gaps`, specs reconciled
+>
+> All 11 specs were audited against `main` @ `6fa84e7`. ~20 drifts and ~15 unbuilt requirements.
+> Work is on **`fix/spec-gaps`** (short-lived, not merged) at the user's request so it can be tested
+> before it reaches the trunk.
+>
+> **Fixed (six).**
+> 1. **Consent was enforced on one bank report out of five.** `assertConsent()` now guards
+>    reconciliation, laba rugi and integritas as well as the credit profile. The **journal** reports
+>    are deliberately NOT gated — they are the merchant's own books read by its own staff; gating
+>    them would lock out every merchant that never onboarded through a bank (spec 011 §G22).
+>    Activation is per-row: a merchant without consent is counted in the funnel but not named.
+> 2. **The offline queue never sent.** `SyncQueue.flush()` had no callers and `connectivity_plus`
+>    was never imported, so "Tersimpan offline — akan tersinkron saat online" was false. New
+>    `data/sync_flusher.dart` drains on connectivity regained, on app resume and on a 60s timer,
+>    started from `_RootGate`, with a pending badge on both till app bars.
+>    **Also:** a sale the server REFUSED used to stay `pending`. A naive flush would have retried it
+>    for ever and could have created a sale minutes after the cashier was told it failed — refused
+>    orders are now marked `rejected` and never replayed. Only "never reached the server" retries.
+> 3. **A partly refunded sale could still be voided** (`VOID_AFTER_REFUND`): money and stock were
+>    reversed twice, and the app offered the button next to "Sudah direfund".
+> 4. **An online order could be refunded through the API** (`REFUND_NOT_IN_APP`); only Flutter checked.
+> 5. **`GET /demo/directory` published demo PINs with no auth.** Now 404 unless `DEMO_LOGINS=1`
+>    (**set this on the demo EC2 box or the login picker goes empty**), and rotating a PIN in the
+>    portal clears `demoPin` so a stale PIN is never published.
+> 6. **A refused spoken-price voice sale hung the screen** — no try/catch, so Selesai span for ever.
+>
+> **Specs reconciled:** 001 carries a supersession table (cashier voids, refunds, hold/park, tenders,
+> the bank-key exception) and its data-model and OpenAPI are marked where the code outgrew them;
+> 011 gained §G for the whole Laporan journal suite (shipped 21 Sep, previously in no spec) plus a
+> Known-gaps list; 004, 009, 010 gained amendment notes. `docs/qa/fsd.md` has 6 new cases.
+>
+> **NOT VERIFIED: the server suite did not run.** RDS refused TCP 5432 from this PC all afternoon
+> (it worked that morning), there is no local Postgres and no Docker here. `npx tsc --noEmit` is
+> clean and the new tests are written (`demo.directory.e2e-spec.ts` + cases in bank.reporting,
+> orders.void, orders.refund) but **unrun** — run `cd server && npm test` before merging.
+> Flutter is green: `flutter analyze` clean, **278 tests**, including 7 new flusher tests.
+>
+> **Backlog the audit found and nobody has built** (recorded in the specs, not fixed): shifts and the
+> cash drawer, discounts in the app, tax-rule editing, product photos, outlet switching in the app,
+> recording consent, outlet-level bank identifiers, the portal in Bahasa Indonesia, UTC-vs-Jakarta
+> report days, raw tender enum codes on 4 surfaces, the partial-refund proportion using net-over-gross,
+> the tenant-isolation and offline-sync test suites, and the `NOTA_RESULT` PII log.
+>
 
 > ### 2026-09-21 (latest, Mac) — first device run of nota → order failed; fixed (app 0.5.1)
 >

@@ -9,6 +9,15 @@ class AppLocalizationsId extends AppLocalizations {
   AppLocalizationsId([String locale = 'id']) : super(locale);
 
   @override
+  String get voiceFinishFailed =>
+      'Gagal menyelesaikan — periksa Riwayat sebelum mengulang.';
+
+  @override
+  String syncPending(int count) {
+    return '$count penjualan belum terkirim — ketuk untuk coba lagi';
+  }
+
+  @override
   String get appTitle => 'DPOS';
 
   @override

@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import {
   InventoryReason,
+  OrderChannel,
   OrderStatus,
   PaymentDirection,
   PaymentStatus,
@@ -61,6 +62,18 @@ export class RefundService {
     }
     if (order.voids.length > 0) {
       throw new ConflictException('A voided sale cannot be refunded');
+    }
+
+    // The delivery platform took the customer's money and owns giving it back; refunding here
+    // would credit stock and write a reversal against a charge this merchant never captured
+    // (specs/005). The app hides the button, but a hidden button is not a control.
+    // "Online" is every channel that is not the till, the same test the app and the online-order
+    // queries use (`channel: { not: POS }`) — so a new platform is covered the day it is added.
+    if (order.channel !== OrderChannel.POS) {
+      throw new ConflictException({
+        code: 'REFUND_NOT_IN_APP',
+        message: 'An online order is refunded by the platform that took the payment',
+      });
     }
 
     // How much of each line, and how much money, has already been refunded.

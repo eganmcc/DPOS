@@ -6,6 +6,24 @@
 
 **Status**: Draft
 
+> **Partly superseded — read this first (audited 2026-09-25).** This is the MVP spec; features
+> 004–011 changed some of its rules, and the changes were made in code without amending it here.
+> Where they disagree, the later spec wins:
+>
+> | This spec says | Now | Where |
+> |---|---|---|
+> | A cashier's void is denied outright (US3-AS3, SC-005) | A cashier may void with a manager's or owner's PIN; at a UMI merchant nobody is asked | specs/005, specs/006 |
+> | Refund is "a later capability"; partial refund out of scope | Full and per-item refunds ship | specs/005 |
+> | Hold/park a bill (FR-008, `DRAFT`/`HELD`) | Never built. Open bills at `AWAITING_PAYMENT` do this job, one per table, stock committed at save | specs/004 |
+> | Two payment methods (cash, QRIS) | Nine: cash, QRIS, three cards, three wallets, and platform-paid | specs/007 |
+> | One merchant never reads another's data (FR-025) | Still true, with one deliberate exception: the bank portfolio funnel behind `x-bank-key` | specs/011 |
+>
+> **Still true and still unbuilt** (not superseded, simply never done): FR-004 tax/service editing,
+> FR-003 product photos, FR-006 discounts in the app, FR-027 outlet switching in the app, FR-030 the
+> portal in Bahasa Indonesia, FR-013 share-as-image, US9 shifts and the cash drawer, and the
+> tenant-isolation and offline-sync test suites (T040, T056). FR-020/FR-022 offline sync was half
+> built — the queue never drained — and was completed on 2026-09-25.
+
 **Input**: Build a working prototype/MVP mobile POS for Indonesian F&B merchants (café, restaurant, warung), running on phone and tablet, with a minimal web admin, benchmarked against Mandiri Livin' Merchant. Payments are simulated for the board demo but architected for a real provider later. The data model must be extensible toward simple retail.
 
 ## User Scenarios & Testing *(mandatory)*

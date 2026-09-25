@@ -9,6 +9,15 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get voiceFinishFailed =>
+      'Could not finish — check History before trying again.';
+
+  @override
+  String syncPending(int count) {
+    return '$count sales not yet sent — tap to retry';
+  }
+
+  @override
   String get appTitle => 'DPOS';
 
   @override

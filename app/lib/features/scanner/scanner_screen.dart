@@ -1,3 +1,4 @@
+import '../../core/sync_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -147,6 +148,8 @@ class _ScannerScreenState extends ConsumerState<ScannerScreen> {
             style: TextButton.styleFrom(foregroundColor: kBrandGold),
             child: Text(t.historyLabel, style: const TextStyle(fontWeight: FontWeight.w700)),
           ),
+          // Only visible when the offline queue is not empty.
+          const SyncPendingBadge(),
           if ((ref.watch(sessionProvider)?.isOwnerOrManager) ?? false)
             IconButton(
               tooltip: t.reportsTitle,

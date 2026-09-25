@@ -61,6 +61,17 @@ export class VoidService {
       throw new ConflictException('Only a COMPLETED order can be voided');
     }
 
+    // A refund has already reversed part of this sale — money and stock both. A void reverses the
+    // WHOLE charge and restores every SALE movement, so voiding now would pay the customer twice
+    // and credit the shelf twice. `status` does not catch it: a partial refund leaves the order
+    // COMPLETED. The remainder is corrected with another refund (specs/005).
+    if (order.refunds.length > 0) {
+      throw new ConflictException({
+        code: 'VOID_AFTER_REFUND',
+        message: 'This sale is partly refunded — refund the remainder instead of voiding',
+      });
+    }
+
     // Void is same-business-day only (Asia/Jakarta). Older sales must be corrected
     // with a refund instead — a full void of a past day would distort closed books.
     if (jakartaDayKey(order.createdAt) !== jakartaDayKey(new Date())) {

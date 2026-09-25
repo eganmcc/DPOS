@@ -225,4 +225,24 @@ describe('Refunds', () => {
     const refund = (await ctx.prisma.refund.findFirst({ where: { orderId: order.id } }))!;
     expect(refund.approvedById).toBe(fx.managerId); // who authorized it is on the record
   });
+
+  it('refuses to refund an online order — the platform took the money', async () => {
+    // specs/005: platform-paid sales are not refunded in-app. Only the Flutter client checked,
+    // so a direct POST restocked the shelf and wrote a reversal against a charge this merchant
+    // never captured.
+    const sim = await api()
+      .post('/api/v1/online-orders/simulate')
+      .set('Authorization', `Bearer ${fx.cashierToken}`)
+      .send({ outletId: fx.outletId })
+      .expect(201);
+
+    const res = await api()
+      .post(`/api/v1/orders/${sim.body.id}/refund`)
+      .set('Authorization', `Bearer ${fx.ownerToken}`)
+      .send({ clientRefundId: uuidv4(), reason: 'customer asked', full: true });
+
+    expect(res.status).toBe(409);
+    expect(res.body.code).toBe('REFUND_NOT_IN_APP');
+    expect(await ctx.prisma.refund.count({ where: { orderId: sim.body.id } })).toBe(0);
+  });
 });

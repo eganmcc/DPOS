@@ -74,6 +74,25 @@ describe('Bank reporting', () => {
       expect(res.status).toBe(403);
       await consent(fx); // restore for the rest of the suite
     });
+
+    it('gates every bank report, not just the credit one', async () => {
+      // A3 says the rule is enforced AT THE ENDPOINT. Until 2026-09-25 only credit-profile
+      // called it, so a merchant who never consented still exported its turnover, its
+      // cash/non-cash split and its correction rate through the reports next door.
+      await ctx.prisma.merchant.update({
+        where: { id: fx.merchantId },
+        data: { dataConsentAt: null, dataConsentRevokedAt: null },
+      });
+      for (const report of ['reconciliation', 'profit-loss', 'integrity']) {
+        const res = await get(report, fx.ownerToken);
+        expect([report, res.status, res.body.code]).toEqual([report, 403, 'DATA_CONSENT_REQUIRED']);
+      }
+      await consent(fx);
+      for (const report of ['reconciliation', 'profit-loss', 'integrity']) {
+        const res = await get(report, fx.ownerToken);
+        expect([report, res.status]).toEqual([report, 200]);
+      }
+    });
   });
 
   describe('the activation funnel cannot see across the tenancy', () => {

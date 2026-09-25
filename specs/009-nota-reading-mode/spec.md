@@ -132,3 +132,14 @@ with merchant consent, and removal of the PII log — before a non-demo merchant
 
 v1.9.0: Principle III's open-amount exception admits `HIGH_HUMAN_INTERACTION` and allows a line
 `label`; the business-type clause names the new type and its home surface.
+
+## Amendments _(audited 2026-09-25)_
+
+- **Corrections partly shipped.** Out of scope above says correcting a reading is a placeholder, and
+  that is still true of the **nota chat** ("Ya, perbaiki" → *belum tersedia*). The **Baca nota**
+  reader screen on an F&B till does have one: tapping a line edits its name, quantity or price, the
+  line is marked *diubah*, and the totals and the written-vs-lines difference recalculate.
+- **§F6 "lines only" is not quite what ships.** The reading's *name* field also decides seating: a
+  numeric value makes the order dine-in at that table (leading zeros dropped) and the field is
+  relabelled **Meja**; anything else is takeaway. It is shown on screen before the order is made,
+  but it is more than the lines.
