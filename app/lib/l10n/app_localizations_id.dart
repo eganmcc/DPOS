@@ -9,6 +9,10 @@ class AppLocalizationsId extends AppLocalizations {
   AppLocalizationsId([String locale = 'id']) : super(locale);
 
   @override
+  String get openBillOffline =>
+      'Tidak ada koneksi. Pesanan terbuka disimpan di server, jadi tidak bisa dibuat offline — sambungkan dulu.';
+
+  @override
   String get voiceFinishFailed =>
       'Gagal menyelesaikan — periksa Riwayat sebelum mengulang.';
 

@@ -98,6 +98,12 @@ abstract class AppLocalizations {
     Locale('id')
   ];
 
+  /// No description provided for @openBillOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection. Open bills live on the server, so one cannot be started offline — reconnect first.'**
+  String get openBillOffline;
+
   /// No description provided for @voiceFinishFailed.
   ///
   /// In en, this message translates to:

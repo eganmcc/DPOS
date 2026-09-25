@@ -27,6 +27,9 @@
 - **Changed:** APP-D10 — the sale now really does sync on reconnect, and a pending badge appears
   on the till while anything is queued. APP-C13 — voiding a partly refunded sale is now refused
   by the server with a named code rather than being merely hidden in the app.
+- **Added 26 Sep:** APP-O20 (an open bill offline is refused at once instead of hanging). Found
+  on the device: the offline test could not even be run on the F&B demo till, because both of its
+  branches are Open Bill and that path never reaches the sync queue.
 - **Retired:** none.
 
 This is what the DIKASIR Android app and the Customer Portal do today, written so QA can test each function against an expected result.
@@ -152,6 +155,7 @@ The cashier builds a cart from the product grid, then either pays straight away 
 | APP-O17 | Cancel a bill | Pesanan → **Batalkan pesanan** | *Pesanan dibatalkan, stok dikembalikan*; bill kept in history as cancelled |
 | APP-O18 | Search | Pesanan → **Cari meja** | List filters by table |
 | APP-O19 | No editing without a catalogue | Open a bill on Laundry Wangi or Kios Pak Darto | No pencil icon; the bill can only be settled or cancelled |
+| APP-O20 | Open bill offline | On an Open Bill branch, switch off Wi-Fi and mobile data, build a cart, tap **Proses Pesanan** | Refused **immediately** with *Tidak ada koneksi. Pesanan terbuka disimpan di server…* — not an 8-second wait and nothing happening. Nothing is saved, the cart is kept |
 
 ## 5. App — payment and receipts
 
@@ -556,6 +560,7 @@ The items below are known and expected today. Do not log them as new defects; do
 | Payments | QRIS, card (EDC) and e-wallet payments are simulated. No real acquirer or terminal is connected |
 | Online orders | Simulated by the demo toggle. No live delivery-platform integration |
 | Dates and times | Reports and the Portal use **UTC** calendar days, and Jurnal Transaksi shows times in UTC (7 hours behind Jakarta). A sale made after 00:00 and before 07:00 WIB appears under the previous day. A fix is planned |
+| Open bills | **Cannot be taken offline.** One table may hold only one open bill, and two offline devices would both think they had it, so an open bill is always written straight to the server. Paid sales queue offline as normal. The till now says so at once instead of hanging |
 | Grocery till | The barcode Scanner screen has no voice or Baca nota icon, and Baca nota is hidden on Grocery. Under review |
 | Voice order | Android only. A full end-to-end device pass has not been completed yet, so QA findings here are especially useful. The **Harga diucapkan** mode is offered on catalogue merchants too, but saving it needs an open-amount item that only Calculator and Nota merchants have: record what Selesai does there. (A refused sale now reports its reason instead of hanging — fixed 25 Sep.) |
 | Calculator mode | Cash only. A committed line cannot be deleted on its own. Nota # is kept on the phone and resets daily and on logout |

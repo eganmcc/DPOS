@@ -15,6 +15,7 @@
 > | A cashier's void is denied outright (US3-AS3, SC-005) | A cashier may void with a manager's or owner's PIN; at a UMI merchant nobody is asked | specs/005, specs/006 |
 > | Refund is "a later capability"; partial refund out of scope | Full and per-item refunds ship | specs/005 |
 > | Hold/park a bill (FR-008, `DRAFT`/`HELD`) | Never built. Open bills at `AWAITING_PAYMENT` do this job, one per table, stock committed at save | specs/004 |
+> | Offline sales (FR-020/FR-022) | True of PAID sales, which queue and replay. **An open bill cannot be taken offline at all**: one table holds one open bill, so it is written straight to the server and never queued. Verified on a device 2026-09-26 | specs/004 |
 > | Two payment methods (cash, QRIS) | Nine: cash, QRIS, three cards, three wallets, and platform-paid | specs/007 |
 > | One merchant never reads another's data (FR-025) | Still true, with one deliberate exception: the bank portfolio funnel behind `x-bank-key` | specs/011 |
 >

@@ -9,6 +9,10 @@ class AppLocalizationsEn extends AppLocalizations {
   AppLocalizationsEn([String locale = 'en']) : super(locale);
 
   @override
+  String get openBillOffline =>
+      'No connection. Open bills live on the server, so one cannot be started offline — reconnect first.';
+
+  @override
   String get voiceFinishFailed =>
       'Could not finish — check History before trying again.';
 

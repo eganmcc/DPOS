@@ -57,6 +57,27 @@ Indonesian mobile POS (F&B-first) built with **Spec-Driven Development (GitHub S
 >
 > Still the biggest gap: voice has never had a clean end-to-end run on a device. Item 2 of Next steps.
 
+> ### 2026-09-26 (PC) — device test found what the audit did not: open bills are online-only
+>
+> Phone on **0.5.1 / build 2121** (release-signed, `fix/spec-gaps`). The offline test could not be
+> run on the F&B demo till at all: **both Warung Kopi branches are OPEN_BILL**, so the cart's button
+> is *Proses Pesanan* and that path never touches the sync queue.
+>
+> `confirmOpenBill` (`order_screen.dart`) reads `/orders/open` first as a friendly "is this table
+> taken" check, then posts through `ApiClient` directly. Offline: the read hit the 8-second connect
+> timeout and the exception escaped the function **uncaught** — the cashier pressed the button and
+> nothing happened at all. Fixed: it now says *Tidak ada koneksi. Pesanan terbuka disimpan di
+> server…* straight away, and the takeaway path (no table, so no pre-check) says the same on submit.
+>
+> **Open bills stay online-only on purpose.** One table holds one open bill; two offline devices
+> would both believe they had it, and the server's 409 on replay would need a resolution flow that
+> does not exist. Recorded in specs/001 and `docs/qa/fsd.md` §16 + case APP-O20.
+>
+> **Still unverified: the offline queue on a device.** Retest on **Kios Pak Darto** (calculator
+> keypad, owner PIN 2222) — that path submits with its payment, so it queues. Flutter 278 tests and
+> `flutter analyze` clean.
+>
+
 > ### 2026-09-25 (PC) — spec↔code audit: six defects fixed on `fix/spec-gaps`, specs reconciled
 >
 > All 11 specs were audited against `main` @ `6fa84e7`. ~20 drifts and ~15 unbuilt requirements.

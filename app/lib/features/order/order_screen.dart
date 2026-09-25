@@ -985,7 +985,23 @@ Future<bool> confirmOpenBill(BuildContext context, WidgetRef ref) async {
   // *different* open bill is rejected.
   final norm = state.tableLabel?.trim().toUpperCase();
   if (norm != null && norm.isNotEmpty) {
-    final open = await ref.read(openBillsProvider(session.outletId).future);
+    // This pre-check READS THE SERVER, so it is also where an offline till finds out it cannot
+    // save an open bill at all: the bill itself is posted straight to the API (below), never
+    // queued, because one table may hold only one open bill and two offline devices would both
+    // think they had it. Until 2026-09-26 the failure escaped this function uncaught — the cashier
+    // pressed Proses Pesanan, waited 8 seconds for the connect timeout, and got nothing at all.
+    final List<OrderResult> open;
+    try {
+      open = await ref.read(openBillsProvider(session.outletId).future);
+    } on DioException catch (e) {
+      if (!context.mounted) return false;
+      await showAppDialog(
+        context,
+        kind: AppDialogKind.error,
+        message: e.response == null ? t.openBillOffline : describeSubmitError(t, e),
+      );
+      return false;
+    }
     if (!context.mounted) return false;
     if (open.any((o) =>
         o.id != state.revisingOrderId && (o.tableLabel ?? '').toUpperCase() == norm)) {
@@ -1020,8 +1036,13 @@ Future<bool> confirmOpenBill(BuildContext context, WidgetRef ref) async {
       await showAppDialog(
         context,
         kind: AppDialogKind.error,
-        // 409 here is the table already having an open bill; anything else, the server's reason.
-        message: e.response?.statusCode == 409 ? t.tableExists : describeSubmitError(t, e),
+        // 409 here is the table already having an open bill; no response at all means offline,
+        // and an open bill cannot be taken offline; anything else, the server's reason.
+        message: e.response == null
+            ? t.openBillOffline
+            : e.response!.statusCode == 409
+                ? t.tableExists
+                : describeSubmitError(t, e),
       );
     }
     return false;

@@ -1,5 +1,6 @@
 {
   "@@locale": "en",
+  "openBillOffline": "No connection. Open bills live on the server, so one cannot be started offline — reconnect first.",
   "voiceFinishFailed": "Could not finish — check History before trying again.",
   "syncPending": "{count} sales not yet sent — tap to retry",
   "@syncPending": {
